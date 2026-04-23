@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter
+    xmlns="https://github.com/spotbugs/filter/3.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0
+                        https://raw.githubusercontent.com/spotbugs/spotbugs/4.8.6/spotbugs/etc/findbugsfilter.xsd">
+
+    <!-- Generated MapStruct implementations -->
+    <Match>
+        <Class name="~.*MapperImpl"/>
+    </Match>
+
+    <!-- DTOs: records / simple value holders trip EI_EXPOSE_REP for array fields -->
+    <Match>
+        <Package name="~com\.acme\.weeklycommit\.api\.dto.*"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Package name="~com\.acme\.weeklycommit\.domain\.dto.*"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- JPA entities: bidirectional refs and calendar/date fields flag false positives.
+         We narrow to the minimum set. -->
+    <Match>
+        <Package name="~com\.acme\.weeklycommit\.domain\.entity.*"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Spring Boot application class uses SpringApplication.run intentionally -->
+    <Match>
+        <Class name="com.acme.weeklycommit.WeeklyCommitServiceApplication"/>
+        <Bug pattern="DM_EXIT"/>
+    </Match>
+
+</FindBugsFilter>
