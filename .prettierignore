@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+coverage/
+.nx/
+.yarn/
+libs/contracts/generated/
+apps/weekly-commit-service/target/
+*.md
