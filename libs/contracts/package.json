@@ -1,0 +1,14 @@
+{
+  "name": "@wc/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenAPI contract source of truth. TS types generated via openapi-typescript; Java via openapi-generator-maven-plugin.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "generate:ts": "openapi-typescript openapi.yaml -o generated/types.d.ts"
+  }
+}

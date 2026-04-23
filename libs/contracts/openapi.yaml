@@ -1,0 +1,12 @@
+openapi: 3.0.3
+info:
+  title: Weekly Commit API
+  version: 0.1.0
+  description: |
+    Source of truth for REST contract between weekly-commit-ui and weekly-commit-service.
+    Fleshed out in task group 6 (Backend: REST API + DTOs).
+servers:
+  - url: /api/v1
+paths: {}
+components:
+  schemas: {}

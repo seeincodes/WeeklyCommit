@@ -1,0 +1,14 @@
+{
+  "name": "@wc/ui-components",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Flowbite React wrappers and shared UI primitives for the Weekly Commit module.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}
