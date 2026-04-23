@@ -12,7 +12,7 @@ References: setup prerequisite for [MVP18], [MVP23]
 - [x] Create workspace dirs: `apps/weekly-commit-ui`, `apps/weekly-commit-service`, `libs/ui-components`, `libs/rtk-api-client`, `libs/contracts`
 - [x] Root `.gitignore`, `.editorconfig`, `.nvmrc` (Node 20 LTS), `.tool-versions` (Java 21)
 - [x] Commit `docs/` scaffold, `CLAUDE.md`, `.env` template to main via one PR (committed to local `main` in the initial scaffold commit; open as PR once `origin` remote is added)
-- [ ] GitHub Actions shells for `frontend-pr.yml`, `backend-pr.yml`, `e2e-pr.yml` (lint/test-only initially)
+- [x] GitHub Actions shells for `frontend-pr.yml`, `backend-pr.yml`, `e2e-pr.yml` (lint/test-only initially)
 
 ### 2. Day-1 spikes (blocking — assumptions A1, A3, A6 + Flowbite)
 References: blockers for [MVP3], [MVP14], [MVP18]

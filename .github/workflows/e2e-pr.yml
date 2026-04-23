@@ -1,0 +1,55 @@
+name: e2e-pr
+
+on:
+  pull_request:
+    paths:
+      - 'apps/weekly-commit-ui/**'
+      - 'apps/weekly-commit-service/**'
+      - 'libs/**'
+      - '.github/workflows/e2e-pr.yml'
+  push:
+    branches: [main]
+
+concurrency:
+  group: e2e-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cypress-cucumber:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Setup JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Enable Corepack + pin Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@4.5.0 --activate
+
+      - name: Install JS deps
+        run: yarn install --immutable
+
+      # Placeholder: ephemeral env provisioning lives in task group 13.
+      # For now this job is a shell; it reports success on empty test matrix.
+      - name: Provision ephemeral env (placeholder)
+        run: echo "TODO task group 13 -- terraform apply against an ephemeral env"
+
+      - name: Cypress + Cucumber (placeholder)
+        run: echo "TODO task group 13 -- cypress run against host + remote"
+
+      - name: Tear down ephemeral env (placeholder)
+        if: always()
+        run: echo "TODO task group 13 -- terraform destroy"

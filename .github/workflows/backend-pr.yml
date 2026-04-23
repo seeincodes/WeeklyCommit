@@ -1,0 +1,54 @@
+name: backend-pr
+
+on:
+  pull_request:
+    paths:
+      - 'apps/weekly-commit-service/**'
+      - 'libs/contracts/**'
+      - '.github/workflows/backend-pr.yml'
+  push:
+    branches: [main]
+
+concurrency:
+  group: backend-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/weekly-commit-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Spotless check
+        run: ./mvnw -B spotless:check
+
+      - name: Compile + SpotBugs
+        run: ./mvnw -B compile spotbugs:check
+
+      - name: Unit tests
+        run: ./mvnw -B test
+
+      - name: Integration tests (Testcontainers)
+        run: ./mvnw -B verify -DskipUnitTests=true
+
+      - name: Coverage gate (JaCoCo >= 80%)
+        run: ./mvnw -B jacoco:report jacoco:check
+
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jacoco
+          path: apps/weekly-commit-service/target/site/jacoco
+          if-no-files-found: ignore

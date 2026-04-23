@@ -1,0 +1,71 @@
+name: frontend-pr
+
+on:
+  pull_request:
+    paths:
+      - 'apps/weekly-commit-ui/**'
+      - 'libs/ui-components/**'
+      - 'libs/rtk-api-client/**'
+      - 'libs/contracts/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - 'tsconfig.base.json'
+      - 'nx.json'
+      - '.github/workflows/frontend-pr.yml'
+  push:
+    branches: [main]
+
+concurrency:
+  group: frontend-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # nx affected needs full history
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Enable Corepack + pin Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@4.5.0 --activate
+
+      - name: Install
+        run: yarn install --immutable
+
+      - name: Prettier check
+        run: yarn format:check
+
+      - name: Lint (zero warnings)
+        run: yarn lint
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Unit tests with coverage
+        run: yarn test:unit
+
+      - name: Build remote
+        run: yarn build
+
+      - name: Playwright smoke (remote in isolation)
+        run: |
+          yarn workspace @wc/weekly-commit-ui exec playwright install --with-deps chromium
+          yarn workspace @wc/weekly-commit-ui run test:playwright
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: apps/weekly-commit-ui/coverage
+          if-no-files-found: ignore
