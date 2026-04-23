@@ -7,7 +7,7 @@ Phased work breakdown. Each task group references the [PRD.md](PRD.md) requireme
 ### 1. Repo + monorepo scaffold
 References: setup prerequisite for [MVP18], [MVP23]
 
-- [ ] Initialize git repo; protect `main`
+- [x] Initialize git repo; protect `main` (local init done; branch protection requires GitHub remote — configure via repo settings after `git remote add origin`)
 - [ ] Yarn workspaces + Nx root config (`nx.json`, `package.json` workspaces: `apps/*`, `libs/*`)
 - [ ] Create workspace dirs: `apps/weekly-commit-ui`, `apps/weekly-commit-service`, `libs/ui-components`, `libs/rtk-api-client`, `libs/contracts`
 - [ ] Root `.gitignore`, `.editorconfig`, `.nvmrc` (Node 20 LTS), `.tool-versions` (Java 21)
