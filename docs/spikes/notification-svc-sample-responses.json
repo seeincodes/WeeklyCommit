@@ -1,0 +1,101 @@
+{
+  "_note": "STUB DATA — invented during task group 2 spike. Must be replaced with a real capture from notification-svc before any code depends on these shapes. See docs/adr/0002-notification-svc-contract.md.",
+  "_capturedAt": "2026-04-23",
+  "_source": "invented",
+
+  "POST /notifications/send": {
+    "_description": "Send one notification. Caller is responsible for idempotency via idempotencyKey. Response is acknowledgment; actual delivery is async inside notification-svc.",
+    "exampleRequest": {
+      "method": "POST",
+      "url": "/notifications/send",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer <service-token>",
+        "X-Idempotency-Key": "wc-plan-f3b5-LOCKED-v3"
+      },
+      "body": {
+        "eventType": "WEEKLY_PLAN_LOCKED",
+        "recipientEmployeeId": "emp_a7c8d1",
+        "channel": "EMAIL",
+        "templateId": "weekly-commit.plan-locked.v1",
+        "templateVars": {
+          "weekStart": "2026-04-27",
+          "lockedAt": "2026-04-27T17:42:00Z",
+          "reconcileUrl": "https://app.internal/weekly-commit/current"
+        },
+        "metadata": {
+          "sourceService": "weekly-commit-service",
+          "planId": "f3b5a2c1-9f28-4f3c-8a61-1e5f3c9d2b44"
+        }
+      }
+    },
+    "exampleResponse": {
+      "data": {
+        "notificationId": "ntf_2026-04-27T17-42-00Z-8f3a",
+        "status": "QUEUED",
+        "acceptedAt": "2026-04-27T17:42:00.217Z"
+      },
+      "httpStatus": 202
+    }
+  },
+
+  "POST /notifications/send/batch": {
+    "_description": "Used by the unreviewed-72h digest job to send one digest to each skip-level manager in a single call. Each item still idempotency-keyed individually.",
+    "exampleRequest": {
+      "method": "POST",
+      "url": "/notifications/send/batch",
+      "body": {
+        "items": [
+          {
+            "eventType": "WEEKLY_UNREVIEWED_DIGEST",
+            "recipientEmployeeId": "emp_mgr_042",
+            "channel": "EMAIL",
+            "templateId": "weekly-commit.unreviewed-digest.v1",
+            "idempotencyKey": "wc-digest-mgr_042-2026-W17",
+            "templateVars": {
+              "weekLabel": "Week of 2026-04-20",
+              "unreviewedCount": 3,
+              "memberLinks": [
+                { "name": "Ada", "planUrl": "https://app.internal/weekly-commit/team/emp_a7c8d1" }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "exampleResponse": {
+      "data": {
+        "accepted": 1,
+        "rejected": 0,
+        "items": [
+          { "idempotencyKey": "wc-digest-mgr_042-2026-W17", "status": "QUEUED", "notificationId": "ntf_digest_mgr_042_W17" }
+        ]
+      },
+      "httpStatus": 202
+    }
+  },
+
+  "error responses": {
+    "_description": "Triggers Resilience4j paths. See RcdoClient/NotificationClient design in task group 7.",
+    "400": { "error": { "code": "VALIDATION_FAILED", "message": "templateId unknown", "field": "templateId" } },
+    "401": { "error": { "code": "UNAUTHORIZED", "message": "Missing or invalid service token" } },
+    "409": { "error": { "code": "DUPLICATE_IDEMPOTENCY_KEY", "message": "Already accepted; returning prior acceptance", "priorNotificationId": "ntf_2026-04-27T17-42-00Z-8f3a" } },
+    "429": { "error": { "code": "RATE_LIMITED", "message": "Retry after", "retryAfterSeconds": 10 } },
+    "503": { "error": { "code": "UPSTREAM_UNAVAILABLE", "message": "Downstream mail provider unreachable" } }
+  },
+
+  "template catalog (v1)": {
+    "weekly-commit.plan-locked.v1": {
+      "subject": "Your week is locked",
+      "vars": ["weekStart", "lockedAt", "reconcileUrl"]
+    },
+    "weekly-commit.plan-reconciled-to-manager.v1": {
+      "subject": "{employeeName} just reconciled their week",
+      "vars": ["employeeName", "reflectionPreview", "reviewUrl"]
+    },
+    "weekly-commit.unreviewed-digest.v1": {
+      "subject": "Unreviewed weekly commits on your skip-level team",
+      "vars": ["weekLabel", "unreviewedCount", "memberLinks"]
+    }
+  }
+}
