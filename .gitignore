@@ -1,0 +1,123 @@
+# ------------------------------------------------------------
+# Environment & secrets
+# ------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+*.pem
+*.p12
+.terraform.tfstate
+.terraform.tfstate.backup
+.terraform/
+*.tfvars
+!terraform.tfvars.example
+
+# ------------------------------------------------------------
+# Node / Yarn / Vite / Frontend
+# ------------------------------------------------------------
+node_modules/
+.yarn/cache
+.yarn/install-state.gz
+.yarn/build-state.yml
+.pnp.*
+.cache/
+.nx/cache
+.nx/workspace-data
+dist/
+build/
+out/
+.parcel-cache/
+.vite/
+.turbo/
+*.tsbuildinfo
+coverage/
+.vitest-cache/
+.playwright/
+test-results/
+playwright-report/
+cypress/videos/
+cypress/screenshots/
+cypress/downloads/
+.sentryclirc
+
+# ------------------------------------------------------------
+# Java / Spring Boot / Maven / Gradle
+# ------------------------------------------------------------
+target/
+!src/**/target/
+build/
+!src/**/build/
+.gradle/
+gradle-app.setting
+.gradletasknamecache
+*.class
+*.jar
+!mvnw.jar
+!gradle-wrapper.jar
+*.war
+*.nar
+*.ear
+*.log
+hs_err_pid*
+replay_pid*
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+dependency-reduced-pom.xml
+
+# JaCoCo / PITest / SpotBugs / Checkstyle reports
+jacoco.exec
+*.exec
+site/
+pit-reports/
+spotbugsXml.xml
+
+# ------------------------------------------------------------
+# IDEs / editors
+# ------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/*
+!.vscode/settings.json.example
+!.vscode/extensions.json
+.settings/
+.project
+.classpath
+.factorypath
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ------------------------------------------------------------
+# OS / misc
+# ------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.AppleDouble
+.LSOverride
+
+# ------------------------------------------------------------
+# Logs
+# ------------------------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ------------------------------------------------------------
+# Testcontainers / Docker scratch
+# ------------------------------------------------------------
+.testcontainers/
+
+# ------------------------------------------------------------
+# Generated OpenAPI clients (re-generated on build)
+# ------------------------------------------------------------
+libs/contracts/generated/
