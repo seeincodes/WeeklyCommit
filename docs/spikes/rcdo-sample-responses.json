@@ -1,0 +1,76 @@
+{
+  "_note": "STUB DATA — invented during task group 2 spike. Must be replaced with a real capture from the RCDO service before any code depends on these shapes. See docs/adr/0001-rcdo-contract.md.",
+  "_capturedAt": "2026-04-23",
+  "_source": "invented",
+
+  "GET /rcdo/supporting-outcomes?orgId={orgId}&active=true": {
+    "_description": "Picker list. Returns active Supporting Outcomes with enough metadata for typeahead + breadcrumb. Hydration is shallow: each row carries its 4-level breadcrumb inline to avoid N+1 picker queries.",
+    "exampleRequest": "GET /rcdo/supporting-outcomes?orgId=org_8f3a&active=true",
+    "exampleResponse": {
+      "data": [
+        {
+          "id": "so_c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44",
+          "label": "Alignment tooling GA",
+          "active": true,
+          "breadcrumb": {
+            "rallyCry":          { "id": "rc_01", "label": "Unblock product-led growth" },
+            "definingObjective": { "id": "do_04", "label": "Product-led GTM" },
+            "coreOutcome":       { "id": "co_09", "label": "Tooling readiness" },
+            "supportingOutcome": { "id": "so_c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44", "label": "Alignment tooling GA" }
+          },
+          "ownerEmployeeId": "emp_a7c8d1",
+          "updatedAt": "2026-04-18T14:22:17Z"
+        }
+      ],
+      "meta": {
+        "orgId": "org_8f3a",
+        "totalCount": 47,
+        "etag": "W/\"rcdo-so-list-2026-04-18T14:22:17Z\""
+      }
+    }
+  },
+
+  "GET /rcdo/supporting-outcomes/{id}?hydrate=full": {
+    "_description": "Single-outcome hydration used server-side for label rehydration on commit reads. `hydrate=full` guarantees breadcrumb is present.",
+    "exampleRequest": "GET /rcdo/supporting-outcomes/so_c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44?hydrate=full",
+    "exampleResponse": {
+      "data": {
+        "id": "so_c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44",
+        "label": "Alignment tooling GA",
+        "active": true,
+        "breadcrumb": {
+          "rallyCry":          { "id": "rc_01", "label": "Unblock product-led growth" },
+          "definingObjective": { "id": "do_04", "label": "Product-led GTM" },
+          "coreOutcome":       { "id": "co_09", "label": "Tooling readiness" },
+          "supportingOutcome": { "id": "so_c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44", "label": "Alignment tooling GA" }
+        },
+        "ownerEmployeeId": "emp_a7c8d1",
+        "deactivatedAt": null,
+        "createdAt": "2026-02-11T09:00:00Z",
+        "updatedAt": "2026-04-18T14:22:17Z"
+      },
+      "meta": {
+        "etag": "W/\"rcdo-so-c4a1e7b2-2026-04-18T14:22:17Z\""
+      }
+    }
+  },
+
+  "GET /rcdo/supporting-outcomes/{id}?hydrate=full — NOT FOUND": {
+    "_description": "Expected behavior when an outcome was deleted upstream after a commit was created. The commit retains supportingOutcomeId; our backend returns the commit with supportingOutcome=null and a deletedUpstream flag. Verified by unit test (not live).",
+    "exampleResponse": {
+      "error": {
+        "code": "SUPPORTING_OUTCOME_NOT_FOUND",
+        "message": "No supporting outcome with that id, or it was deactivated.",
+        "id": "so_deleted_999999"
+      },
+      "httpStatus": 404
+    }
+  },
+
+  "error responses": {
+    "_description": "Shapes the RCDO service returns on failure, per spike stub. If real service differs, update RcdoClient error mapping.",
+    "401": { "error": { "code": "UNAUTHORIZED", "message": "Missing or invalid service token" } },
+    "429": { "error": { "code": "RATE_LIMITED", "message": "Retry after", "retryAfterSeconds": 30 } },
+    "503": { "error": { "code": "UPSTREAM_UNAVAILABLE", "message": "Try again" } }
+  }
+}

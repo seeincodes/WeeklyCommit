@@ -17,7 +17,7 @@ References: setup prerequisite for [MVP18], [MVP23]
 ### 2. Day-1 spikes (blocking — assumptions A1, A3, A6 + Flowbite)
 References: blockers for [MVP3], [MVP14], [MVP18]
 
-- [ ] RCDO contract spike: hit `GET /rcdo/supporting-outcomes`, capture real response shape, reconcile with §3 / [TECH_STACK.md](TECH_STACK.md)
+- [x] RCDO contract spike: hit `GET /rcdo/supporting-outcomes`, capture real response shape, reconcile with §3 / [TECH_STACK.md](TECH_STACK.md) *(stubbed — see [ADR-0001](adr/0001-rcdo-contract.md); requires real capture before group 7 ships)*
 - [ ] notification-svc contract spike: confirm existence + request/response shape; escalate if absent (~1 week scope add)
 - [ ] PM remote reference: pull existing `vite.config.ts` Module Federation setup; mirror shape in `weekly-commit-ui`
 - [ ] Flowbite + `@host/design-system` token override spike; fall back to Headless UI + Tailwind if tokens don't override cleanly
