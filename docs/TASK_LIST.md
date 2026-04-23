@@ -20,7 +20,7 @@ References: blockers for [MVP3], [MVP14], [MVP18]
 - [x] RCDO contract spike: hit `GET /rcdo/supporting-outcomes`, capture real response shape, reconcile with §3 / [TECH_STACK.md](TECH_STACK.md) *(stubbed — see [ADR-0001](adr/0001-rcdo-contract.md); requires real capture before group 7 ships)*
 - [x] notification-svc contract spike: confirm existence + request/response shape; escalate if absent (~1 week scope add) *(stubbed — see [ADR-0002](adr/0002-notification-svc-contract.md); real capture required before group 7 ships)*
 - [x] PM remote reference: pull existing `vite.config.ts` Module Federation setup; mirror shape in `weekly-commit-ui` *(stubbed — see [ADR-0003](adr/0003-pm-remote-vite-config-mirror.md); real PM config required before group 9 scaffolds the remote)*
-- [ ] Flowbite + `@host/design-system` token override spike; fall back to Headless UI + Tailwind if tokens don't override cleanly
+- [x] Flowbite + `@host/design-system` token override spike; fall back to Headless UI + Tailwind if tokens don't override cleanly *(stubbed — see [ADR-0004](adr/0004-flowbite-token-override.md); real spike run at start of group 9)*
 - [ ] Spike findings written up as ADR in `docs/adr/` (one per spike)
 
 ### 3. Backend: scaffold + security + baseline
