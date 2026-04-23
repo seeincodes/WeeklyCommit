@@ -26,8 +26,8 @@ References: blockers for [MVP3], [MVP14], [MVP18]
 ### 3. Backend: scaffold + security + baseline
 References: [MVP20], [MVP23]
 
-- [ ] `apps/weekly-commit-service` Spring Boot 3.3 project; Java 21 toolchain
-- [ ] Dependencies per [TECH_STACK.md](TECH_STACK.md#backend-appsweekly-commit-service-mavengradle)
+- [x] `apps/weekly-commit-service` Spring Boot 3.3 project; Java 21 toolchain
+- [x] Dependencies per [TECH_STACK.md](TECH_STACK.md#backend-appsweekly-commit-service-mavengradle)
 - [ ] Package layout: `api/`, `domain/`, `repo/`, `service/`, `scheduled/`, `integration/`, `config/`
 - [ ] Spotless (google-java-format) + SpotBugs configured, wired to `mvn verify`
 - [ ] Auth0 OAuth2 resource server config; `JwtAuthenticationConverter` extracts `roles`, `sub`, `org_id`, `manager_id`, `timezone`
