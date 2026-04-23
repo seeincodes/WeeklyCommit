@@ -32,7 +32,7 @@ References: [MVP20], [MVP23]
 - [x] Spotless (google-java-format) + SpotBugs configured, wired to `mvn verify`
 - [x] Auth0 OAuth2 resource server config; `JwtAuthenticationConverter` extracts `roles`, `sub`, `org_id`, `manager_id`, `timezone`
 - [x] `@Auditing` via `AbstractAuditingEntity` base class
-- [ ] Health + `/actuator/info` version-stamp wired
+- [x] Health + `/actuator/info` version-stamp wired
 - [ ] Global exception handler mapping: 409 on `OptimisticLockException`, 422 on state guard violations, 403 on RBAC failure
 - [ ] `{ data, meta }` response envelope standardized
 
