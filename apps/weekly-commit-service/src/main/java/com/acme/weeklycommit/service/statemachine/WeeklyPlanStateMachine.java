@@ -59,9 +59,9 @@ public class WeeklyPlanStateMachine {
     plan.setState(target);
     switch (target) {
       case LOCKED -> plan.setLockedAt(now);
+      case RECONCILED -> plan.setReconciledAt(now);
       default -> {
-        // Other targets (RECONCILED, ARCHIVED) get their timestamps in later cycles as tests
-        // demand.
+        // ARCHIVED carries no separate timestamp — state itself is the record.
       }
     }
 
