@@ -1,6 +1,7 @@
 package com.acme.weeklycommit.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -24,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 @ExtendWith(MockitoExtension.class)
@@ -155,7 +157,91 @@ class WeeklyPlanServiceTest {
     assertThat(result).isSameAs(racedIn);
   }
 
+  // --- findPlan (GET /plans) ---
+
+  @Test
+  void findPlan_selfAccess_returnsPlanWhenExists() {
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    WeeklyPlan match = new WeeklyPlan(UUID.randomUUID(), employeeId, LocalDate.parse("2026-04-27"));
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, LocalDate.parse("2026-04-27")))
+        .thenReturn(Optional.of(match));
+
+    Optional<WeeklyPlan> result =
+        service(clock).findPlan(employeeId, LocalDate.parse("2026-04-27"), caller);
+
+    assertThat(result).contains(match);
+  }
+
+  @Test
+  void findPlan_selfAccess_returnsEmptyWhenNoPlan() {
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, LocalDate.parse("2026-04-27")))
+        .thenReturn(Optional.empty());
+
+    assertThat(service(clock).findPlan(employeeId, LocalDate.parse("2026-04-27"), caller))
+        .isEmpty();
+  }
+
+  @Test
+  void findPlan_manager_canReadAnyEmployeesPlan() {
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID managerId = UUID.randomUUID();
+    UUID targetEmployeeId = UUID.randomUUID();
+    AuthenticatedPrincipal manager = managerPrincipal(managerId);
+    WeeklyPlan match =
+        new WeeklyPlan(UUID.randomUUID(), targetEmployeeId, LocalDate.parse("2026-04-27"));
+    when(plans.findByEmployeeIdAndWeekStart(targetEmployeeId, LocalDate.parse("2026-04-27")))
+        .thenReturn(Optional.of(match));
+
+    Optional<WeeklyPlan> result =
+        service(clock).findPlan(targetEmployeeId, LocalDate.parse("2026-04-27"), manager);
+
+    assertThat(result).contains(match);
+  }
+
+  @Test
+  void findPlan_nonManagerReadingPeer_throwsAccessDenied() {
+    // Security invariant: an IC cannot read another IC's plan.
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID callerId = UUID.randomUUID();
+    UUID peerEmployeeId = UUID.randomUUID();
+    AuthenticatedPrincipal ic = principal(callerId, ZoneId.of("UTC"));
+
+    assertThatThrownBy(
+            () ->
+                service(clock)
+                    .findPlan(peerEmployeeId, LocalDate.parse("2026-04-27"), ic))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(plans, never()).findByEmployeeIdAndWeekStart(any(), any());
+  }
+
   // --- helpers ---
+
+  private static AuthenticatedPrincipal managerPrincipal(UUID employeeId) {
+    Jwt jwt =
+        new Jwt(
+            "token",
+            Instant.now(),
+            Instant.now().plusSeconds(60),
+            Map.of("alg", "RS256"),
+            Map.of(
+                "sub", employeeId.toString(),
+                "org_id", UUID.randomUUID().toString(),
+                "timezone", "UTC",
+                "roles", java.util.List.of("MANAGER")));
+    return new AuthenticatedPrincipal(
+        employeeId,
+        UUID.randomUUID(),
+        Optional.empty(),
+        Set.of("MANAGER"),
+        ZoneId.of("UTC"),
+        jwt);
+  }
 
   private static AuthenticatedPrincipal principal(UUID employeeId, ZoneId tz) {
     Jwt jwt =
