@@ -8,6 +8,7 @@ import com.acme.weeklycommit.repo.AuditLogRepository;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -56,6 +57,8 @@ public class WeeklyPlanStateMachine {
     }
 
     Instant now = Instant.now(clock);
+    guard(plan, from, target, now);
+
     plan.setState(target);
     switch (target) {
       case LOCKED -> plan.setLockedAt(now);
@@ -66,5 +69,17 @@ public class WeeklyPlanStateMachine {
     }
 
     return plans.save(plan);
+  }
+
+  /** Time-window checks beyond the transition table. Throws on violation; no-op on pass. */
+  private static void guard(WeeklyPlan plan, PlanState from, PlanState target, Instant now) {
+    if (from == PlanState.LOCKED && target == PlanState.RECONCILED) {
+      Instant opensAt =
+          plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
+      if (now.isBefore(opensAt)) {
+        throw new InvalidStateTransitionException(
+            from.name(), target.name(), "reconciliation window opens at " + opensAt);
+      }
+    }
   }
 }
