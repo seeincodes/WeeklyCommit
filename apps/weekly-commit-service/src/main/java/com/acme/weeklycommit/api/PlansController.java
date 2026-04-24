@@ -1,19 +1,23 @@
 package com.acme.weeklycommit.api;
 
 import com.acme.weeklycommit.api.dto.ApiEnvelope;
+import com.acme.weeklycommit.api.dto.TransitionRequest;
 import com.acme.weeklycommit.api.dto.WeeklyPlanMapper;
 import com.acme.weeklycommit.api.dto.WeeklyPlanResponse;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.service.WeeklyPlanService;
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -80,6 +84,20 @@ public class PlansController {
         planService
             .findPlan(employeeId, weekStart, caller)
             .orElseThrow(() -> new ResourceNotFoundException("WeeklyPlan", employeeId));
+    return ResponseEntity.ok(ApiEnvelope.of(mapper.toResponse(plan)));
+  }
+
+  /**
+   * Trigger a lifecycle transition. Owner-only authz (enforced by the service). Body shape is
+   * {@link TransitionRequest}. Invalid targets produce 422 via {@code
+   * InvalidStateTransitionException} from the state machine.
+   */
+  @PostMapping("/{planId}/transitions")
+  public ResponseEntity<ApiEnvelope<WeeklyPlanResponse>> transition(
+      @PathVariable UUID planId,
+      @Valid @RequestBody TransitionRequest request,
+      AuthenticatedPrincipal caller) {
+    WeeklyPlan plan = planService.transitionPlan(planId, request.to(), caller);
     return ResponseEntity.ok(ApiEnvelope.of(mapper.toResponse(plan)));
   }
 }
