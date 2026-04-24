@@ -71,4 +71,21 @@ class WeeklyPlanStateMachineTest {
         .matches(e -> ((InvalidStateTransitionException) e).getFromState().equals("DRAFT"))
         .matches(e -> ((InvalidStateTransitionException) e).getToState().equals("RECONCILED"));
   }
+
+  @Test
+  void transition_lockedToReconciled_setsStateAndReconciledAt() {
+    // weekStart 2026-04-27 => reconciliation opens 2026-05-01T00:00Z.
+    // FROZEN_NOW = 2026-05-01T12:00Z => window has opened.
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan locked = new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
+    locked.setState(PlanState.LOCKED);
+    locked.setLockedAt(Instant.parse("2026-04-27T17:00:00Z"));
+    when(plans.findById(planId)).thenReturn(Optional.of(locked));
+    when(plans.save(any(WeeklyPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    WeeklyPlan result = machine().transition(planId, PlanState.RECONCILED);
+
+    assertThat(result.getState()).isEqualTo(PlanState.RECONCILED);
+    assertThat(result.getReconciledAt()).isEqualTo(FROZEN_NOW);
+  }
 }
