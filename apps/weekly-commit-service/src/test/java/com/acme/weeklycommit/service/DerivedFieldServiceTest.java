@@ -42,4 +42,26 @@ class DerivedFieldServiceTest {
 
     assertThat(service().topRock(planId)).contains(rock);
   }
+
+  // --- carryStreak ---
+
+  @Test
+  void carryStreak_orphanCommit_is_1() {
+    // Fresh commit, never carried from anywhere: streak = 1 (just itself).
+    UUID id = UUID.randomUUID();
+    WeeklyCommit orphan = commit(id, null);
+    when(commits.findByIdForStreakWalk(id)).thenReturn(Optional.of(orphan));
+
+    assertThat(service().carryStreak(id)).isEqualTo(1);
+  }
+
+  // --- helpers ---
+
+  private static WeeklyCommit commit(UUID id, UUID carriedForwardFromId) {
+    WeeklyCommit c =
+        new WeeklyCommit(
+            id, UUID.randomUUID(), "x", UUID.randomUUID(), ChessTier.PEBBLE, 0);
+    c.setCarriedForwardFromId(carriedForwardFromId);
+    return c;
+  }
 }
