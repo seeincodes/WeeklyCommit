@@ -36,6 +36,16 @@ public class DerivedFieldService {
     if (head.isEmpty()) {
       return 0;
     }
-    return 1;
+    int count = 1;
+    UUID next = head.get().getCarriedForwardFromId();
+    while (next != null) {
+      Optional<WeeklyCommit> predecessor = commits.findByIdForStreakWalk(next);
+      if (predecessor.isEmpty()) {
+        break;
+      }
+      count++;
+      next = predecessor.get().getCarriedForwardFromId();
+    }
+    return count;
   }
 }
