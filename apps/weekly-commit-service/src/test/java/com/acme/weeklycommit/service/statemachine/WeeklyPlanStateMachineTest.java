@@ -1,10 +1,12 @@
 package com.acme.weeklycommit.service.statemachine;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.AuditLogRepository;
@@ -45,5 +47,15 @@ class WeeklyPlanStateMachineTest {
     assertThat(result.getState()).isEqualTo(PlanState.LOCKED);
     assertThat(result.getLockedAt()).isEqualTo(FROZEN_NOW);
     verify(plans).save(draft);
+  }
+
+  @Test
+  void transition_planNotFound_throwsResourceNotFound() {
+    UUID planId = UUID.randomUUID();
+    when(plans.findById(planId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> machine().transition(planId, PlanState.LOCKED))
+        .isInstanceOf(ResourceNotFoundException.class)
+        .hasMessageContaining(planId.toString());
   }
 }
