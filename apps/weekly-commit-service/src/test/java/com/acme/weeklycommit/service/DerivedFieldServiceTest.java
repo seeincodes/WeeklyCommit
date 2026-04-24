@@ -55,6 +55,19 @@ class DerivedFieldServiceTest {
     assertThat(service().carryStreak(id)).isEqualTo(1);
   }
 
+  @Test
+  void carryStreak_chainOfThree_is_3() {
+    // origin A (null parent) <- carried B (parent=A) <- carried C (parent=B)
+    UUID a = UUID.randomUUID();
+    UUID b = UUID.randomUUID();
+    UUID c = UUID.randomUUID();
+    when(commits.findByIdForStreakWalk(c)).thenReturn(Optional.of(commit(c, b)));
+    when(commits.findByIdForStreakWalk(b)).thenReturn(Optional.of(commit(b, a)));
+    when(commits.findByIdForStreakWalk(a)).thenReturn(Optional.of(commit(a, null)));
+
+    assertThat(service().carryStreak(c)).isEqualTo(3);
+  }
+
   // --- helpers ---
 
   private static WeeklyCommit commit(UUID id, UUID carriedForwardFromId) {
