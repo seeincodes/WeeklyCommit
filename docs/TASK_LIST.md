@@ -59,7 +59,7 @@ References: [MVP4], [MVP5], [MVP6], [MVP7], [MVP8], [MVP12], [MVP17]
 - [x] Post-commit notification hook (decoupled from the tx via `TransactionSynchronization`)
 - [x] `DerivedFieldService`: Top Rock, carryStreak (52-hop cap), stuckFlag
 - [x] Unit tests for every guard + cap boundary *(satisfied by red-green cycles across state machine + DerivedFieldService)*
-- [ ] PITest wired on `service.statemachine.*` package; nightly CI job
+- [x] PITest wired on `service.statemachine.*` package; nightly CI job
 
 ### 6. Backend: REST API + DTOs
 References: [MVP1], [MVP2], [MVP6], [MVP9], [MVP10], [MVP13], [MVP17], [MVP22]

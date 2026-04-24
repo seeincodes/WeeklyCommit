@@ -1,0 +1,62 @@
+name: mutation-test
+
+on:
+  schedule:
+    # 03:15 UTC nightly (after the backend CI pipeline typically settles).
+    - cron: '15 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: mutation-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pitest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/weekly-commit-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # Non-blocking per TESTING_STRATEGY.md: signal, not gate.
+      # pitest profile config lives in apps/weekly-commit-service/pom.xml:
+      #   targetClasses=com.acme.weeklycommit.service.statemachine.*
+      #   mutationThreshold=70
+      - name: Run PITest mutation coverage
+        run: ./mvnw -B -Ppitest test-compile org.pitest:pitest-maven:mutationCoverage
+        continue-on-error: true
+
+      - name: Upload PITest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pitest-report
+          path: apps/weekly-commit-service/target/pit-reports
+          if-no-files-found: warn
+
+      - name: Summarize mutation score
+        if: always()
+        run: |
+          REPORT="target/pit-reports/mutations.xml"
+          if [ ! -f "$REPORT" ]; then
+            echo "::warning ::No PITest report found at $REPORT"
+            exit 0
+          fi
+          TOTAL=$(grep -c "<mutation " "$REPORT" || echo 0)
+          KILLED=$(grep -c 'detected="true"' "$REPORT" || echo 0)
+          if [ "$TOTAL" -gt 0 ]; then
+            SCORE=$(( 100 * KILLED / TOTAL ))
+            echo "Mutation score: ${KILLED}/${TOTAL} = ${SCORE}%"
+            if [ "$SCORE" -lt 70 ]; then
+              echo "::warning ::Mutation score ${SCORE}% below 70% target"
+            fi
+          fi
