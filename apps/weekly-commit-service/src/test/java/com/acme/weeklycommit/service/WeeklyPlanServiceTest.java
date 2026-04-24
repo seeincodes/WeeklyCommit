@@ -32,9 +32,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 class WeeklyPlanServiceTest {
 
   @Mock private WeeklyPlanRepository plans;
+  @Mock private com.acme.weeklycommit.service.statemachine.WeeklyPlanStateMachine stateMachine;
 
   private WeeklyPlanService service(Clock clock) {
-    return new WeeklyPlanService(plans, clock);
+    return new WeeklyPlanService(plans, stateMachine, clock);
   }
 
   @Test
@@ -218,6 +219,65 @@ class WeeklyPlanServiceTest {
         .isInstanceOf(AccessDeniedException.class);
 
     verify(plans, never()).findByEmployeeIdAndWeekStart(any(), any());
+  }
+
+  // --- transitionPlan (POST /plans/{id}/transitions) ---
+
+  @Test
+  void transitionPlan_selfCaller_delegatesToStateMachine() {
+    Clock clock = Clock.fixed(Instant.parse("2026-04-27T18:00:00Z"), ZoneId.of("UTC"));
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    WeeklyPlan transitioned = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    transitioned.setState(PlanState.LOCKED);
+    when(stateMachine.transition(planId, PlanState.LOCKED, employeeId)).thenReturn(transitioned);
+
+    WeeklyPlan result = service(clock).transitionPlan(planId, PlanState.LOCKED, caller);
+
+    assertThat(result.getState()).isEqualTo(PlanState.LOCKED);
+    verify(stateMachine).transition(planId, PlanState.LOCKED, employeeId);
+  }
+
+  @Test
+  void transitionPlan_otherEmployeesPlan_throwsAccessDenied_stateMachineNeverCalled() {
+    Clock clock = Clock.fixed(Instant.parse("2026-04-27T18:00:00Z"), ZoneId.of("UTC"));
+    UUID planId = UUID.randomUUID();
+    UUID planOwnerId = UUID.randomUUID();
+    UUID differentCallerId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, planOwnerId, LocalDate.parse("2026-04-27"));
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+
+    // Even a manager cannot transition someone else's plan — transitions are owner-only
+    // (managers review, they don't act on the IC's behalf).
+    AuthenticatedPrincipal managerCaller = managerPrincipal(differentCallerId);
+
+    assertThatThrownBy(
+            () -> service(clock).transitionPlan(planId, PlanState.LOCKED, managerCaller))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(stateMachine, never()).transition(any(), any(), any());
+  }
+
+  @Test
+  void transitionPlan_planNotFound_throwsResourceNotFound() {
+    Clock clock = Clock.fixed(Instant.parse("2026-04-27T18:00:00Z"), ZoneId.of("UTC"));
+    UUID planId = UUID.randomUUID();
+    when(plans.findById(planId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service(clock)
+                    .transitionPlan(
+                        planId,
+                        PlanState.LOCKED,
+                        principal(UUID.randomUUID(), ZoneId.of("UTC"))))
+        .isInstanceOf(
+            com.acme.weeklycommit.api.exception.ResourceNotFoundException.class);
+
+    verify(stateMachine, never()).transition(any(), any(), any());
   }
 
   // --- helpers ---
