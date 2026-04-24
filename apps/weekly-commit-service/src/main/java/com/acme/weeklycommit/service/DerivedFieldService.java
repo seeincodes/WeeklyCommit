@@ -29,6 +29,14 @@ public class DerivedFieldService {
     return commits.findTopRock(planId);
   }
 
+  /** Streak threshold at which a commit is flagged as stuck (presearch §3). */
+  static final int STUCK_FLAG_THRESHOLD = 3;
+
+  /** {@code true} when the commit has been carried forward 3+ consecutive weeks. */
+  public boolean stuckFlag(UUID commitId) {
+    return carryStreak(commitId) >= STUCK_FLAG_THRESHOLD;
+  }
+
   /**
    * Chain length for a carry-forward streak. Walks backwards through {@code carriedForwardFromId}
    * until the chain ends, reaches the cap, or hits a missing predecessor. Inclusive of the given
