@@ -110,4 +110,59 @@ class PlansControllerTest {
   void createCurrentForMe_unauthenticated_returns401() throws Exception {
     mvc.perform(post("/api/v1/plans")).andExpect(status().isUnauthorized());
   }
+
+  // --- GET /api/v1/plans?employeeId=...&weekStart=... ---
+
+  @Test
+  void getPlanByEmployeeAndWeek_200WhenFound() throws Exception {
+    UUID targetEmployeeId = UUID.randomUUID();
+    LocalDate weekStart = LocalDate.parse("2026-04-27");
+    WeeklyPlan plan = new WeeklyPlan(UUID.randomUUID(), targetEmployeeId, weekStart);
+    when(planService.findPlan(any(), any(), any())).thenReturn(Optional.of(plan));
+    when(mapper.toResponse(plan))
+        .thenReturn(
+            new com.acme.weeklycommit.api.dto.WeeklyPlanResponse(
+                plan.getId(), targetEmployeeId, weekStart, PlanState.DRAFT,
+                null, null, null, null, 0L));
+
+    mvc.perform(
+            get("/api/v1/plans")
+                .param("employeeId", targetEmployeeId.toString())
+                .param("weekStart", "2026-04-27")
+                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.id").value(plan.getId().toString()))
+        .andExpect(jsonPath("$.data.employeeId").value(targetEmployeeId.toString()));
+  }
+
+  @Test
+  void getPlanByEmployeeAndWeek_404WhenMissing() throws Exception {
+    when(planService.findPlan(any(), any(), any())).thenReturn(Optional.empty());
+
+    mvc.perform(
+            get("/api/v1/plans")
+                .param("employeeId", UUID.randomUUID().toString())
+                .param("weekStart", "2026-04-27")
+                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+  }
+
+  @Test
+  void getPlanByEmployeeAndWeek_400OnMissingRequiredParam() throws Exception {
+    mvc.perform(
+            get("/api/v1/plans")
+                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void getPlanByEmployeeAndWeek_400OnMalformedUuid() throws Exception {
+    mvc.perform(
+            get("/api/v1/plans")
+                .param("employeeId", "not-a-uuid")
+                .param("weekStart", "2026-04-27")
+                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+        .andExpect(status().isBadRequest());
+  }
 }
