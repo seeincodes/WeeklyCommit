@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +50,35 @@ public class WeeklyPlanService {
   public Optional<WeeklyPlan> findCurrentWeekPlan(AuthenticatedPrincipal caller) {
     LocalDate weekStart = currentWeekStartFor(caller);
     return plans.findByEmployeeIdAndWeekStart(caller.employeeId(), weekStart);
+  }
+
+  /**
+   * Read a specific {@code (employeeId, weekStart)} plan subject to authz:
+   *
+   * <ul>
+   *   <li>Caller is the target employee (self).
+   *   <li>Caller has the {@code MANAGER} role.
+   * </ul>
+   *
+   * <p>Rejects with {@link AccessDeniedException} <b>before</b> hitting the DB so a peer's
+   * existence cannot be probed via timing. v1 accepts that any MANAGER can read any employee;
+   * tightening to "direct reports only" is deferred to group 9 rollup work.
+   */
+  @Transactional(readOnly = true)
+  public Optional<WeeklyPlan> findPlan(
+      UUID targetEmployeeId, LocalDate weekStart, AuthenticatedPrincipal caller) {
+    if (!isSelfOrManager(targetEmployeeId, caller)) {
+      throw new AccessDeniedException(
+          "caller "
+              + caller.employeeId()
+              + " cannot read plan for employee "
+              + targetEmployeeId);
+    }
+    return plans.findByEmployeeIdAndWeekStart(targetEmployeeId, weekStart);
+  }
+
+  private static boolean isSelfOrManager(UUID targetEmployeeId, AuthenticatedPrincipal caller) {
+    return caller.employeeId().equals(targetEmployeeId) || caller.isManager();
   }
 
   /**
