@@ -9,6 +9,7 @@ import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -79,6 +80,13 @@ public class WeeklyPlanStateMachine {
       if (now.isBefore(opensAt)) {
         throw new InvalidStateTransitionException(
             from.name(), target.name(), "reconciliation window opens at " + opensAt);
+      }
+    }
+    if (from == PlanState.RECONCILED && target == PlanState.ARCHIVED) {
+      Instant eligibleAt = plan.getReconciledAt().plus(90, ChronoUnit.DAYS);
+      if (now.isBefore(eligibleAt)) {
+        throw new InvalidStateTransitionException(
+            from.name(), target.name(), "archival eligible 90 days after reconcile: " + eligibleAt);
       }
     }
   }
