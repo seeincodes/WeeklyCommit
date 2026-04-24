@@ -17,6 +17,8 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class WeeklyPlanStateMachine {
+
+  private static final Logger log = LoggerFactory.getLogger(WeeklyPlanStateMachine.class);
 
   /** Allowed transitions. Anything not in the map is rejected. */
   private static final Map<PlanState, Set<PlanState>> ALLOWED =
@@ -70,6 +74,7 @@ public class WeeklyPlanStateMachine {
 
     // Idempotent no-op: already in the target state (retry-safety).
     if (plan.getState() == target) {
+      log.debug("transition no-op: plan {} already in state {}", planId, target);
       return plan;
     }
 
@@ -97,6 +102,13 @@ public class WeeklyPlanStateMachine {
     appendAudit(planId, from, target, actorId);
     dispatcher.dispatchAfterCommit(
         new NotificationEvent(planId, from, target, saved.getVersion()));
+    log.info(
+        "transition: plan={} {} -> {} actor={} v{}",
+        planId,
+        from,
+        target,
+        actorId == null ? "system" : actorId,
+        saved.getVersion());
     return saved;
   }
 

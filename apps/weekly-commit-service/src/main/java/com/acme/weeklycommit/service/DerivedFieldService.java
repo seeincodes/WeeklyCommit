@@ -41,6 +41,20 @@ public class DerivedFieldService {
    * Chain length for a carry-forward streak. Walks backwards through {@code carriedForwardFromId}
    * until the chain ends, reaches the cap, or hits a missing predecessor. Inclusive of the given
    * commit: an orphan (never carried) returns 1.
+   *
+   * <p><b>Performance:</b> one DB round-trip per hop. At the cap that's up to 52 queries for a
+   * single call — acceptable at presearch volume (~18k plans / 2y, rare long streaks). If the
+   * manager rollup P95 target regresses, rewrite as a recursive CTE:
+   *
+   * <pre>
+   *   WITH RECURSIVE chain AS (
+   *     SELECT id, carried_forward_from_id, 1 AS depth FROM weekly_commit WHERE id = :id
+   *     UNION ALL
+   *     SELECT c.id, c.carried_forward_from_id, chain.depth + 1
+   *       FROM weekly_commit c JOIN chain ON c.id = chain.carried_forward_from_id
+   *      WHERE chain.depth &lt; 52)
+   *   SELECT MAX(depth) FROM chain;
+   * </pre>
    */
   public int carryStreak(UUID commitId) {
     Optional<WeeklyCommit> head = commits.findByIdForStreakWalk(commitId);
