@@ -7,11 +7,15 @@ import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.service.WeeklyPlanService;
+import java.time.LocalDate;
+import java.util.UUID;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -61,5 +65,21 @@ public class PlansController {
       AuthenticatedPrincipal caller) {
     WeeklyPlan plan = planService.createCurrentWeekPlan(caller);
     return ResponseEntity.status(HttpStatus.CREATED).body(ApiEnvelope.of(mapper.toResponse(plan)));
+  }
+
+  /**
+   * Look up a specific plan by {@code (employeeId, weekStart)}. Authz decided by the service:
+   * self or MANAGER, else 403. 404 on missing plan.
+   */
+  @GetMapping
+  public ResponseEntity<ApiEnvelope<WeeklyPlanResponse>> getPlanByEmployeeAndWeek(
+      @RequestParam("employeeId") UUID employeeId,
+      @RequestParam("weekStart") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
+      AuthenticatedPrincipal caller) {
+    WeeklyPlan plan =
+        planService
+            .findPlan(employeeId, weekStart, caller)
+            .orElseThrow(() -> new ResourceNotFoundException("WeeklyPlan", employeeId));
+    return ResponseEntity.ok(ApiEnvelope.of(mapper.toResponse(plan)));
   }
 }
