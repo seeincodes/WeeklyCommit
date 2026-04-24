@@ -57,8 +57,8 @@ References: [MVP4], [MVP5], [MVP6], [MVP7], [MVP8], [MVP12], [MVP17]
 - [x] Idempotency key `(plan_id, target_state, version)` enforced
 - [x] `@Transactional` transitions; `audit_log` append in same tx
 - [x] Post-commit notification hook (decoupled from the tx via `TransactionSynchronization`)
-- [ ] `DerivedFieldService`: Top Rock, carryStreak (52-hop cap), stuckFlag
-- [ ] Unit tests for every guard + cap boundary
+- [x] `DerivedFieldService`: Top Rock, carryStreak (52-hop cap), stuckFlag
+- [x] Unit tests for every guard + cap boundary *(satisfied by red-green cycles across state machine + DerivedFieldService)*
 - [ ] PITest wired on `service.statemachine.*` package; nightly CI job
 
 ### 6. Backend: REST API + DTOs
