@@ -128,7 +128,12 @@ public class WeeklyPlanStateMachine {
       }
     }
     if (from == PlanState.RECONCILED && target == PlanState.ARCHIVED) {
-      Instant eligibleAt = plan.getReconciledAt().plus(90, ChronoUnit.DAYS);
+      Instant reconciledAt = plan.getReconciledAt();
+      if (reconciledAt == null) {
+        throw new IllegalStateException(
+            "invariant violated: RECONCILED plan " + plan.getId() + " has null reconciledAt");
+      }
+      Instant eligibleAt = reconciledAt.plus(90, ChronoUnit.DAYS);
       if (now.isBefore(eligibleAt)) {
         throw new InvalidStateTransitionException(
             from.name(), target.name(), "archival eligible 90 days after reconcile: " + eligibleAt);
