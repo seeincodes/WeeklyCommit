@@ -15,9 +15,14 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
 /**
  * Central mapping from exception types to HTTP status + {@link ApiErrorEnvelope}. Referenced from
@@ -72,6 +77,61 @@ public class GlobalExceptionHandler {
     return status(
         HttpStatus.BAD_REQUEST,
         ApiErrorEnvelope.of("VALIDATION_FAILED", "Request body is malformed"));
+  }
+
+  @ExceptionHandler(MissingServletRequestParameterException.class)
+  public ResponseEntity<ApiErrorEnvelope> handleMissingParam(
+      MissingServletRequestParameterException ex) {
+    return status(
+        HttpStatus.BAD_REQUEST,
+        ApiErrorEnvelope.of(
+            "VALIDATION_FAILED",
+            "Missing required parameter: " + ex.getParameterName(),
+            List.of(new FieldError(ex.getParameterName(), "is required"))));
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ApiErrorEnvelope> handleTypeMismatch(
+      MethodArgumentTypeMismatchException ex) {
+    // Malformed UUID, bad date format, etc. Don't leak the actual failed value into the
+    // response message — just flag the field by name.
+    return status(
+        HttpStatus.BAD_REQUEST,
+        ApiErrorEnvelope.of(
+            "VALIDATION_FAILED",
+            "Parameter '" + ex.getName() + "' is the wrong type",
+            List.of(new FieldError(ex.getName(), "invalid format"))));
+  }
+
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ApiErrorEnvelope> handleMethodNotAllowed(
+      HttpRequestMethodNotSupportedException ex) {
+    return status(
+        HttpStatus.METHOD_NOT_ALLOWED,
+        ApiErrorEnvelope.of("METHOD_NOT_ALLOWED", "HTTP method not supported"));
+  }
+
+  @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+  public ResponseEntity<ApiErrorEnvelope> handleUnsupportedMediaType(
+      HttpMediaTypeNotSupportedException ex) {
+    return status(
+        HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+        ApiErrorEnvelope.of("UNSUPPORTED_MEDIA_TYPE", "Content-Type not supported"));
+  }
+
+  @ExceptionHandler(NoHandlerFoundException.class)
+  public ResponseEntity<ApiErrorEnvelope> handleNoHandler(NoHandlerFoundException ex) {
+    return status(HttpStatus.NOT_FOUND, ApiErrorEnvelope.of("NOT_FOUND", "No handler for path"));
+  }
+
+  @ExceptionHandler(IllegalStateException.class)
+  public ResponseEntity<ApiErrorEnvelope> handleIllegalState(IllegalStateException ex) {
+    // Invariant violations (e.g., JWT missing required claim, RECONCILED plan with null
+    // reconciledAt). Not a client-fixable problem — surface as 500 so ops notices, log stack.
+    log.error("Invariant violation in request pipeline", ex);
+    return status(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ApiErrorEnvelope.of("INTERNAL_ERROR", "An unexpected error occurred"));
   }
 
   @ExceptionHandler({

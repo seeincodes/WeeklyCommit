@@ -31,6 +31,91 @@ Copy this block when adding a new entry. Put new entries at the top of the `## L
 
 ## Log
 
+### 2026-04-24 — Controller tests return 500 instead of 4xx (two causes)
+
+**Error**
+```
+PlansControllerTest.getPlanByEmployeeAndWeek_400OnMissingRequiredParam:158 Status expected:<400> but was:<500>
+PlansControllerTest.transition_200OnHappyPath:190              Status expected:<200> but was:<500>
+... (9 tests, 500 when expecting 2xx or 4xx)
+```
+
+**Context**
+Immediately after fixing the context-load issues. Context loads now, but
+every controller test returns 500.
+
+**Root Cause**
+Two independent issues, both surfaced by the same symptom:
+
+1. **Missing JWT claim in test setup.**
+   `.with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString())))`
+   set only `sub`. `AuthenticatedPrincipal.of()` additionally requires
+   `org_id` and throws `IllegalStateException("JWT missing required
+   claim: org_id")` when absent.
+
+2. **GlobalExceptionHandler's `@ExceptionHandler(Throwable.class)` was
+   too greedy.** It caught Spring MVC's built-in validation exceptions
+   (`MissingServletRequestParameterException`,
+   `MethodArgumentTypeMismatchException`) that should map to 400. The
+   `IllegalStateException` from cause #1 also fell through to the same
+   500 handler.
+
+**Fix**
+1. Extracted a `validJwt()` helper in `PlansControllerTest` that sets
+   both `sub` and `org_id`. All 10 call-sites replaced with it.
+2. Added specific handlers in `GlobalExceptionHandler`:
+   - `MissingServletRequestParameterException` → 400 VALIDATION_FAILED
+     (with the missing-field name in `details`)
+   - `MethodArgumentTypeMismatchException` → 400 VALIDATION_FAILED
+     (malformed UUID / date). Does NOT echo the bad value back — just
+     flags the field by name (no info leak).
+   - `HttpRequestMethodNotSupportedException` → 405
+   - `HttpMediaTypeNotSupportedException` → 415
+   - `NoHandlerFoundException` → 404
+   - `IllegalStateException` → 500 with stack trace logged at ERROR
+     (invariant violations, programmer errors)
+
+**Prevention**
+- Controller tests should centralize JWT setup in a helper so future
+  controller tests don't re-make this mistake — `validJwt()` pattern
+  documented in the test's Javadoc / class structure.
+- When adding a new `@ExceptionHandler(Throwable.class)` catch-all,
+  verify no Spring MVC exception would now skip past its idiomatic
+  handler. If in doubt, extend `ResponseEntityExceptionHandler` which
+  wires the built-ins automatically.
+- `@WebMvcTest` should be the *first* sanity check for any new
+  controller — catches both JWT-claim gaps and handler-mapping gaps
+  that unit tests don't.
+
+### 2026-04-24 — Mockito `UnnecessaryStubbingException` on chain tests
+
+**Error**
+```
+DerivedFieldServiceTest.carryStreak_capsAt_52_evenWithLongerChain »
+UnnecessaryStubbing: 48 unused stubbings
+```
+
+**Context**
+The test built a 100-entry chain and stubbed `findByIdForStreakWalk` for
+every entry. The walk caps at 52 hops, so 48 stubs were never consumed.
+Mockito's default `STRICT_STUBS` mode fails on unused stubs.
+
+**Root Cause**
+Over-stubbing. The test didn't distinguish "chain is longer than 52"
+(which is what it wanted to prove) from "every entry needs a stub."
+
+**Fix**
+Only stub the 52 entries the walk actually visits (from the tip
+backwards). After the cap fires, the walk exits without another repo
+call, so the remaining 48 entries legitimately don't need stubs. Added
+an explanatory comment pointing at the walk's cap condition.
+
+**Prevention**
+- Mockito `STRICT_STUBS` is the right default — it catches dead test
+  setup. Don't relax to `LENIENT` globally to make this go away.
+- For cap / boundary tests, stub only the reachable portion of the
+  dataset and document the unreachable portion in a comment.
+
 ### 2026-04-24 — `@WebMvcTest` context load fails: `@EnableJpaAuditing` on main app + unresolved AUTH0 placeholders
 
 **Error**

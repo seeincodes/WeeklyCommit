@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -31,11 +32,26 @@ class PlansControllerTest {
 
   private static final UUID EMPLOYEE_ID =
       UUID.fromString("00000000-0000-0000-0000-0000000000a1");
+  private static final UUID ORG_ID = UUID.fromString("00000000-0000-0000-0000-0000000000b2");
 
   @Autowired private MockMvc mvc;
 
   @MockBean private WeeklyPlanService planService;
   @MockBean private WeeklyPlanMapper mapper;
+
+  /**
+   * Valid JWT for the canonical test subject. Sets both required claims: {@code sub}
+   * (employeeId) and {@code org_id} — {@link
+   * com.acme.weeklycommit.config.AuthenticatedPrincipal} throws {@code IllegalStateException}
+   * if either is missing, and that would surface as a 500 in @WebMvcTest.
+   */
+  private static JwtRequestPostProcessor validJwt() {
+    return jwt().jwt(
+            builder ->
+                builder
+                    .subject(EMPLOYEE_ID.toString())
+                    .claim("org_id", ORG_ID.toString()));
+  }
 
   @Test
   void getCurrentForMe_whenPlanExists_returns200WithEnvelope() throws Exception {
@@ -57,7 +73,7 @@ class PlansControllerTest {
 
     mvc.perform(
             get("/api/v1/plans/me/current")
-                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+                .with(validJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.id").value(plan.getId().toString()))
         .andExpect(jsonPath("$.data.employeeId").value(EMPLOYEE_ID.toString()))
@@ -71,7 +87,7 @@ class PlansControllerTest {
 
     mvc.perform(
             get("/api/v1/plans/me/current")
-                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+                .with(validJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
   }
@@ -101,7 +117,7 @@ class PlansControllerTest {
 
     mvc.perform(
             post("/api/v1/plans")
-                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+                .with(validJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.id").value(created.getId().toString()))
         .andExpect(jsonPath("$.data.state").value("DRAFT"))
@@ -131,7 +147,7 @@ class PlansControllerTest {
             get("/api/v1/plans")
                 .param("employeeId", targetEmployeeId.toString())
                 .param("weekStart", "2026-04-27")
-                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+                .with(validJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.id").value(plan.getId().toString()))
         .andExpect(jsonPath("$.data.employeeId").value(targetEmployeeId.toString()));
@@ -145,7 +161,7 @@ class PlansControllerTest {
             get("/api/v1/plans")
                 .param("employeeId", UUID.randomUUID().toString())
                 .param("weekStart", "2026-04-27")
-                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+                .with(validJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
   }
@@ -154,7 +170,7 @@ class PlansControllerTest {
   void getPlanByEmployeeAndWeek_400OnMissingRequiredParam() throws Exception {
     mvc.perform(
             get("/api/v1/plans")
-                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+                .with(validJwt()))
         .andExpect(status().isBadRequest());
   }
 
@@ -164,7 +180,7 @@ class PlansControllerTest {
             get("/api/v1/plans")
                 .param("employeeId", "not-a-uuid")
                 .param("weekStart", "2026-04-27")
-                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+                .with(validJwt()))
         .andExpect(status().isBadRequest());
   }
 
@@ -186,7 +202,7 @@ class PlansControllerTest {
             post("/api/v1/plans/" + planId + "/transitions")
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{\"to\":\"LOCKED\"}")
-                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+                .with(validJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.state").value("LOCKED"));
   }
@@ -199,7 +215,7 @@ class PlansControllerTest {
             post("/api/v1/plans/" + planId + "/transitions")
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{}")
-                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+                .with(validJwt()))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
   }
@@ -216,7 +232,7 @@ class PlansControllerTest {
             post("/api/v1/plans/" + planId + "/transitions")
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{\"to\":\"RECONCILED\"}")
-                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+                .with(validJwt()))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.error.code").value("INVALID_STATE_TRANSITION"))
         .andExpect(jsonPath("$.meta.fromState").value("DRAFT"))

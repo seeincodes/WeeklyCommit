@@ -70,17 +70,25 @@ class DerivedFieldServiceTest {
 
   @Test
   void carryStreak_capsAt_52_evenWithLongerChain() {
-    // Build a 100-long linear chain. Walking from the tip must return 52.
-    UUID[] ids = new UUID[100];
-    for (int i = 0; i < 100; i++) {
+    // 100-long chain in concept, but the walk should stop at 52. We only stub the 52
+    // entries the walk will actually visit (from tip backwards) — stubbing all 100 would
+    // trip Mockito STRICT_STUBS because the deeper entries are unreachable.
+    //
+    // Walk visits ids[99], ids[98], ..., ids[48]  (52 entries inclusive).
+    // After reading ids[48] the count hits the cap and the loop exits without calling
+    // findByIdForStreakWalk again, so ids[0..47] are never touched.
+    int chainLength = 100;
+    UUID[] ids = new UUID[chainLength];
+    for (int i = 0; i < chainLength; i++) {
       ids[i] = UUID.randomUUID();
     }
-    for (int i = 0; i < 100; i++) {
-      UUID parent = (i == 0) ? null : ids[i - 1];
+    int firstVisited = chainLength - 52; // ids[48] for chainLength=100
+    for (int i = firstVisited; i < chainLength; i++) {
+      UUID parent = ids[i - 1]; // always non-null in this slice
       when(commits.findByIdForStreakWalk(ids[i])).thenReturn(Optional.of(commit(ids[i], parent)));
     }
 
-    assertThat(service().carryStreak(ids[99])).isEqualTo(52);
+    assertThat(service().carryStreak(ids[chainLength - 1])).isEqualTo(52);
   }
 
   @Test
