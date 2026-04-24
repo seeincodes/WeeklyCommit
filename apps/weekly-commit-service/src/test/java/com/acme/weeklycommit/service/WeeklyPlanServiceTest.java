@@ -1,10 +1,14 @@
 package com.acme.weeklycommit.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
+import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -16,8 +20,10 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 @ExtendWith(MockitoExtension.class)
@@ -87,6 +93,66 @@ class WeeklyPlanServiceTest {
         service(clock).findCurrentWeekPlan(principal(employeeId, ZoneId.of("UTC")));
 
     assertThat(result).isEmpty();
+  }
+
+  // --- createCurrentWeekPlan ---
+
+  @Test
+  void createCurrentWeekPlan_whenNoPlanExists_savesDraft() {
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, LocalDate.parse("2026-04-27")))
+        .thenReturn(Optional.empty());
+    when(plans.save(any(WeeklyPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    WeeklyPlan result = service(clock).createCurrentWeekPlan(caller);
+
+    ArgumentCaptor<WeeklyPlan> captor = ArgumentCaptor.forClass(WeeklyPlan.class);
+    verify(plans).save(captor.capture());
+    WeeklyPlan saved = captor.getValue();
+    assertThat(saved.getEmployeeId()).isEqualTo(employeeId);
+    assertThat(saved.getWeekStart()).isEqualTo(LocalDate.parse("2026-04-27"));
+    assertThat(saved.getState()).isEqualTo(PlanState.DRAFT);
+    assertThat(result).isSameAs(saved);
+  }
+
+  @Test
+  void createCurrentWeekPlan_idempotent_whenPlanAlreadyExists_returnsExisting() {
+    // POST /plans is idempotent on (employeeId, weekStart) per MEMO #10.
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    WeeklyPlan existing =
+        new WeeklyPlan(UUID.randomUUID(), employeeId, LocalDate.parse("2026-04-27"));
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, LocalDate.parse("2026-04-27")))
+        .thenReturn(Optional.of(existing));
+
+    WeeklyPlan result = service(clock).createCurrentWeekPlan(caller);
+
+    assertThat(result).isSameAs(existing);
+    verify(plans, never()).save(any(WeeklyPlan.class));
+  }
+
+  @Test
+  void createCurrentWeekPlan_raceCondition_recoversViaRefetch() {
+    // Two concurrent callers both see empty on findBy..., both try to save. The second's save
+    // hits the UNIQUE(employee_id, week_start) constraint. The service must recover by
+    // re-fetching rather than surfacing the constraint violation to the caller.
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    WeeklyPlan racedIn =
+        new WeeklyPlan(UUID.randomUUID(), employeeId, LocalDate.parse("2026-04-27"));
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, LocalDate.parse("2026-04-27")))
+        .thenReturn(Optional.empty()) // first check (pre-save)
+        .thenReturn(Optional.of(racedIn)); // post-violation refetch
+    when(plans.save(any(WeeklyPlan.class)))
+        .thenThrow(new DataIntegrityViolationException("unique violation"));
+
+    WeeklyPlan result = service(clock).createCurrentWeekPlan(caller);
+
+    assertThat(result).isSameAs(racedIn);
   }
 
   // --- helpers ---
