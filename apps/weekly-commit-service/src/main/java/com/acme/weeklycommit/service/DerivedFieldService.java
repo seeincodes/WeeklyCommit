@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class DerivedFieldService {
 
+  /** Carry-streak walk cap — defensive against pathological chains and cycles. */
+  static final int CARRY_STREAK_CAP = 52;
+
   private final WeeklyCommitRepository commits;
 
   public DerivedFieldService(WeeklyCommitRepository commits) {
@@ -38,7 +41,7 @@ public class DerivedFieldService {
     }
     int count = 1;
     UUID next = head.get().getCarriedForwardFromId();
-    while (next != null) {
+    while (next != null && count < CARRY_STREAK_CAP) {
       Optional<WeeklyCommit> predecessor = commits.findByIdForStreakWalk(next);
       if (predecessor.isEmpty()) {
         break;
