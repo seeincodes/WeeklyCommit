@@ -38,12 +38,17 @@ public class WeeklyPlanStateMachine {
 
   private final WeeklyPlanRepository plans;
   private final AuditLogRepository audits;
+  private final NotificationDispatcher dispatcher;
   private final Clock clock;
 
   public WeeklyPlanStateMachine(
-      WeeklyPlanRepository plans, AuditLogRepository audits, Clock clock) {
+      WeeklyPlanRepository plans,
+      AuditLogRepository audits,
+      NotificationDispatcher dispatcher,
+      Clock clock) {
     this.plans = plans;
     this.audits = audits;
+    this.dispatcher = dispatcher;
     this.clock = clock;
   }
 
@@ -82,6 +87,8 @@ public class WeeklyPlanStateMachine {
 
     WeeklyPlan saved = plans.save(plan);
     appendAudit(planId, from, target);
+    dispatcher.dispatchAfterCommit(
+        new NotificationEvent(planId, from, target, saved.getVersion()));
     return saved;
   }
 
