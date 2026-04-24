@@ -31,6 +31,55 @@ Copy this block when adding a new entry. Put new entries at the top of the `## L
 
 ## Log
 
+### 2026-04-24 — `@WebMvcTest` context load fails: `@EnableJpaAuditing` on main app + unresolved AUTH0 placeholders
+
+**Error**
+```
+PlansControllerTest.* » IllegalState Failed to load ApplicationContext for
+[WebMergedContextConfiguration ... classes = [WeeklyCommitServiceApplication] ...]
+(subsequent tests: "ApplicationContext failure threshold (1) exceeded: skipping")
+```
+
+**Context**
+First `./mvnw verify` run in group 6. Every `PlansControllerTest` method
+failed on context load. The underlying trigger is hidden under Spring Boot
+3.3's "skip-after-threshold" wrapper; the first test's real failure is
+two-fold:
+
+1. `@WebMvcTest` auto-detects `@SpringBootApplication` and loads
+   `WeeklyCommitServiceApplication`. That class carried `@EnableJpaAuditing`,
+   which pulls JPA auto-config into the slice — crashes without a
+   datasource.
+2. `application.yml` uses `${AUTH0_ISSUER_URI}` / `${AUTH0_AUDIENCE}` with
+   no default. Spring's property resolver throws `IllegalArgumentException`
+   on unresolved placeholders at property-binding time, before any
+   `@MockBean JwtDecoder` can shadow the OAuth2 auto-config.
+
+**Root Cause**
+Two independent issues compounding. Fix (1) is a structural placement
+change; fix (2) is a test-profile property file.
+
+**Fix**
+1. Moved `@EnableJpaAuditing` from `WeeklyCommitServiceApplication` onto
+   `JpaAuditingConfig`. Production still has JPA auditing
+   (component-scanned as a regular `@Configuration`), but `@WebMvcTest`
+   slices do not pull it in. Integration tests that want auditing keep
+   using `@Import(JpaAuditingConfig.class)` via `@JpaTestSlice`.
+2. Created `apps/weekly-commit-service/src/test/resources/application-test.yml`
+   with dummy AUTH0/datasource placeholders. Added `@ActiveProfiles("test")`
+   to `PlansControllerTest` (and documented the requirement in
+   `WebMvcTestConfig`'s Javadoc for future controller tests).
+
+**Prevention**
+- **Structural**: `@EnableJpaAuditing` belongs with its bean, not on the
+  main app class. Same pattern for other `@Enable*` annotations with
+  heavy auto-config side effects — put them next to the beans they need.
+- **Property hygiene**: whenever a new `${FOO}` placeholder is added to
+  `application.yml` without a default, `application-test.yml` needs a
+  matching entry so `@WebMvcTest` slices still boot.
+- **Test doc**: `WebMvcTestConfig` Javadoc now has the exact four-
+  annotation stanza any new controller test must use.
+
 ### 2026-04-24 — `./mvnw` fails with broken `$JAVA_HOME`
 
 **Error**

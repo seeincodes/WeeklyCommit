@@ -1,0 +1,17 @@
+# Test-profile overrides. Active when @ActiveProfiles("test") is on the test class.
+# Provides safe placeholder values so Spring property binding succeeds in @WebMvcTest slices
+# that don't have a real .env / Testcontainers setup.
+#
+# NimbusJwtDecoder would normally fetch JWKs from issuer-uri at first JWT validation. Tests
+# don't send real JWTs (MockMvc .with(jwt()) injects Authentication directly), and
+# WebMvcTestConfig supplies a @MockBean JwtDecoder. So the values here only need to parse;
+# they never hit the network.
+
+AUTH0_ISSUER_URI: https://tests.invalid/
+AUTH0_AUDIENCE: tests
+
+SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/tests
+SPRING_DATASOURCE_USERNAME: tests
+SPRING_DATASOURCE_PASSWORD: tests
+RCDO_BASE_URL: https://rcdo.invalid/
+NOTIFICATION_SVC_BASE_URL: https://notification.invalid/

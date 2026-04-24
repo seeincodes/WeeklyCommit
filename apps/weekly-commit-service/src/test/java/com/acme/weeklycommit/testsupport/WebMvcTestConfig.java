@@ -13,10 +13,21 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 /**
  * Shared bootstrap for {@code @WebMvcTest} slice tests. Imports the argument resolver + MVC
  * config so {@link com.acme.weeklycommit.config.AuthenticatedPrincipal} resolves in controllers,
- * and shadows the OAuth2-autoconfigured {@link JwtDecoder} with a mock so context load does not
- * try to fetch JWKs from {@code AUTH0_ISSUER_URI}.
+ * imports {@link com.acme.weeklycommit.config.SecurityConfig} so tests exercise the same security
+ * chain as prod, and shadows the OAuth2-autoconfigured {@link JwtDecoder} with a mock so context
+ * load does not try to fetch JWKs from {@code AUTH0_ISSUER_URI}.
  *
- * <p>Tests opt in with {@code @Import(WebMvcTestConfig.class)}.
+ * <p>Tests opt in with:
+ *
+ * <pre>
+ *   &#64;WebMvcTest(controllers = FooController.class)
+ *   &#64;Import(WebMvcTestConfig.class)
+ *   &#64;ActiveProfiles("test")     // loads application-test.yml with placeholder defaults
+ *   class FooControllerTest { ... }
+ * </pre>
+ *
+ * <p>{@code @ActiveProfiles} must be on the test class itself — it is test-context metadata and
+ * does not propagate through {@code @Import}.
  */
 @TestConfiguration
 @Import({
