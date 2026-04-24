@@ -51,6 +51,14 @@ public class WeeklyPlanStateMachine {
             .findById(planId)
             .orElseThrow(() -> new ResourceNotFoundException("WeeklyPlan", planId));
 
+    // Idempotent no-op: if the plan is already in the requested state, the transition
+    // has already happened (possibly via a prior call that didn't reach the client).
+    // Returning without save/audit/notification is safe per the (plan_id, target_state,
+    // version) idempotency key — the caller is only told "we're already there".
+    if (plan.getState() == target) {
+      return plan;
+    }
+
     PlanState from = plan.getState();
     if (!ALLOWED.getOrDefault(from, Set.of()).contains(target)) {
       throw new InvalidStateTransitionException(
