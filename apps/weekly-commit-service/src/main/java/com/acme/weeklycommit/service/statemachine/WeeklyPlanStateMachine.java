@@ -52,17 +52,23 @@ public class WeeklyPlanStateMachine {
     this.clock = clock;
   }
 
+  /**
+   * Transition a plan to the given target state.
+   *
+   * @param planId plan to transition
+   * @param target target {@link PlanState}
+   * @param actorId employee UUID of the caller, or {@code null} for system-initiated transitions
+   *     (scheduled jobs). Threaded into the {@code audit_log} row so human activity and system
+   *     activity are separable downstream.
+   */
   @Transactional
-  public WeeklyPlan transition(UUID planId, PlanState target) {
+  public WeeklyPlan transition(UUID planId, PlanState target, UUID actorId) {
     WeeklyPlan plan =
         plans
             .findById(planId)
             .orElseThrow(() -> new ResourceNotFoundException("WeeklyPlan", planId));
 
-    // Idempotent no-op: if the plan is already in the requested state, the transition
-    // has already happened (possibly via a prior call that didn't reach the client).
-    // Returning without save/audit/notification is safe per the (plan_id, target_state,
-    // version) idempotency key — the caller is only told "we're already there".
+    // Idempotent no-op: already in the target state (retry-safety).
     if (plan.getState() == target) {
       return plan;
     }
@@ -80,32 +86,32 @@ public class WeeklyPlanStateMachine {
     switch (target) {
       case LOCKED -> plan.setLockedAt(now);
       case RECONCILED -> plan.setReconciledAt(now);
-      default -> {
-        // ARCHIVED carries no separate timestamp — state itself is the record.
+      case ARCHIVED, DRAFT -> {
+        // ARCHIVED: terminal state; the state column is the record. DRAFT is unreachable as a
+        // target via the transition table (no predecessor points to it) but must be covered to
+        // keep the switch exhaustive.
       }
     }
 
     WeeklyPlan saved = plans.save(plan);
-    appendAudit(planId, from, target);
+    appendAudit(planId, from, target, actorId);
     dispatcher.dispatchAfterCommit(
         new NotificationEvent(planId, from, target, saved.getVersion()));
     return saved;
   }
 
   /**
-   * Append one {@code audit_log} row per successful transition. Same transaction as the plan save
-   * — if the audit write fails, the transition rolls back.
-   *
-   * <p>{@code actorId} is null here; controllers will thread the caller's employee id in group 6.
+   * Append one {@code audit_log} row inside the same transaction as the plan save. Audit write
+   * failure rolls the whole transition back — provenance is coupled to state change by design.
    */
-  private void appendAudit(UUID planId, PlanState from, PlanState target) {
+  private void appendAudit(UUID planId, PlanState from, PlanState target, UUID actorId) {
     AuditLog row =
         new AuditLog(
             UUID.randomUUID(),
             AuditEntityType.WEEKLY_PLAN,
             planId,
             AuditEventType.STATE_TRANSITION,
-            null);
+            actorId);
     row.setFromState(from.name());
     row.setToState(target.name());
     audits.save(row);
