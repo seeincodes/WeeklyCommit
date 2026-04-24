@@ -94,6 +94,30 @@ class DerivedFieldServiceTest {
     assertThat(service().carryStreak(a)).isEqualTo(52);
   }
 
+  // --- stuckFlag ---
+
+  @Test
+  void stuckFlag_streakOf2_isFalse() {
+    UUID a = UUID.randomUUID();
+    UUID b = UUID.randomUUID();
+    when(commits.findByIdForStreakWalk(b)).thenReturn(Optional.of(commit(b, a)));
+    when(commits.findByIdForStreakWalk(a)).thenReturn(Optional.of(commit(a, null)));
+
+    assertThat(service().stuckFlag(b)).isFalse();
+  }
+
+  @Test
+  void stuckFlag_streakOf3_isTrue() {
+    UUID a = UUID.randomUUID();
+    UUID b = UUID.randomUUID();
+    UUID c = UUID.randomUUID();
+    when(commits.findByIdForStreakWalk(c)).thenReturn(Optional.of(commit(c, b)));
+    when(commits.findByIdForStreakWalk(b)).thenReturn(Optional.of(commit(b, a)));
+    when(commits.findByIdForStreakWalk(a)).thenReturn(Optional.of(commit(a, null)));
+
+    assertThat(service().stuckFlag(c)).isTrue();
+  }
+
   // --- helpers ---
 
   private static WeeklyCommit commit(UUID id, UUID carriedForwardFromId) {
