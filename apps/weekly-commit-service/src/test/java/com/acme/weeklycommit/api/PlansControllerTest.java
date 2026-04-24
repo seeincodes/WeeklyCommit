@@ -165,4 +165,59 @@ class PlansControllerTest {
                 .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
         .andExpect(status().isBadRequest());
   }
+
+  // --- POST /api/v1/plans/{id}/transitions ---
+
+  @Test
+  void transition_200OnHappyPath() throws Exception {
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan transitioned = new WeeklyPlan(planId, EMPLOYEE_ID, LocalDate.parse("2026-04-27"));
+    transitioned.setState(PlanState.LOCKED);
+    when(planService.transitionPlan(any(), any(), any())).thenReturn(transitioned);
+    when(mapper.toResponse(transitioned))
+        .thenReturn(
+            new com.acme.weeklycommit.api.dto.WeeklyPlanResponse(
+                planId, EMPLOYEE_ID, LocalDate.parse("2026-04-27"), PlanState.LOCKED,
+                null, null, null, null, 1L));
+
+    mvc.perform(
+            post("/api/v1/plans/" + planId + "/transitions")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"to\":\"LOCKED\"}")
+                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.state").value("LOCKED"));
+  }
+
+  @Test
+  void transition_400WhenBodyMissingTo() throws Exception {
+    UUID planId = UUID.randomUUID();
+
+    mvc.perform(
+            post("/api/v1/plans/" + planId + "/transitions")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{}")
+                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  void transition_422WhenStateMachineRejects() throws Exception {
+    UUID planId = UUID.randomUUID();
+    when(planService.transitionPlan(any(), any(), any()))
+        .thenThrow(
+            new com.acme.weeklycommit.api.exception.InvalidStateTransitionException(
+                "DRAFT", "RECONCILED", "not allowed from DRAFT"));
+
+    mvc.perform(
+            post("/api/v1/plans/" + planId + "/transitions")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"to\":\"RECONCILED\"}")
+                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.error.code").value("INVALID_STATE_TRANSITION"))
+        .andExpect(jsonPath("$.meta.fromState").value("DRAFT"))
+        .andExpect(jsonPath("$.meta.toState").value("RECONCILED"));
+  }
 }
