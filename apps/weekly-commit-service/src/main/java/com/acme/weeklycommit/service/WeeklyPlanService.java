@@ -8,6 +8,10 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Optional;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class WeeklyPlanService {
+
+  private static final Logger log = LoggerFactory.getLogger(WeeklyPlanService.class);
 
   private final WeeklyPlanRepository plans;
   private final Clock clock;
@@ -43,6 +49,47 @@ public class WeeklyPlanService {
   public Optional<WeeklyPlan> findCurrentWeekPlan(AuthenticatedPrincipal caller) {
     LocalDate weekStart = currentWeekStartFor(caller);
     return plans.findByEmployeeIdAndWeekStart(caller.employeeId(), weekStart);
+  }
+
+  /**
+   * Idempotent create on {@code (employeeId, weekStart)}. If a plan already exists for the
+   * caller's current week, return it unchanged. Otherwise save a new DRAFT plan.
+   *
+   * <p>Race handling: two concurrent callers can both see "no plan exists" and both attempt a
+   * save. The DB {@code UNIQUE(employee_id, week_start)} constraint prevents duplicates; the
+   * losing side here catches the {@link DataIntegrityViolationException} and re-fetches the
+   * now-committed plan from the winning write. The caller never sees a 500.
+   */
+  @Transactional
+  public WeeklyPlan createCurrentWeekPlan(AuthenticatedPrincipal caller) {
+    LocalDate weekStart = currentWeekStartFor(caller);
+    UUID employeeId = caller.employeeId();
+
+    Optional<WeeklyPlan> existing = plans.findByEmployeeIdAndWeekStart(employeeId, weekStart);
+    if (existing.isPresent()) {
+      return existing.get();
+    }
+
+    WeeklyPlan draft = new WeeklyPlan(UUID.randomUUID(), employeeId, weekStart);
+    try {
+      return plans.save(draft);
+    } catch (DataIntegrityViolationException raced) {
+      log.warn(
+          "createCurrentWeekPlan lost race for employee={} weekStart={}; re-fetching",
+          employeeId,
+          weekStart);
+      return plans
+          .findByEmployeeIdAndWeekStart(employeeId, weekStart)
+          .orElseThrow(
+              () ->
+                  new IllegalStateException(
+                      "unique-violation on save but no plan visible on refetch — "
+                          + "invariant broken for employee="
+                          + employeeId
+                          + " weekStart="
+                          + weekStart,
+                      raced));
+    }
   }
 
   /**
