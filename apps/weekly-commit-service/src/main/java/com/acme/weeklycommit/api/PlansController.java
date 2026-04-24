@@ -7,8 +7,10 @@ import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.service.WeeklyPlanService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -46,5 +48,18 @@ public class PlansController {
                     new ResourceNotFoundException(
                         "WeeklyPlan (current week for employee)", caller.employeeId()));
     return ResponseEntity.ok(ApiEnvelope.of(mapper.toResponse(plan)));
+  }
+
+  /**
+   * Create the caller's current-week plan (DRAFT). Idempotent on {@code (employeeId, weekStart)}:
+   * returning 201 regardless of whether a new row was inserted or a pre-existing plan was
+   * returned. The client doesn't need to distinguish — per USER_FLOW.md the response shape is
+   * identical.
+   */
+  @PostMapping
+  public ResponseEntity<ApiEnvelope<WeeklyPlanResponse>> createCurrentForMe(
+      AuthenticatedPrincipal caller) {
+    WeeklyPlan plan = planService.createCurrentWeekPlan(caller);
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiEnvelope.of(mapper.toResponse(plan)));
   }
 }
