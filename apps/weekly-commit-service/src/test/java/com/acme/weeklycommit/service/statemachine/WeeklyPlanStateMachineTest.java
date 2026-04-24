@@ -131,6 +131,22 @@ class WeeklyPlanStateMachineTest {
   }
 
   @Test
+  void transition_reconciledToArchived_withNullReconciledAt_throwsInvariantViolation() {
+    // Invariant: a RECONCILED plan must have reconciledAt set. If someone constructs an
+    // inconsistent plan (e.g., state rewritten by a migration gone wrong), the guard must
+    // surface a clear error, not a bare NullPointerException.
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan broken = draftPlan(planId, LocalDate.parse("2026-01-12"));
+    broken.setState(PlanState.RECONCILED);
+    // reconciledAt stays null — invariant violation
+    when(plans.findById(planId)).thenReturn(Optional.of(broken));
+
+    assertThatThrownBy(() -> machine().transition(planId, PlanState.ARCHIVED, ACTOR))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("reconciledAt");
+  }
+
+  @Test
   void transition_appendsAuditLogRow_withFromAndToStates_andActorId() {
     UUID planId = UUID.randomUUID();
     WeeklyPlan draft = draftPlan(planId, LocalDate.parse("2026-04-27"));
