@@ -47,7 +47,7 @@ References: [MVP2], [MVP6], [MVP23]
 - [x] `V6__indexes_and_constraints.sql` (Top Rock index, carry-streak index, Shedlock table)
 - [x] JPA entities + enums (`PlanState`, `ChessTier`, `ActualStatus`)
 - [x] Spring Data repositories; custom queries for rollup
-- [ ] `FlywayMigrationIT` verifies clean apply from empty DB under Testcontainers
+- [x] `FlywayMigrationIT` verifies clean apply from empty DB under Testcontainers
 
 ### 5. Backend: state machine + DerivedFieldService
 References: [MVP4], [MVP5], [MVP6], [MVP7], [MVP8], [MVP12], [MVP17]
