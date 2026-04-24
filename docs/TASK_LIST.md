@@ -43,7 +43,7 @@ References: [MVP2], [MVP6], [MVP23]
 - [x] `V2__create_weekly_commit.sql`
 - [x] `V3__create_manager_review.sql`
 - [x] `V4__create_notification_dlt.sql`
-- [ ] `V5__create_audit_log.sql`
+- [x] `V5__create_audit_log.sql`
 - [ ] `V6__indexes_and_constraints.sql` (Top Rock index, carry-streak index, Shedlock table)
 - [ ] JPA entities + enums (`PlanState`, `ChessTier`, `ActualStatus`)
 - [ ] Spring Data repositories; custom queries for rollup
