@@ -1,5 +1,6 @@
 package com.acme.weeklycommit.service.statemachine;
 
+import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.AuditLogRepository;
@@ -33,7 +34,10 @@ public class WeeklyPlanStateMachine {
 
   @Transactional
   public WeeklyPlan transition(UUID planId, PlanState target) {
-    WeeklyPlan plan = plans.findById(planId).get();
+    WeeklyPlan plan =
+        plans
+            .findById(planId)
+            .orElseThrow(() -> new ResourceNotFoundException("WeeklyPlan", planId));
 
     if (target == PlanState.LOCKED) {
       plan.setState(PlanState.LOCKED);
