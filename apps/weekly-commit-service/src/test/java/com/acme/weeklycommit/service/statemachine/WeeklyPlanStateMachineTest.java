@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.acme.weeklycommit.api.exception.InvalidStateTransitionException;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.PlanState;
@@ -57,5 +58,17 @@ class WeeklyPlanStateMachineTest {
     assertThatThrownBy(() -> machine().transition(planId, PlanState.LOCKED))
         .isInstanceOf(ResourceNotFoundException.class)
         .hasMessageContaining(planId.toString());
+  }
+
+  @Test
+  void transition_draftToReconciled_rejected_mustPassThroughLocked() {
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan draft = new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
+    when(plans.findById(planId)).thenReturn(Optional.of(draft));
+
+    assertThatThrownBy(() -> machine().transition(planId, PlanState.RECONCILED))
+        .isInstanceOf(InvalidStateTransitionException.class)
+        .matches(e -> ((InvalidStateTransitionException) e).getFromState().equals("DRAFT"))
+        .matches(e -> ((InvalidStateTransitionException) e).getToState().equals("RECONCILED"));
   }
 }
