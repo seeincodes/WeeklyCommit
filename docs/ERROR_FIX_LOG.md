@@ -31,7 +31,39 @@ Copy this block when adding a new entry. Put new entries at the top of the `## L
 
 ## Log
 
-*No errors logged yet.*
+### 2026-04-24 — `./mvnw` fails with broken `$JAVA_HOME`
+
+**Error**
+```
+./mvnw: line 18: /Library/Java/JavaVirtualMachines/jdk-22.jdk/bin/java: No such file or directory
+```
+
+**Context**
+First `./mvnw verify` run in a fresh shell on macOS. `JAVA_HOME` was
+exported to a JDK path that no longer existed on disk (stale config from a
+prior Java install).
+
+**Root Cause**
+The wrapper script authored in group 3 trusted `${JAVA_HOME:-/usr}/bin/java`
+blindly — `:-` only falls back if `$JAVA_HOME` is *unset*, not if the path
+it points at is broken. So the wrapper tried to exec a non-existent binary.
+
+**Fix**
+Rewrote [`apps/weekly-commit-service/mvnw`](../apps/weekly-commit-service/mvnw)
+with a resolution order: (1) `$JAVA_HOME/bin/java` only when it's actually
+executable, (2) on macOS `/usr/libexec/java_home -v 21` (the project's
+target), then any JDK `java_home` can find, (3) `java` on `PATH`. Prints a
+clear error if none work.
+
+**Prevention**
+- Regression vector is "someone rewrites mvnw and drops the fallback
+  logic." Keep the `JAVA_CMD` resolution as-is.
+- `.tool-versions` pins `java temurin-21.0.5+11.0.LTS`; asdf / mise will
+  auto-install on first `cd` into the repo if the dev has the tool
+  configured.
+- CI (`.github/workflows/backend-pr.yml`) uses `actions/setup-java@v4`
+  with `java-version: '21'`, so CI is insulated from local `$JAVA_HOME`
+  drift. Only local dev is affected.
 
 ## Common Issues to Watch For
 
