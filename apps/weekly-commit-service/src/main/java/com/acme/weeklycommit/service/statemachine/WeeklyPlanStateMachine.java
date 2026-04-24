@@ -2,7 +2,10 @@ package com.acme.weeklycommit.service.statemachine;
 
 import com.acme.weeklycommit.api.exception.InvalidStateTransitionException;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
+import com.acme.weeklycommit.domain.entity.AuditLog;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
+import com.acme.weeklycommit.domain.enums.AuditEntityType;
+import com.acme.weeklycommit.domain.enums.AuditEventType;
 import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.AuditLogRepository;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
@@ -77,7 +80,28 @@ public class WeeklyPlanStateMachine {
       }
     }
 
-    return plans.save(plan);
+    WeeklyPlan saved = plans.save(plan);
+    appendAudit(planId, from, target);
+    return saved;
+  }
+
+  /**
+   * Append one {@code audit_log} row per successful transition. Same transaction as the plan save
+   * — if the audit write fails, the transition rolls back.
+   *
+   * <p>{@code actorId} is null here; controllers will thread the caller's employee id in group 6.
+   */
+  private void appendAudit(UUID planId, PlanState from, PlanState target) {
+    AuditLog row =
+        new AuditLog(
+            UUID.randomUUID(),
+            AuditEntityType.WEEKLY_PLAN,
+            planId,
+            AuditEventType.STATE_TRANSITION,
+            null);
+    row.setFromState(from.name());
+    row.setToState(target.name());
+    audits.save(row);
   }
 
   /** Time-window checks beyond the transition table. Throws on violation; no-op on pass. */
