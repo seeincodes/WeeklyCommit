@@ -45,7 +45,7 @@ References: [MVP2], [MVP6], [MVP23]
 - [x] `V4__create_notification_dlt.sql`
 - [x] `V5__create_audit_log.sql`
 - [x] `V6__indexes_and_constraints.sql` (Top Rock index, carry-streak index, Shedlock table)
-- [ ] JPA entities + enums (`PlanState`, `ChessTier`, `ActualStatus`)
+- [x] JPA entities + enums (`PlanState`, `ChessTier`, `ActualStatus`)
 - [ ] Spring Data repositories; custom queries for rollup
 - [ ] `FlywayMigrationIT` verifies clean apply from empty DB under Testcontainers
 
