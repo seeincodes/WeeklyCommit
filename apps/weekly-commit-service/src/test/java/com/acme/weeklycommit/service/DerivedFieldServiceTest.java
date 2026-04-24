@@ -68,6 +68,32 @@ class DerivedFieldServiceTest {
     assertThat(service().carryStreak(c)).isEqualTo(3);
   }
 
+  @Test
+  void carryStreak_capsAt_52_evenWithLongerChain() {
+    // Build a 100-long linear chain. Walking from the tip must return 52.
+    UUID[] ids = new UUID[100];
+    for (int i = 0; i < 100; i++) {
+      ids[i] = UUID.randomUUID();
+    }
+    for (int i = 0; i < 100; i++) {
+      UUID parent = (i == 0) ? null : ids[i - 1];
+      when(commits.findByIdForStreakWalk(ids[i])).thenReturn(Optional.of(commit(ids[i], parent)));
+    }
+
+    assertThat(service().carryStreak(ids[99])).isEqualTo(52);
+  }
+
+  @Test
+  void carryStreak_cycleTerminatesAtCap() {
+    // A -> B, B -> A. Defensive: infinite walk must be stopped by the cap.
+    UUID a = UUID.randomUUID();
+    UUID b = UUID.randomUUID();
+    when(commits.findByIdForStreakWalk(a)).thenReturn(Optional.of(commit(a, b)));
+    when(commits.findByIdForStreakWalk(b)).thenReturn(Optional.of(commit(b, a)));
+
+    assertThat(service().carryStreak(a)).isEqualTo(52);
+  }
+
   // --- helpers ---
 
   private static WeeklyCommit commit(UUID id, UUID carriedForwardFromId) {
