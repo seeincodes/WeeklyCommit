@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -76,5 +77,37 @@ class PlansControllerTest {
   @Test
   void getCurrentForMe_unauthenticated_returns401() throws Exception {
     mvc.perform(get("/api/v1/plans/me/current")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void createCurrentForMe_returns201WithEnvelope() throws Exception {
+    WeeklyPlan created =
+        new WeeklyPlan(UUID.randomUUID(), EMPLOYEE_ID, LocalDate.parse("2026-04-27"));
+    when(planService.createCurrentWeekPlan(any())).thenReturn(created);
+    when(mapper.toResponse(created))
+        .thenReturn(
+            new com.acme.weeklycommit.api.dto.WeeklyPlanResponse(
+                created.getId(),
+                created.getEmployeeId(),
+                created.getWeekStart(),
+                PlanState.DRAFT,
+                null,
+                null,
+                null,
+                null,
+                0L));
+
+    mvc.perform(
+            post("/api/v1/plans")
+                .with(jwt().jwt(builder -> builder.subject(EMPLOYEE_ID.toString()))))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.id").value(created.getId().toString()))
+        .andExpect(jsonPath("$.data.state").value("DRAFT"))
+        .andExpect(jsonPath("$.meta.now").isString());
+  }
+
+  @Test
+  void createCurrentForMe_unauthenticated_returns401() throws Exception {
+    mvc.perform(post("/api/v1/plans")).andExpect(status().isUnauthorized());
   }
 }

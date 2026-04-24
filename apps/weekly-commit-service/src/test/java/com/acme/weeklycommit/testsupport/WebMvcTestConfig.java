@@ -3,6 +3,7 @@ package com.acme.weeklycommit.testsupport;
 import static org.mockito.Mockito.mock;
 
 import com.acme.weeklycommit.config.AuthenticatedPrincipalArgumentResolver;
+import com.acme.weeklycommit.config.SecurityConfig;
 import com.acme.weeklycommit.config.WebMvcConfig;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -18,7 +19,11 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
  * <p>Tests opt in with {@code @Import(WebMvcTestConfig.class)}.
  */
 @TestConfiguration
-@Import({AuthenticatedPrincipalArgumentResolver.class, WebMvcConfig.class})
+@Import({
+  AuthenticatedPrincipalArgumentResolver.class,
+  WebMvcConfig.class,
+  SecurityConfig.class
+})
 public class WebMvcTestConfig {
 
   /**
