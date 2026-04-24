@@ -39,7 +39,7 @@ References: [MVP20], [MVP23]
 ### 4. Backend: data model + Flyway migrations
 References: [MVP2], [MVP6], [MVP23]
 
-- [ ] `V1__create_weekly_plan.sql`
+- [x] `V1__create_weekly_plan.sql`
 - [ ] `V2__create_weekly_commit.sql`
 - [ ] `V3__create_manager_review.sql`
 - [ ] `V4__create_notification_dlt.sql`
