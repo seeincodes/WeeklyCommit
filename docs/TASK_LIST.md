@@ -52,8 +52,8 @@ References: [MVP2], [MVP6], [MVP23]
 ### 5. Backend: state machine + DerivedFieldService
 References: [MVP4], [MVP5], [MVP6], [MVP7], [MVP8], [MVP12], [MVP17]
 
-- [ ] `WeeklyPlanStateMachine` service with transition table: DRAFT→LOCKED, LOCKED→RECONCILED, RECONCILED→ARCHIVED
-- [ ] Guards: reconciliation mode window `now >= weekStart + 4 days`; archival `reconciledAt < now - 90d`
+- [x] `WeeklyPlanStateMachine` service with transition table: DRAFT→LOCKED, LOCKED→RECONCILED, RECONCILED→ARCHIVED
+- [x] Guards: reconciliation mode window `now >= weekStart + 4 days`; archival `reconciledAt < now - 90d`
 - [ ] Idempotency key `(plan_id, target_state, version)` enforced
 - [ ] `@Transactional` transitions; `audit_log` append in same tx
 - [ ] Post-commit notification hook (decoupled from the tx via `TransactionSynchronization`)
