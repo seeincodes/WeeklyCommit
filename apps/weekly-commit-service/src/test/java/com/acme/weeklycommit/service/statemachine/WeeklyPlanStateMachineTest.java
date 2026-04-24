@@ -37,9 +37,10 @@ class WeeklyPlanStateMachineTest {
 
   @Mock private WeeklyPlanRepository plans;
   @Mock private AuditLogRepository audits;
+  @Mock private NotificationDispatcher dispatcher;
 
   private WeeklyPlanStateMachine machine() {
-    return new WeeklyPlanStateMachine(plans, audits, fixedClock);
+    return new WeeklyPlanStateMachine(plans, audits, dispatcher, fixedClock);
   }
 
   @Test
@@ -158,6 +159,37 @@ class WeeklyPlanStateMachineTest {
     machine().transition(planId, PlanState.LOCKED);
 
     verify(audits, never()).save(any(AuditLog.class));
+  }
+
+  @Test
+  void transition_dispatchesNotificationEvent_afterStateChange() {
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan draft = new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
+    when(plans.findById(planId)).thenReturn(Optional.of(draft));
+    when(plans.save(any(WeeklyPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    machine().transition(planId, PlanState.LOCKED);
+
+    ArgumentCaptor<NotificationEvent> captor = ArgumentCaptor.forClass(NotificationEvent.class);
+    verify(dispatcher).dispatchAfterCommit(captor.capture());
+    NotificationEvent event = captor.getValue();
+    assertThat(event.planId()).isEqualTo(planId);
+    assertThat(event.from()).isEqualTo(PlanState.DRAFT);
+    assertThat(event.to()).isEqualTo(PlanState.LOCKED);
+  }
+
+  @Test
+  void transition_idempotentNoop_doesNotDispatch() {
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan alreadyLocked =
+        new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
+    alreadyLocked.setState(PlanState.LOCKED);
+    alreadyLocked.setLockedAt(Instant.parse("2026-04-27T17:00:00Z"));
+    when(plans.findById(planId)).thenReturn(Optional.of(alreadyLocked));
+
+    machine().transition(planId, PlanState.LOCKED);
+
+    verify(dispatcher, never()).dispatchAfterCommit(any(NotificationEvent.class));
   }
 
   @Test
