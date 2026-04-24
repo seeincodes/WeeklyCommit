@@ -9,7 +9,10 @@ import static org.mockito.Mockito.when;
 
 import com.acme.weeklycommit.api.exception.InvalidStateTransitionException;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
+import com.acme.weeklycommit.domain.entity.AuditLog;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
+import com.acme.weeklycommit.domain.enums.AuditEntityType;
+import com.acme.weeklycommit.domain.enums.AuditEventType;
 import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.AuditLogRepository;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
@@ -22,6 +25,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -119,6 +123,41 @@ class WeeklyPlanStateMachineTest {
     assertThatThrownBy(() -> machine().transition(planId, PlanState.ARCHIVED))
         .isInstanceOf(InvalidStateTransitionException.class)
         .hasMessageContaining("archival");
+  }
+
+  @Test
+  void transition_appendsAuditLogRow_withFromAndToStates() {
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan draft = new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
+    when(plans.findById(planId)).thenReturn(Optional.of(draft));
+    when(plans.save(any(WeeklyPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+    when(audits.save(any(AuditLog.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    machine().transition(planId, PlanState.LOCKED);
+
+    ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
+    verify(audits).save(captor.capture());
+
+    AuditLog row = captor.getValue();
+    assertThat(row.getEntityType()).isEqualTo(AuditEntityType.WEEKLY_PLAN);
+    assertThat(row.getEntityId()).isEqualTo(planId);
+    assertThat(row.getEventType()).isEqualTo(AuditEventType.STATE_TRANSITION);
+    assertThat(row.getFromState()).isEqualTo("DRAFT");
+    assertThat(row.getToState()).isEqualTo("LOCKED");
+  }
+
+  @Test
+  void transition_idempotentNoop_doesNotAudit() {
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan alreadyLocked =
+        new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
+    alreadyLocked.setState(PlanState.LOCKED);
+    alreadyLocked.setLockedAt(Instant.parse("2026-04-27T17:00:00Z"));
+    when(plans.findById(planId)).thenReturn(Optional.of(alreadyLocked));
+
+    machine().transition(planId, PlanState.LOCKED);
+
+    verify(audits, never()).save(any(AuditLog.class));
   }
 
   @Test
