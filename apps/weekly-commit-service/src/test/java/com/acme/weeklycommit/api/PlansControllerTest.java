@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = PlansController.class)
@@ -34,6 +35,10 @@ class PlansControllerTest {
 
   @MockBean private WeeklyPlanService planService;
   @MockBean private WeeklyPlanMapper mapper;
+
+  // Shadows the OAuth2 auto-configured JwtDecoder so context load does not try to fetch the
+  // issuer's JWK set. Tests inject auth directly via .with(jwt()).
+  @MockBean private JwtDecoder jwtDecoder;
 
   @Test
   void getCurrentForMe_whenPlanExists_returns200WithEnvelope() throws Exception {
