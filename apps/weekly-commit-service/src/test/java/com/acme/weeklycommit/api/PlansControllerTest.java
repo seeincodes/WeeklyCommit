@@ -8,11 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.acme.weeklycommit.api.dto.WeeklyPlanMapper;
-import com.acme.weeklycommit.config.AuthenticatedPrincipalArgumentResolver;
-import com.acme.weeklycommit.config.WebMvcConfig;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.service.WeeklyPlanService;
+import com.acme.weeklycommit.testsupport.WebMvcTestConfig;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,11 +20,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(controllers = PlansController.class)
-@Import({AuthenticatedPrincipalArgumentResolver.class, WebMvcConfig.class})
+@Import(WebMvcTestConfig.class)
 class PlansControllerTest {
 
   private static final UUID EMPLOYEE_ID =
@@ -35,10 +33,6 @@ class PlansControllerTest {
 
   @MockBean private WeeklyPlanService planService;
   @MockBean private WeeklyPlanMapper mapper;
-
-  // Shadows the OAuth2 auto-configured JwtDecoder so context load does not try to fetch the
-  // issuer's JWK set. Tests inject auth directly via .with(jwt()).
-  @MockBean private JwtDecoder jwtDecoder;
 
   @Test
   void getCurrentForMe_whenPlanExists_returns200WithEnvelope() throws Exception {

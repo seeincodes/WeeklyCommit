@@ -48,9 +48,10 @@ public class WeeklyPlanService {
   /**
    * Monday of the week that contains "now" from the caller's perspective. Computed in the
    * caller's IANA zone so a Tokyo employee's Monday and a Los Angeles employee's Monday aren't
-   * muddled by UTC arithmetic.
+   * muddled by UTC arithmetic. Private — callers that need this should go through {@link
+   * #findCurrentWeekPlan}.
    */
-  LocalDate currentWeekStartFor(AuthenticatedPrincipal caller) {
+  private LocalDate currentWeekStartFor(AuthenticatedPrincipal caller) {
     return LocalDate.now(clock.withZone(caller.timezone()))
         .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
   }
