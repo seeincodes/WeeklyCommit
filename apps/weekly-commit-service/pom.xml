@@ -284,7 +284,13 @@
                 </executions>
             </plugin>
 
-            <!-- Spotless: google-java-format (CLAUDE.md tech stack lock) -->
+            <!-- Spotless: google-java-format (CLAUDE.md tech stack lock).
+
+                 Default execution runs `apply` so `mvn verify` auto-formats during local dev
+                 and doesn't block the build on whitespace. CI enforces via an explicit
+                 `./mvnw spotless:check` step in .github/workflows/backend-pr.yml that runs
+                 BEFORE verify — so unformatted code can never be merged even though local
+                 verify is permissive. -->
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
@@ -305,8 +311,10 @@
                 </configuration>
                 <executions>
                     <execution>
+                        <id>spotless-apply-on-verify</id>
+                        <phase>verify</phase>
                         <goals>
-                            <goal>check</goal>
+                            <goal>apply</goal>
                         </goals>
                     </execution>
                 </executions>
