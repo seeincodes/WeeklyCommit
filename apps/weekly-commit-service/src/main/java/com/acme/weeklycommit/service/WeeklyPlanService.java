@@ -1,8 +1,11 @@
 package com.acme.weeklycommit.service;
 
+import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
+import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
+import com.acme.weeklycommit.service.statemachine.WeeklyPlanStateMachine;
 import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -33,10 +36,13 @@ public class WeeklyPlanService {
   private static final Logger log = LoggerFactory.getLogger(WeeklyPlanService.class);
 
   private final WeeklyPlanRepository plans;
+  private final WeeklyPlanStateMachine stateMachine;
   private final Clock clock;
 
-  public WeeklyPlanService(WeeklyPlanRepository plans, Clock clock) {
+  public WeeklyPlanService(
+      WeeklyPlanRepository plans, WeeklyPlanStateMachine stateMachine, Clock clock) {
     this.plans = plans;
+    this.stateMachine = stateMachine;
     this.clock = clock;
   }
 
@@ -79,6 +85,31 @@ public class WeeklyPlanService {
 
   private static boolean isSelfOrManager(UUID targetEmployeeId, AuthenticatedPrincipal caller) {
     return caller.employeeId().equals(targetEmployeeId) || caller.isManager();
+  }
+
+  /**
+   * Apply a lifecycle transition to a plan. Owner-only — even a MANAGER cannot transition
+   * another employee's plan (managers review; they don't act for the IC). Scheduled jobs bypass
+   * this method and call {@link WeeklyPlanStateMachine#transition} directly with a null actor.
+   *
+   * <p>Within the same {@code @Transactional} boundary the state machine's own {@code findById}
+   * is served by the Hibernate first-level cache, so the authz load does not double DB cost.
+   */
+  @Transactional
+  public WeeklyPlan transitionPlan(
+      UUID planId, PlanState target, AuthenticatedPrincipal caller) {
+    WeeklyPlan plan =
+        plans
+            .findById(planId)
+            .orElseThrow(() -> new ResourceNotFoundException("WeeklyPlan", planId));
+    if (!plan.getEmployeeId().equals(caller.employeeId())) {
+      throw new AccessDeniedException(
+          "caller "
+              + caller.employeeId()
+              + " cannot transition plan owned by "
+              + plan.getEmployeeId());
+    }
+    return stateMachine.transition(planId, target, caller.employeeId());
   }
 
   /**
