@@ -3,6 +3,7 @@ package com.acme.weeklycommit.service.statemachine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -118,5 +119,26 @@ class WeeklyPlanStateMachineTest {
     assertThatThrownBy(() -> machine().transition(planId, PlanState.ARCHIVED))
         .isInstanceOf(InvalidStateTransitionException.class)
         .hasMessageContaining("archival");
+  }
+
+  @Test
+  void transition_alreadyInTargetState_isIdempotentNoop() {
+    // Retry-safety: repeated transition with the same target returns the plan unchanged,
+    // does NOT persist, does NOT re-emit notifications. Presearch §7 idempotency key is
+    // effectively (plan_id, target_state, version) — matching state + version means "already done".
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan alreadyLocked =
+        new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
+    alreadyLocked.setState(PlanState.LOCKED);
+    Instant originallyLockedAt = Instant.parse("2026-04-27T17:00:00Z");
+    alreadyLocked.setLockedAt(originallyLockedAt);
+    when(plans.findById(planId)).thenReturn(Optional.of(alreadyLocked));
+
+    WeeklyPlan result = machine().transition(planId, PlanState.LOCKED);
+
+    assertThat(result.getState()).isEqualTo(PlanState.LOCKED);
+    // lockedAt NOT overwritten with FROZEN_NOW -- retained from the original transition
+    assertThat(result.getLockedAt()).isEqualTo(originallyLockedAt);
+    verify(plans, never()).save(any(WeeklyPlan.class));
   }
 }
