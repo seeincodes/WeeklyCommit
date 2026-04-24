@@ -16,6 +16,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -102,5 +103,20 @@ class WeeklyPlanStateMachineTest {
     assertThatThrownBy(() -> machine().transition(planId, PlanState.RECONCILED))
         .isInstanceOf(InvalidStateTransitionException.class)
         .hasMessageContaining("reconciliation");
+  }
+
+  @Test
+  void transition_reconciledToArchived_rejectedBefore90Days() {
+    // reconciledAt 89 days ago relative to FROZEN_NOW -> archival guard must fire.
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan reconciled =
+        new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-01-12"));
+    reconciled.setState(PlanState.RECONCILED);
+    reconciled.setReconciledAt(FROZEN_NOW.minus(89, ChronoUnit.DAYS));
+    when(plans.findById(planId)).thenReturn(Optional.of(reconciled));
+
+    assertThatThrownBy(() -> machine().transition(planId, PlanState.ARCHIVED))
+        .isInstanceOf(InvalidStateTransitionException.class)
+        .hasMessageContaining("archival");
   }
 }
