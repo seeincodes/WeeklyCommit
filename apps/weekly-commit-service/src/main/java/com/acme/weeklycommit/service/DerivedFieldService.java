@@ -25,4 +25,17 @@ public class DerivedFieldService {
   public Optional<WeeklyCommit> topRock(UUID planId) {
     return commits.findTopRock(planId);
   }
+
+  /**
+   * Chain length for a carry-forward streak. Walks backwards through {@code carriedForwardFromId}
+   * until the chain ends, reaches the cap, or hits a missing predecessor. Inclusive of the given
+   * commit: an orphan (never carried) returns 1.
+   */
+  public int carryStreak(UUID commitId) {
+    Optional<WeeklyCommit> head = commits.findByIdForStreakWalk(commitId);
+    if (head.isEmpty()) {
+      return 0;
+    }
+    return 1;
+  }
 }
