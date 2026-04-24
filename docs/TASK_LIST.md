@@ -56,7 +56,7 @@ References: [MVP4], [MVP5], [MVP6], [MVP7], [MVP8], [MVP12], [MVP17]
 - [x] Guards: reconciliation mode window `now >= weekStart + 4 days`; archival `reconciledAt < now - 90d`
 - [x] Idempotency key `(plan_id, target_state, version)` enforced
 - [x] `@Transactional` transitions; `audit_log` append in same tx
-- [ ] Post-commit notification hook (decoupled from the tx via `TransactionSynchronization`)
+- [x] Post-commit notification hook (decoupled from the tx via `TransactionSynchronization`)
 - [ ] `DerivedFieldService`: Top Rock, carryStreak (52-hop cap), stuckFlag
 - [ ] Unit tests for every guard + cap boundary
 - [ ] PITest wired on `service.statemachine.*` package; nightly CI job
