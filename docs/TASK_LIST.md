@@ -66,7 +66,7 @@ References: [MVP1], [MVP2], [MVP6], [MVP9], [MVP10], [MVP13], [MVP17], [MVP22]
 
 - [x] Plans controller: `GET /plans/me/current`, `GET /plans`, `POST /plans`, `POST /plans/{id}/transitions`, `PATCH /plans/{id}`, `GET /plans/team`
 - [x] Commits controller: `GET /plans/{planId}/commits`, `POST /plans/{planId}/commits`, `PATCH /commits/{id}`, `DELETE /commits/{id}`, `POST /commits/{id}/carry-forward`
-- [ ] Reviews controller: `POST /plans/{id}/reviews`, `GET /plans/{id}/reviews`
+- [x] Reviews controller: `POST /plans/{id}/reviews`, `GET /plans/{id}/reviews`
 - [ ] Rollup controller: `GET /rollup/team` — member card builder, flag computer, byOutcome aggregator
 - [ ] Null-manager handling: rollup with `manager_id IS NULL` returns empty; `GET /admin/unassigned-employees` surfaces the list for HRIS fix-up
 - [ ] Audit controller: `GET /audit/plans/{id}` with self-or-manager authz
