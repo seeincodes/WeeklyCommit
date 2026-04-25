@@ -92,7 +92,7 @@ References: [MVP4] (auto-lock half), [MVP11], [MVP16]
 - [ ] `AutoLockJob` hourly cron; integration test with two simulated pods
 - [ ] `ArchivalJob` nightly cron; `reconciledAt < now - 90d` selection
 - [ ] `UnreviewedDigestJob` Monday 09:00 UTC; skip-level grouping; notification-svc digest send
-- [ ] All threshold comparisons use application `Instant`, verified by lint rule (`NOW\(\)` grep in migration + code scan)
+- [x] All threshold comparisons use application `Instant`, verified by lint rule (`NOW\(\)` grep in migration + code scan) *(scripts/lint-now-thresholds.sh: greps src/main/java + db/migration for `\bNOW\b`/`\bCURRENT_TIMESTAMP\b`, allowlists `DEFAULT now(...)` column defaults, SQL/Java comments, Java time-API `.now(`, and `"now"` map keys; baseline audit found 0 forbidden uses (3 legitimate column defaults in V4/V5/V7). Wired into `mvnw test` via NowThresholdLintTest so CI catches drift automatically.)*
 - [ ] Job success/failure counters → Micrometer → CloudWatch
 
 ### 9. Frontend: scaffold + shared singletons
