@@ -39,24 +39,31 @@ public class ArchivalJob {
   private final WeeklyPlanRepository plans;
   private final WeeklyPlanStateMachine stateMachine;
   private final Clock clock;
+  private final JobMetrics metrics;
   private final int olderThanDays;
 
   public ArchivalJob(
       WeeklyPlanRepository plans,
       WeeklyPlanStateMachine stateMachine,
       Clock clock,
+      JobMetrics metrics,
       @Value("${weekly-commit.scheduled.archival-older-than-days:90}") int olderThanDays) {
     this.plans = plans;
     this.stateMachine = stateMachine;
     this.clock = clock;
+    this.metrics = metrics;
     this.olderThanDays = olderThanDays;
   }
 
   @Scheduled(cron = "${weekly-commit.scheduled.archival-cron:0 0 2 * * *}")
   @SchedulerLock(name = "ArchivalJob", lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
   public void run() {
-    int archived = runOnce();
-    log.info("ArchivalJob: archived {} plans older than {} days", archived, olderThanDays);
+    metrics.timed(
+        "ArchivalJob",
+        () -> {
+          int archived = runOnce();
+          log.info("ArchivalJob: archived {} plans older than {} days", archived, olderThanDays);
+        });
   }
 
   /**

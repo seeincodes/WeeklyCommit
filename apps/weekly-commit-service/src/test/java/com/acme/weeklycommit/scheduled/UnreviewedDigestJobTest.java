@@ -12,6 +12,7 @@ import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.EmployeeRepository;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -43,8 +44,11 @@ class UnreviewedDigestJobTest {
   private static final Clock FIXED_CLOCK =
       Clock.fixed(Instant.parse("2026-04-27T09:00:00Z"), ZoneId.of("UTC"));
 
+  private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+  private final JobMetrics jobMetrics = new JobMetrics(meterRegistry);
+
   private UnreviewedDigestJob job(Clock clock, int thresholdHours) {
-    return new UnreviewedDigestJob(plans, employees, clock, thresholdHours);
+    return new UnreviewedDigestJob(plans, employees, clock, jobMetrics, thresholdHours);
   }
 
   private static WeeklyPlan plan(UUID id, UUID employeeId) {
@@ -187,5 +191,25 @@ class UnreviewedDigestJobTest {
     verify(employees).findById(owner1);
     verify(employees).findById(owner2);
     verify(employees, never()).findById(eq(UUID.randomUUID())); // sanity, never matches
+  }
+
+  @Test
+  void run_publishesSuccessCounter() {
+    // run() wraps runOnce() in JobMetrics.timed -- a clean run increments the success counter
+    // once. SRE alarms (absence + 100% failure rate) hinge on this counter firing reliably.
+    when(plans.findUnreviewedReconciledBefore(
+            eq(PlanState.RECONCILED), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(List.of());
+
+    job(FIXED_CLOCK, 72).run();
+
+    double successCount =
+        meterRegistry
+            .get("weekly_commit.scheduled.job.runs_total")
+            .tag("job", "UnreviewedDigestJob")
+            .tag("outcome", "success")
+            .counter()
+            .count();
+    assertThat(successCount).isEqualTo(1.0);
   }
 }

@@ -12,6 +12,7 @@ import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import com.acme.weeklycommit.service.statemachine.WeeklyPlanStateMachine;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -31,8 +32,11 @@ class ArchivalJobTest {
   @Mock private WeeklyPlanRepository plans;
   @Mock private WeeklyPlanStateMachine stateMachine;
 
+  private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+  private final JobMetrics jobMetrics = new JobMetrics(meterRegistry);
+
   private ArchivalJob job(Clock clock, int olderThanDays) {
-    return new ArchivalJob(plans, stateMachine, clock, olderThanDays);
+    return new ArchivalJob(plans, stateMachine, clock, jobMetrics, olderThanDays);
   }
 
   @Test
@@ -99,5 +103,25 @@ class ArchivalJobTest {
     ArgumentCaptor<Instant> cutoff = ArgumentCaptor.forClass(Instant.class);
     verify(plans).findReconciledBefore(eq(PlanState.RECONCILED), cutoff.capture());
     assertThat(cutoff.getValue()).isEqualTo(fixedNow.minus(90, ChronoUnit.DAYS));
+  }
+
+  @Test
+  void run_publishesSuccessCounter() {
+    // run() wraps runOnce() in JobMetrics.timed -- a clean run increments the success counter
+    // once. SRE alarms (absence + 100% failure rate) hinge on this counter firing reliably.
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T02:00:00Z"), ZoneId.of("UTC"));
+    when(plans.findReconciledBefore(eq(PlanState.RECONCILED), any(Instant.class)))
+        .thenReturn(List.of());
+
+    job(clock, 90).run();
+
+    double successCount =
+        meterRegistry
+            .get("weekly_commit.scheduled.job.runs_total")
+            .tag("job", "ArchivalJob")
+            .tag("outcome", "success")
+            .counter()
+            .count();
+    assertThat(successCount).isEqualTo(1.0);
   }
 }

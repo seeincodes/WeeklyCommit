@@ -51,29 +51,36 @@ public class UnreviewedDigestJob {
   private final WeeklyPlanRepository plans;
   private final EmployeeRepository employees;
   private final Clock clock;
+  private final JobMetrics metrics;
   private final int thresholdHours;
 
   public UnreviewedDigestJob(
       WeeklyPlanRepository plans,
       EmployeeRepository employees,
       Clock clock,
+      JobMetrics metrics,
       @Value("${weekly-commit.scheduled.unreviewed-threshold-hours:72}") int thresholdHours) {
     this.plans = plans;
     this.employees = employees;
     this.clock = clock;
+    this.metrics = metrics;
     this.thresholdHours = thresholdHours;
   }
 
   @Scheduled(cron = "${weekly-commit.scheduled.unreviewed-digest-cron:0 0 9 * * MON}")
   @SchedulerLock(name = "UnreviewedDigestJob", lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
   public void run() {
-    DigestRunSummary summary = runOnce();
-    log.info(
-        "UnreviewedDigestJob: plans={} skipLevelGroups={} unmanaged={} noSkipLevel={}",
-        summary.plansFound(),
-        summary.skipLevelGroups(),
-        summary.unmanagedCount(),
-        summary.noSkipLevelCount());
+    metrics.timed(
+        "UnreviewedDigestJob",
+        () -> {
+          DigestRunSummary summary = runOnce();
+          log.info(
+              "UnreviewedDigestJob: plans={} skipLevelGroups={} unmanaged={} noSkipLevel={}",
+              summary.plansFound(),
+              summary.skipLevelGroups(),
+              summary.unmanagedCount(),
+              summary.noSkipLevelCount());
+        });
   }
 
   /**

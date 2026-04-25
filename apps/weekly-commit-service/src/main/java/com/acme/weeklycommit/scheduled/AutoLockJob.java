@@ -43,25 +43,32 @@ public class AutoLockJob {
   private final WeeklyPlanRepository plans;
   private final WeeklyPlanStateMachine stateMachine;
   private final Clock clock;
+  private final JobMetrics metrics;
   private final int cutoffHours;
 
   public AutoLockJob(
       WeeklyPlanRepository plans,
       WeeklyPlanStateMachine stateMachine,
       Clock clock,
+      JobMetrics metrics,
       @Value("${weekly-commit.scheduled.auto-lock-cutoff-hours-after-week-start:36}")
           int cutoffHours) {
     this.plans = plans;
     this.stateMachine = stateMachine;
     this.clock = clock;
+    this.metrics = metrics;
     this.cutoffHours = cutoffHours;
   }
 
   @Scheduled(cron = "${weekly-commit.scheduled.auto-lock-cron:0 0 * * * *}")
   @SchedulerLock(name = "AutoLockJob", lockAtMostFor = "PT5M", lockAtLeastFor = "PT30S")
   public void run() {
-    int locked = runOnce();
-    log.info("AutoLockJob: locked {} plans past cutoff", locked);
+    metrics.timed(
+        "AutoLockJob",
+        () -> {
+          int locked = runOnce();
+          log.info("AutoLockJob: locked {} plans past cutoff", locked);
+        });
   }
 
   /**

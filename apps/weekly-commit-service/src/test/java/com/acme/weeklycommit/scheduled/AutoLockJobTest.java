@@ -11,6 +11,7 @@ import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import com.acme.weeklycommit.service.statemachine.WeeklyPlanStateMachine;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,8 +29,11 @@ class AutoLockJobTest {
   @Mock private WeeklyPlanRepository plans;
   @Mock private WeeklyPlanStateMachine stateMachine;
 
+  private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+  private final JobMetrics jobMetrics = new JobMetrics(meterRegistry);
+
   private AutoLockJob job(Clock clock, int cutoffHours) {
-    return new AutoLockJob(plans, stateMachine, clock, cutoffHours);
+    return new AutoLockJob(plans, stateMachine, clock, jobMetrics, cutoffHours);
   }
 
   /**
@@ -104,5 +108,26 @@ class AutoLockJobTest {
 
     // verification implicit -- if the cutoff was wrong, the stub wouldn't match and
     // findDraftsPastCutoff would return null/throw.
+  }
+
+  @Test
+  void run_publishesSuccessCounter() {
+    // run() (not runOnce()) wraps the body in JobMetrics.timed -- a clean run must increment the
+    // success counter exactly once. This protects the SRE runbook: alarm-on-absence (job stopped
+    // firing) and alarm-on-100%-failure-rate both depend on this counter being reliably emitted.
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T12:00:00Z"), ZoneId.of("UTC"));
+    when(plans.findDraftsPastCutoff(eq(PlanState.DRAFT), eq(LocalDate.parse("2026-04-27"))))
+        .thenReturn(List.of());
+
+    job(clock, 36).run();
+
+    double successCount =
+        meterRegistry
+            .get("weekly_commit.scheduled.job.runs_total")
+            .tag("job", "AutoLockJob")
+            .tag("outcome", "success")
+            .counter()
+            .count();
+    assertThat(successCount).isEqualTo(1.0);
   }
 }
