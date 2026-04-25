@@ -11,7 +11,6 @@ class WeeklyCommitServiceApplicationTest {
   @Test
   void mainClassPresent() {
     // Existence check — the compile step is the real assertion.
-    org.junit.jupiter.api.Assertions.assertNotNull(
-        WeeklyCommitServiceApplication.class.getName());
+    org.junit.jupiter.api.Assertions.assertNotNull(WeeklyCommitServiceApplication.class.getName());
   }
 }

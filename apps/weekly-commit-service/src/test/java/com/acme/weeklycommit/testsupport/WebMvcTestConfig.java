@@ -11,11 +11,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 /**
- * Shared bootstrap for {@code @WebMvcTest} slice tests. Imports the argument resolver + MVC
- * config so {@link com.acme.weeklycommit.config.AuthenticatedPrincipal} resolves in controllers,
- * imports {@link com.acme.weeklycommit.config.SecurityConfig} so tests exercise the same security
- * chain as prod, and shadows the OAuth2-autoconfigured {@link JwtDecoder} with a mock so context
- * load does not try to fetch JWKs from {@code AUTH0_ISSUER_URI}.
+ * Shared bootstrap for {@code @WebMvcTest} slice tests. Imports the argument resolver + MVC config
+ * so {@link com.acme.weeklycommit.config.AuthenticatedPrincipal} resolves in controllers, imports
+ * {@link com.acme.weeklycommit.config.SecurityConfig} so tests exercise the same security chain as
+ * prod, and shadows the OAuth2-autoconfigured {@link JwtDecoder} with a mock so context load does
+ * not try to fetch JWKs from {@code AUTH0_ISSUER_URI}.
  *
  * <p>Tests opt in with:
  *
@@ -30,16 +30,12 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
  * does not propagate through {@code @Import}.
  */
 @TestConfiguration
-@Import({
-  AuthenticatedPrincipalArgumentResolver.class,
-  WebMvcConfig.class,
-  SecurityConfig.class
-})
+@Import({AuthenticatedPrincipalArgumentResolver.class, WebMvcConfig.class, SecurityConfig.class})
 public class WebMvcTestConfig {
 
   /**
-   * Mock decoder — never invoked in tests because {@code .with(jwt())} injects the
-   * Authentication directly. Exists so context load can find a {@link JwtDecoder} bean.
+   * Mock decoder — never invoked in tests because {@code .with(jwt())} injects the Authentication
+   * directly. Exists so context load can find a {@link JwtDecoder} bean.
    */
   @Bean
   JwtDecoder jwtDecoder() {

@@ -29,7 +29,8 @@ class AuthenticatedPrincipalArgumentResolverTest {
   @Test
   void supportsParameter_returnsTrue_forAuthenticatedPrincipalType() throws NoSuchMethodException {
     MethodParameter p =
-        new MethodParameter(Fixtures.class.getDeclaredMethod("takesPrincipal", AuthenticatedPrincipal.class), 0);
+        new MethodParameter(
+            Fixtures.class.getDeclaredMethod("takesPrincipal", AuthenticatedPrincipal.class), 0);
     assertThat(resolver.supportsParameter(p)).isTrue();
   }
 
@@ -83,11 +84,7 @@ class AuthenticatedPrincipalArgumentResolverTest {
   private static JwtAuthenticationToken jwtAuth(Map<String, Object> claims, List<String> roles) {
     Jwt jwt =
         new Jwt(
-            "token",
-            Instant.now(),
-            Instant.now().plusSeconds(60),
-            Map.of("alg", "RS256"),
-            claims);
+            "token", Instant.now(), Instant.now().plusSeconds(60), Map.of("alg", "RS256"), claims);
     return new JwtAuthenticationToken(
         jwt, roles.stream().map(SimpleGrantedAuthority::new).toList());
   }

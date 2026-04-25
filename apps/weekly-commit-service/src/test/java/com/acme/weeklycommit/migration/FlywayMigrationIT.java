@@ -23,9 +23,8 @@ import org.postgresql.ds.PGSimpleDataSource;
 
 /**
  * Applies Flyway V1-V6 from scratch against a real Postgres 16.4 container and asserts the schema
- * is what we expect (tables, selected columns, key indexes). Also exercises a representative
- * insert on every owned table to catch constraint / type mismatches that pure DDL inspection
- * misses.
+ * is what we expect (tables, selected columns, key indexes). Also exercises a representative insert
+ * on every owned table to catch constraint / type mismatches that pure DDL inspection misses.
  *
  * <p>Does NOT load the Spring context — this test focuses on migration correctness in isolation.
  */
@@ -69,8 +68,10 @@ class FlywayMigrationIT {
 
   @Test
   void tablesCreated() {
-    Set<String> tables = Set.copyOf(queryStrings(
-        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"));
+    Set<String> tables =
+        Set.copyOf(
+            queryStrings(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"));
     assertThat(tables)
         .contains(
             "weekly_plan",
@@ -100,8 +101,9 @@ class FlywayMigrationIT {
             "last_modified_by",
             "last_modified_date");
 
-    assertThat(queryStrings(
-        """
+    assertThat(
+            queryStrings(
+                """
         SELECT conname FROM pg_constraint
          WHERE conrelid = 'weekly_plan'::regclass
            AND contype = 'u'
@@ -111,8 +113,9 @@ class FlywayMigrationIT {
 
   @Test
   void weeklyCommit_toprockIndex_isComposite() {
-    assertThat(queryStrings(
-        """
+    assertThat(
+            queryStrings(
+                """
         SELECT indexdef FROM pg_indexes
          WHERE tablename = 'weekly_commit'
            AND indexname = 'idx_weekly_commit_toprock'
@@ -123,8 +126,9 @@ class FlywayMigrationIT {
 
   @Test
   void weeklyCommit_carryStreakIndex_exists() {
-    assertThat(queryStrings(
-        """
+    assertThat(
+            queryStrings(
+                """
         SELECT indexname FROM pg_indexes
          WHERE tablename = 'weekly_commit'
         """))
@@ -157,7 +161,9 @@ class FlywayMigrationIT {
              created_by, created_date, last_modified_by, last_modified_date)
           VALUES (?, ?, ?, 'DRAFT', 0, 'sys', now(), 'sys', now())
           """,
-          planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
+          planId,
+          UUID.randomUUID(),
+          LocalDate.parse("2026-04-27"));
 
       // weekly_commit
       runUpdate(
@@ -170,7 +176,9 @@ class FlywayMigrationIT {
           VALUES (?, ?, 'ship the thing', ?, 'ROCK', 0, 'PENDING',
                   'sys', now(), 'sys', now())
           """,
-          commitId, planId, UUID.randomUUID());
+          commitId,
+          planId,
+          UUID.randomUUID());
 
       // manager_review
       runUpdate(
@@ -181,7 +189,9 @@ class FlywayMigrationIT {
              created_by, created_date, last_modified_by, last_modified_date)
           VALUES (?, ?, ?, now(), 'sys', now(), 'sys', now())
           """,
-          reviewId, planId, UUID.randomUUID());
+          reviewId,
+          planId,
+          UUID.randomUUID());
 
       // notification_dlt
       runUpdate(
@@ -201,7 +211,8 @@ class FlywayMigrationIT {
             (id, entity_type, entity_id, event_type, from_state, to_state)
           VALUES (?, 'WEEKLY_PLAN', ?, 'STATE_TRANSITION', 'DRAFT', 'LOCKED')
           """,
-          auditId, planId);
+          auditId,
+          planId);
     }
 
     assertThat(countRows("SELECT COUNT(*) FROM weekly_plan")).isEqualTo(1);
@@ -226,7 +237,9 @@ class FlywayMigrationIT {
              created_by, created_date, last_modified_by, last_modified_date)
           VALUES (?, ?, ?, 'DRAFT', 0, 'sys', now(), 'sys', now())
           """,
-          planId, UUID.randomUUID(), LocalDate.parse("2026-05-04"));
+          planId,
+          UUID.randomUUID(),
+          LocalDate.parse("2026-05-04"));
       runUpdate(
           c,
           """
@@ -237,7 +250,9 @@ class FlywayMigrationIT {
           VALUES (?, ?, 't', ?, 'PEBBLE', 0, 'PENDING',
                   'sys', now(), 'sys', now())
           """,
-          commitId, planId, UUID.randomUUID());
+          commitId,
+          planId,
+          UUID.randomUUID());
 
       runUpdate(c, "DELETE FROM weekly_plan WHERE id = ?", planId);
     }
@@ -263,10 +278,11 @@ class FlywayMigrationIT {
   }
 
   private Set<String> columnsOf(String table) {
-    return Set.copyOf(queryStringsWithParam(
-        "SELECT column_name FROM information_schema.columns "
-            + "WHERE table_schema = 'public' AND table_name = ?",
-        table));
+    return Set.copyOf(
+        queryStringsWithParam(
+            "SELECT column_name FROM information_schema.columns "
+                + "WHERE table_schema = 'public' AND table_name = ?",
+            table));
   }
 
   private List<String> queryStrings(String sql) {

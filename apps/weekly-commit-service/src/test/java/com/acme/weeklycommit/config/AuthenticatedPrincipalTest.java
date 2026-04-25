@@ -146,11 +146,7 @@ class AuthenticatedPrincipalTest {
       Map<String, Object> claims, List<String> authorities) {
     Jwt jwt =
         new Jwt(
-            "token",
-            Instant.now(),
-            Instant.now().plusSeconds(60),
-            Map.of("alg", "RS256"),
-            claims);
+            "token", Instant.now(), Instant.now().plusSeconds(60), Map.of("alg", "RS256"), claims);
     return new JwtAuthenticationToken(
         jwt, authorities.stream().map(SimpleGrantedAuthority::new).toList());
   }

@@ -11,13 +11,13 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 /**
- * Lets controllers declare {@link AuthenticatedPrincipal} as a parameter and receive the
- * validated principal for the current request. Centralizes JWT-claim extraction in one place
- * so controllers never see raw {@code Jwt} or {@code Authentication}.
+ * Lets controllers declare {@link AuthenticatedPrincipal} as a parameter and receive the validated
+ * principal for the current request. Centralizes JWT-claim extraction in one place so controllers
+ * never see raw {@code Jwt} or {@code Authentication}.
  *
  * <p>Fails loudly if called outside of an authenticated request — Spring Security should have
- * already rejected unauthenticated traffic at the filter chain; reaching this resolver without
- * a {@link JwtAuthenticationToken} in the context is a wiring bug, not an expected state.
+ * already rejected unauthenticated traffic at the filter chain; reaching this resolver without a
+ * {@link JwtAuthenticationToken} in the context is a wiring bug, not an expected state.
  *
  * <p>Registered in {@link WebMvcConfig}.
  */

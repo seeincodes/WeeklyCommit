@@ -23,8 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
  * Read/write operations against {@code WeeklyPlan} aggregated for the API layer.
  *
  * <p>Authz is enforced here (service boundary) per the project's code-quality memo — callers hand
- * an {@link AuthenticatedPrincipal} in, and the service decides which plans they may see or
- * mutate. Controllers remain thin (validation + response shaping).
+ * an {@link AuthenticatedPrincipal} in, and the service decides which plans they may see or mutate.
+ * Controllers remain thin (validation + response shaping).
  *
  * <p>Week math is TZ-aware per presearch A4: the week start is the Monday-of-current-week in the
  * caller's IANA timezone. Storage is a {@code DATE} column with no zone; callers should not
@@ -75,10 +75,7 @@ public class WeeklyPlanService {
       UUID targetEmployeeId, LocalDate weekStart, AuthenticatedPrincipal caller) {
     if (!isSelfOrManager(targetEmployeeId, caller)) {
       throw new AccessDeniedException(
-          "caller "
-              + caller.employeeId()
-              + " cannot read plan for employee "
-              + targetEmployeeId);
+          "caller " + caller.employeeId() + " cannot read plan for employee " + targetEmployeeId);
     }
     return plans.findByEmployeeIdAndWeekStart(targetEmployeeId, weekStart);
   }
@@ -88,16 +85,15 @@ public class WeeklyPlanService {
   }
 
   /**
-   * Apply a lifecycle transition to a plan. Owner-only — even a MANAGER cannot transition
-   * another employee's plan (managers review; they don't act for the IC). Scheduled jobs bypass
-   * this method and call {@link WeeklyPlanStateMachine#transition} directly with a null actor.
+   * Apply a lifecycle transition to a plan. Owner-only — even a MANAGER cannot transition another
+   * employee's plan (managers review; they don't act for the IC). Scheduled jobs bypass this method
+   * and call {@link WeeklyPlanStateMachine#transition} directly with a null actor.
    *
-   * <p>Within the same {@code @Transactional} boundary the state machine's own {@code findById}
-   * is served by the Hibernate first-level cache, so the authz load does not double DB cost.
+   * <p>Within the same {@code @Transactional} boundary the state machine's own {@code findById} is
+   * served by the Hibernate first-level cache, so the authz load does not double DB cost.
    */
   @Transactional
-  public WeeklyPlan transitionPlan(
-      UUID planId, PlanState target, AuthenticatedPrincipal caller) {
+  public WeeklyPlan transitionPlan(UUID planId, PlanState target, AuthenticatedPrincipal caller) {
     WeeklyPlan plan =
         plans
             .findById(planId)
@@ -113,13 +109,13 @@ public class WeeklyPlanService {
   }
 
   /**
-   * Idempotent create on {@code (employeeId, weekStart)}. If a plan already exists for the
-   * caller's current week, return it unchanged. Otherwise save a new DRAFT plan.
+   * Idempotent create on {@code (employeeId, weekStart)}. If a plan already exists for the caller's
+   * current week, return it unchanged. Otherwise save a new DRAFT plan.
    *
-   * <p>Race handling: two concurrent callers can both see "no plan exists" and both attempt a
-   * save. The DB {@code UNIQUE(employee_id, week_start)} constraint prevents duplicates; the
-   * losing side here catches the {@link DataIntegrityViolationException} and re-fetches the
-   * now-committed plan from the winning write. The caller never sees a 500.
+   * <p>Race handling: two concurrent callers can both see "no plan exists" and both attempt a save.
+   * The DB {@code UNIQUE(employee_id, week_start)} constraint prevents duplicates; the losing side
+   * here catches the {@link DataIntegrityViolationException} and re-fetches the now-committed plan
+   * from the winning write. The caller never sees a 500.
    */
   @Transactional
   public WeeklyPlan createCurrentWeekPlan(AuthenticatedPrincipal caller) {
@@ -154,9 +150,9 @@ public class WeeklyPlanService {
   }
 
   /**
-   * Monday of the week that contains "now" from the caller's perspective. Computed in the
-   * caller's IANA zone so a Tokyo employee's Monday and a Los Angeles employee's Monday aren't
-   * muddled by UTC arithmetic. Private — callers that need this should go through {@link
+   * Monday of the week that contains "now" from the caller's perspective. Computed in the caller's
+   * IANA zone so a Tokyo employee's Monday and a Los Angeles employee's Monday aren't muddled by
+   * UTC arithmetic. Private — callers that need this should go through {@link
    * #findCurrentWeekPlan}.
    */
   private LocalDate currentWeekStartFor(AuthenticatedPrincipal caller) {

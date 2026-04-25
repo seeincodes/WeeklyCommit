@@ -130,8 +130,7 @@ class DerivedFieldServiceTest {
 
   private static WeeklyCommit commit(UUID id, UUID carriedForwardFromId) {
     WeeklyCommit c =
-        new WeeklyCommit(
-            id, UUID.randomUUID(), "x", UUID.randomUUID(), ChessTier.PEBBLE, 0);
+        new WeeklyCommit(id, UUID.randomUUID(), "x", UUID.randomUUID(), ChessTier.PEBBLE, 0);
     c.setCarriedForwardFromId(carriedForwardFromId);
     return c;
   }

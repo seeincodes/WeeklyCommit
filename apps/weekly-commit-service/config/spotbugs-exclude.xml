@@ -33,4 +33,33 @@
         <Bug pattern="DM_EXIT"/>
     </Match>
 
+    <!-- Spring bean composition: every @Service stores @Autowired collaborators.
+         SpotBugs cannot distinguish "external mutable state" from "Spring-managed
+         singleton dependency", so EI_EXPOSE_REP2 fires on every constructor.
+         The framework owns lifecycle and identity; this is by design. -->
+    <Match>
+        <Package name="~com\.acme\.weeklycommit\.service.*"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Package name="~com\.acme\.weeklycommit\.api"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Package name="~com\.acme\.weeklycommit\.integration.*"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Package name="~com\.acme\.weeklycommit\.scheduled.*"/>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- AuthenticatedPrincipal is a record whose roles field is defensively copied into
+         an immutable Set via the compact constructor (see Set.copyOf). SpotBugs can't see
+         that static-analysis-wise; the real invariant is enforced at runtime. -->
+    <Match>
+        <Class name="com.acme.weeklycommit.config.AuthenticatedPrincipal"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
 </FindBugsFilter>

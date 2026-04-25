@@ -6,8 +6,8 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Wires the {@link AuthenticatedPrincipalArgumentResolver} so controllers can declare an
- * {@link AuthenticatedPrincipal} parameter without further ceremony.
+ * Wires the {@link AuthenticatedPrincipalArgumentResolver} so controllers can declare an {@link
+ * AuthenticatedPrincipal} parameter without further ceremony.
  */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {

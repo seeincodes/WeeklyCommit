@@ -4,8 +4,8 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
- * Shared Postgres 16.4 container for integration tests. Singleton: one JVM-wide instance is
- * started on first use and reused across test classes to keep CI fast (ERROR_FIX_LOG.md note on
+ * Shared Postgres 16.4 container for integration tests. Singleton: one JVM-wide instance is started
+ * on first use and reused across test classes to keep CI fast (ERROR_FIX_LOG.md note on
  * Testcontainers startup cost).
  *
  * <p>Usage: {@code @DynamicPropertySource static void props(DynamicPropertyRegistry r) {

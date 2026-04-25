@@ -45,7 +45,8 @@ class TransactionAwareNotificationDispatcherTest {
     assertThat(TransactionSynchronizationManager.getSynchronizations()).hasSize(1);
 
     // Simulate commit by firing the registered callback ourselves.
-    for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
+    for (TransactionSynchronization sync :
+        TransactionSynchronizationManager.getSynchronizations()) {
       sync.afterCommit();
     }
 

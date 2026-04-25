@@ -5,9 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * {@code @EnableJpaAuditing} intentionally lives on {@code JpaAuditingConfig} rather than here
- * — placing it on this class would pull JPA auto-config into {@code @WebMvcTest} slices and
- * crash context load without a datasource.
+ * {@code @EnableJpaAuditing} intentionally lives on {@code JpaAuditingConfig} rather than here —
+ * placing it on this class would pull JPA auto-config into {@code @WebMvcTest} slices and crash
+ * context load without a datasource.
  */
 @SpringBootApplication
 @EnableScheduling

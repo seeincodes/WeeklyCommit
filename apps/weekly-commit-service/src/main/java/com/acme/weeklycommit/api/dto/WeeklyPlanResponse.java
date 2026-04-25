@@ -7,8 +7,8 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * API-layer view of a {@code WeeklyPlan}. Separate from the JPA entity so column renames on the
- * DB side don't leak into the wire format (maintainability per memory).
+ * API-layer view of a {@code WeeklyPlan}. Separate from the JPA entity so column renames on the DB
+ * side don't leak into the wire format (maintainability per memory).
  *
  * <p>Wire shape is stable across the {@code /plans/*} endpoints; see docs/USER_FLOW.md.
  */

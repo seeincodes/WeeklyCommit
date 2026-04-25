@@ -45,10 +45,6 @@ class SecurityConfigTest {
 
   private static Jwt jwt(Map<String, Object> claims) {
     return new Jwt(
-        "token",
-        Instant.now(),
-        Instant.now().plusSeconds(60),
-        Map.of("alg", "RS256"),
-        claims);
+        "token", Instant.now(), Instant.now().plusSeconds(60), Map.of("alg", "RS256"), claims);
   }
 }

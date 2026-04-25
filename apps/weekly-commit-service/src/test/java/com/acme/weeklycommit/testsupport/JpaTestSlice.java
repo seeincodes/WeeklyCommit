@@ -16,9 +16,9 @@ import org.springframework.context.annotation.Import;
  * <ul>
  *   <li>{@link DataJpaTest} slice — JPA + Flyway, not the full {@code SecurityConfig}
  *   <li>{@code replace = NONE} — use the real Postgres 16.4 container, not an embedded DB
- *   <li>{@code @Import(JpaAuditingConfig.class)} — AuditorAware bean present so {@code
- *       @CreatedBy} / {@code @LastModifiedBy} fire during {@code save()} (the NOT NULL
- *       constraints on {@code created_by} / {@code last_modified_by} would otherwise blow up)
+ *   <li>{@code @Import(JpaAuditingConfig.class)} — AuditorAware bean present so {@code @CreatedBy}
+ *       / {@code @LastModifiedBy} fire during {@code save()} (the NOT NULL constraints on {@code
+ *       created_by} / {@code last_modified_by} would otherwise blow up)
  * </ul>
  *
  * <p>Individual tests still need a {@code @DynamicPropertySource} that calls {@link

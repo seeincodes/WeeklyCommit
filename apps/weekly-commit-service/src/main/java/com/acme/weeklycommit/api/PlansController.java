@@ -60,9 +60,8 @@ public class PlansController {
 
   /**
    * Create the caller's current-week plan (DRAFT). Idempotent on {@code (employeeId, weekStart)}:
-   * returning 201 regardless of whether a new row was inserted or a pre-existing plan was
-   * returned. The client doesn't need to distinguish — per USER_FLOW.md the response shape is
-   * identical.
+   * returning 201 regardless of whether a new row was inserted or a pre-existing plan was returned.
+   * The client doesn't need to distinguish — per USER_FLOW.md the response shape is identical.
    */
   @PostMapping
   public ResponseEntity<ApiEnvelope<WeeklyPlanResponse>> createCurrentForMe(
@@ -72,8 +71,8 @@ public class PlansController {
   }
 
   /**
-   * Look up a specific plan by {@code (employeeId, weekStart)}. Authz decided by the service:
-   * self or MANAGER, else 403. 404 on missing plan.
+   * Look up a specific plan by {@code (employeeId, weekStart)}. Authz decided by the service: self
+   * or MANAGER, else 403. 404 on missing plan.
    */
   @GetMapping
   public ResponseEntity<ApiEnvelope<WeeklyPlanResponse>> getPlanByEmployeeAndWeek(

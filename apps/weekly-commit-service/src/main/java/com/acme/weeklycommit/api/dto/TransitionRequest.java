@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
  *
  * <p>{@code to} is the target state. Validation accepts any {@link PlanState} here; the state
  * machine's transition table is the source of truth for which targets are legal from a given
- * current state, and produces a clean {@code 422 INVALID_STATE_TRANSITION} envelope if an IC
- * passes e.g. {@code DRAFT} or {@code ARCHIVED}.
+ * current state, and produces a clean {@code 422 INVALID_STATE_TRANSITION} envelope if an IC passes
+ * e.g. {@code DRAFT} or {@code ARCHIVED}.
  */
 public record TransitionRequest(@NotNull PlanState to) {}

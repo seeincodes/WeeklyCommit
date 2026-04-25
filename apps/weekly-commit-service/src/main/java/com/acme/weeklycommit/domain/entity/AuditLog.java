@@ -17,8 +17,7 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * Append-only audit log. Written by state-machine transitions and manager-review creations. Access
- * governed by {@code GET /api/v1/audit/plans/{id}} (MANAGER role or self; see
- * docs/USER_FLOW.md).
+ * governed by {@code GET /api/v1/audit/plans/{id}} (MANAGER role or self; see docs/USER_FLOW.md).
  *
  * <p>No FK on {@code entityId} — see V5 migration note.
  */
@@ -66,11 +65,7 @@ public class AuditLog {
   }
 
   public AuditLog(
-      UUID id,
-      AuditEntityType entityType,
-      UUID entityId,
-      AuditEventType eventType,
-      UUID actorId) {
+      UUID id, AuditEntityType entityType, UUID entityId, AuditEventType eventType, UUID actorId) {
     this.id = id;
     this.entityType = entityType;
     this.entityId = entityId;

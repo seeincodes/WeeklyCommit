@@ -85,7 +85,11 @@ public class WeeklyCommit extends AbstractAuditingEntity {
   }
 
   public WeeklyCommit(
-      UUID id, UUID planId, String title, UUID supportingOutcomeId, ChessTier chessTier,
+      UUID id,
+      UUID planId,
+      String title,
+      UUID supportingOutcomeId,
+      ChessTier chessTier,
       int displayOrder) {
     this.id = id;
     this.planId = planId;

@@ -54,6 +54,5 @@ public interface WeeklyPlanRepository extends JpaRepository<WeeklyPlan, UUID> {
              AND p.reconciledAt < :threshold
           """)
   List<WeeklyPlan> findUnreviewedReconciledBefore(
-      @Param("reconciledState") PlanState reconciledState,
-      @Param("threshold") Instant threshold);
+      @Param("reconciledState") PlanState reconciledState, @Param("threshold") Instant threshold);
 }

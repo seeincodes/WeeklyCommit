@@ -15,8 +15,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
  * Base class for every entity we own. Brief requires this.
  *
  * <p>{@code createdBy} and {@code lastModifiedBy} hold the employee UUID (as string) from the
- * auditing JWT. System-triggered writes (scheduled jobs with no principal) record {@code
- * "system"}; see {@link com.acme.weeklycommit.config.JpaAuditingConfig}.
+ * auditing JWT. System-triggered writes (scheduled jobs with no principal) record {@code "system"};
+ * see {@link com.acme.weeklycommit.config.JpaAuditingConfig}.
  *
  * <p>Timestamp fields map to {@code TIMESTAMPTZ} columns; always UTC per MEMO.
  */

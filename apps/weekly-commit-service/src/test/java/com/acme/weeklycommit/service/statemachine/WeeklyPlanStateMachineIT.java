@@ -27,16 +27,15 @@ import org.springframework.test.context.DynamicPropertySource;
 /**
  * Full-context integration test for {@link WeeklyPlanStateMachine}. Proves that the
  * {@code @Transactional} proxy actually commits the plan mutation and audit row together, and that
- * {@code @Version} optimistic locking fires on concurrent updates — behaviors that unit tests
- * with mocked repositories cannot verify.
+ * {@code @Version} optimistic locking fires on concurrent updates — behaviors that unit tests with
+ * mocked repositories cannot verify.
  *
- * <p>Not transactional at the test level (no {@code @Transactional} here): the point is to
- * observe committed state, not a rolled-back test transaction. Cleanup happens in
- * {@link #truncate()}.
+ * <p>Not transactional at the test level (no {@code @Transactional} here): the point is to observe
+ * committed state, not a rolled-back test transaction. Cleanup happens in {@link #truncate()}.
  *
- * <p>{@link NotificationDispatcher} is mocked to avoid standing up the real
- * {@code TransactionAwareNotificationDispatcher} — its commit-timing contract is already covered
- * by unit tests in {@code TransactionAwareNotificationDispatcherTest}.
+ * <p>{@link NotificationDispatcher} is mocked to avoid standing up the real {@code
+ * TransactionAwareNotificationDispatcher} — its commit-timing contract is already covered by unit
+ * tests in {@code TransactionAwareNotificationDispatcherTest}.
  */
 @SpringBootTest
 class WeeklyPlanStateMachineIT {

@@ -100,8 +100,7 @@ public class WeeklyPlanStateMachine {
 
     WeeklyPlan saved = plans.save(plan);
     appendAudit(planId, from, target, actorId);
-    dispatcher.dispatchAfterCommit(
-        new NotificationEvent(planId, from, target, saved.getVersion()));
+    dispatcher.dispatchAfterCommit(new NotificationEvent(planId, from, target, saved.getVersion()));
     log.info(
         "transition: plan={} {} -> {} actor={} v{}",
         planId,
@@ -132,8 +131,7 @@ public class WeeklyPlanStateMachine {
   /** Time-window checks beyond the transition table. Throws on violation; no-op on pass. */
   private static void guard(WeeklyPlan plan, PlanState from, PlanState target, Instant now) {
     if (from == PlanState.LOCKED && target == PlanState.RECONCILED) {
-      Instant opensAt =
-          plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
+      Instant opensAt = plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
       if (now.isBefore(opensAt)) {
         throw new InvalidStateTransitionException(
             from.name(), target.name(), "reconciliation window opens at " + opensAt);

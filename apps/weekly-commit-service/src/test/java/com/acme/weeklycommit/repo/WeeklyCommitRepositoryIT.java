@@ -47,7 +47,7 @@ class WeeklyCommitRepositoryIT {
     commits.saveAndFlush(commit(plan.getId(), ChessTier.ROCK, 2));
     commits.saveAndFlush(commit(plan.getId(), ChessTier.PEBBLE, 0)); // excluded
     WeeklyCommit rock0 = commits.saveAndFlush(commit(plan.getId(), ChessTier.ROCK, 0));
-    commits.saveAndFlush(commit(plan.getId(), ChessTier.SAND, 1));   // excluded
+    commits.saveAndFlush(commit(plan.getId(), ChessTier.SAND, 1)); // excluded
     commits.saveAndFlush(commit(plan.getId(), ChessTier.ROCK, 5));
 
     List<WeeklyCommit> rocks = commits.findRocksByPlanOrdered(plan.getId(), ChessTier.ROCK);
@@ -106,6 +106,11 @@ class WeeklyCommitRepositoryIT {
 
   private static WeeklyCommit commit(UUID planId, ChessTier tier, int displayOrder) {
     return new WeeklyCommit(
-        UUID.randomUUID(), planId, "commit #" + displayOrder, UUID.randomUUID(), tier, displayOrder);
+        UUID.randomUUID(),
+        planId,
+        "commit #" + displayOrder,
+        UUID.randomUUID(),
+        tier,
+        displayOrder);
   }
 }

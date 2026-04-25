@@ -30,8 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 class PlansControllerTest {
 
-  private static final UUID EMPLOYEE_ID =
-      UUID.fromString("00000000-0000-0000-0000-0000000000a1");
+  private static final UUID EMPLOYEE_ID = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
   private static final UUID ORG_ID = UUID.fromString("00000000-0000-0000-0000-0000000000b2");
 
   @Autowired private MockMvc mvc;
@@ -40,17 +39,13 @@ class PlansControllerTest {
   @MockBean private WeeklyPlanMapper mapper;
 
   /**
-   * Valid JWT for the canonical test subject. Sets both required claims: {@code sub}
-   * (employeeId) and {@code org_id} — {@link
-   * com.acme.weeklycommit.config.AuthenticatedPrincipal} throws {@code IllegalStateException}
-   * if either is missing, and that would surface as a 500 in @WebMvcTest.
+   * Valid JWT for the canonical test subject. Sets both required claims: {@code sub} (employeeId)
+   * and {@code org_id} — {@link com.acme.weeklycommit.config.AuthenticatedPrincipal} throws {@code
+   * IllegalStateException} if either is missing, and that would surface as a 500 in @WebMvcTest.
    */
   private static JwtRequestPostProcessor validJwt() {
-    return jwt().jwt(
-            builder ->
-                builder
-                    .subject(EMPLOYEE_ID.toString())
-                    .claim("org_id", ORG_ID.toString()));
+    return jwt()
+        .jwt(builder -> builder.subject(EMPLOYEE_ID.toString()).claim("org_id", ORG_ID.toString()));
   }
 
   @Test
@@ -71,9 +66,7 @@ class PlansControllerTest {
                 null,
                 0L));
 
-    mvc.perform(
-            get("/api/v1/plans/me/current")
-                .with(validJwt()))
+    mvc.perform(get("/api/v1/plans/me/current").with(validJwt()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.id").value(plan.getId().toString()))
         .andExpect(jsonPath("$.data.employeeId").value(EMPLOYEE_ID.toString()))
@@ -85,9 +78,7 @@ class PlansControllerTest {
   void getCurrentForMe_whenNoPlan_returns404() throws Exception {
     when(planService.findCurrentWeekPlan(any())).thenReturn(Optional.empty());
 
-    mvc.perform(
-            get("/api/v1/plans/me/current")
-                .with(validJwt()))
+    mvc.perform(get("/api/v1/plans/me/current").with(validJwt()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
   }
@@ -115,9 +106,7 @@ class PlansControllerTest {
                 null,
                 0L));
 
-    mvc.perform(
-            post("/api/v1/plans")
-                .with(validJwt()))
+    mvc.perform(post("/api/v1/plans").with(validJwt()))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.data.id").value(created.getId().toString()))
         .andExpect(jsonPath("$.data.state").value("DRAFT"))
@@ -140,8 +129,15 @@ class PlansControllerTest {
     when(mapper.toResponse(plan))
         .thenReturn(
             new com.acme.weeklycommit.api.dto.WeeklyPlanResponse(
-                plan.getId(), targetEmployeeId, weekStart, PlanState.DRAFT,
-                null, null, null, null, 0L));
+                plan.getId(),
+                targetEmployeeId,
+                weekStart,
+                PlanState.DRAFT,
+                null,
+                null,
+                null,
+                null,
+                0L));
 
     mvc.perform(
             get("/api/v1/plans")
@@ -168,10 +164,7 @@ class PlansControllerTest {
 
   @Test
   void getPlanByEmployeeAndWeek_400OnMissingRequiredParam() throws Exception {
-    mvc.perform(
-            get("/api/v1/plans")
-                .with(validJwt()))
-        .andExpect(status().isBadRequest());
+    mvc.perform(get("/api/v1/plans").with(validJwt())).andExpect(status().isBadRequest());
   }
 
   @Test
@@ -195,8 +188,15 @@ class PlansControllerTest {
     when(mapper.toResponse(transitioned))
         .thenReturn(
             new com.acme.weeklycommit.api.dto.WeeklyPlanResponse(
-                planId, EMPLOYEE_ID, LocalDate.parse("2026-04-27"), PlanState.LOCKED,
-                null, null, null, null, 1L));
+                planId,
+                EMPLOYEE_ID,
+                LocalDate.parse("2026-04-27"),
+                PlanState.LOCKED,
+                null,
+                null,
+                null,
+                null,
+                1L));
 
     mvc.perform(
             post("/api/v1/plans/" + planId + "/transitions")

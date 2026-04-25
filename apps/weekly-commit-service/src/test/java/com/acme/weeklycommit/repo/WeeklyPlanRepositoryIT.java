@@ -48,9 +48,15 @@ class WeeklyPlanRepositoryIT {
   @Test
   void findDraftsPastCutoff_onlyReturnsDraftsAtOrBeforeCutoff() {
     UUID emp = UUID.randomUUID();
-    WeeklyPlan oldDraft = save(new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-04-20")));
-    save(withState(new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-04-27")), PlanState.LOCKED));
-    save(new WeeklyPlan(UUID.randomUUID(), UUID.randomUUID(), LocalDate.parse("2026-05-04"))); // future draft
+    WeeklyPlan oldDraft =
+        save(new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-04-20")));
+    save(
+        withState(
+            new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-04-27")),
+            PlanState.LOCKED));
+    save(
+        new WeeklyPlan(
+            UUID.randomUUID(), UUID.randomUUID(), LocalDate.parse("2026-05-04"))); // future draft
 
     List<WeeklyPlan> results =
         plans.findDraftsPastCutoff(PlanState.DRAFT, LocalDate.parse("2026-04-27"));
@@ -74,15 +80,19 @@ class WeeklyPlanRepositoryIT {
     UUID emp = UUID.randomUUID();
     Instant now = Instant.now();
 
-    WeeklyPlan aged = save(withReconciled(
-        new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-01-05")),
-        now.minus(100, ChronoUnit.DAYS)));
-    save(withReconciled(
-        new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-02-02")),
-        now.minus(30, ChronoUnit.DAYS))); // not aged
-    save(withState(
-        new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-01-12")),
-        PlanState.LOCKED));  // wrong state
+    WeeklyPlan aged =
+        save(
+            withReconciled(
+                new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-01-05")),
+                now.minus(100, ChronoUnit.DAYS)));
+    save(
+        withReconciled(
+            new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-02-02")),
+            now.minus(30, ChronoUnit.DAYS))); // not aged
+    save(
+        withState(
+            new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-01-12")),
+            PlanState.LOCKED)); // wrong state
 
     List<WeeklyPlan> results =
         plans.findReconciledBefore(PlanState.RECONCILED, now.minus(90, ChronoUnit.DAYS));
@@ -97,27 +107,31 @@ class WeeklyPlanRepositoryIT {
     Instant threshold = now.minus(72, ChronoUnit.HOURS);
 
     WeeklyPlan unreviewedAged =
-        save(withReconciled(
-            new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-03-02")),
-            now.minus(96, ChronoUnit.HOURS)));
+        save(
+            withReconciled(
+                new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-03-02")),
+                now.minus(96, ChronoUnit.HOURS)));
 
     WeeklyPlan reviewedAged =
-        save(withManagerReviewed(
-            withReconciled(
-                new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-03-09")),
-                now.minus(120, ChronoUnit.HOURS)),
-            now.minus(24, ChronoUnit.HOURS)));
+        save(
+            withManagerReviewed(
+                withReconciled(
+                    new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-03-09")),
+                    now.minus(120, ChronoUnit.HOURS)),
+                now.minus(24, ChronoUnit.HOURS)));
 
     WeeklyPlan unreviewedFresh =
-        save(withReconciled(
-            new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-03-16")),
-            now.minus(12, ChronoUnit.HOURS)));
+        save(
+            withReconciled(
+                new WeeklyPlan(UUID.randomUUID(), emp, LocalDate.parse("2026-03-16")),
+                now.minus(12, ChronoUnit.HOURS)));
 
     List<WeeklyPlan> results =
         plans.findUnreviewedReconciledBefore(PlanState.RECONCILED, threshold);
 
     assertThat(results).extracting(WeeklyPlan::getId).containsExactly(unreviewedAged.getId());
-    assertThat(results).extracting(WeeklyPlan::getId)
+    assertThat(results)
+        .extracting(WeeklyPlan::getId)
         .doesNotContain(reviewedAged.getId(), unreviewedFresh.getId());
   }
 

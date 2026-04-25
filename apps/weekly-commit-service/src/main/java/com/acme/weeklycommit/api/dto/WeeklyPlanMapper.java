@@ -9,8 +9,8 @@ import org.mapstruct.Mapping;
  * generated; no reflection at runtime. Component-modelled for Spring so controllers and services
  * can inject it.
  *
- * <p>Null entity returns null response (test-driven). Mapping is field-by-field; MapStruct
- * flags any missing or type-mismatched source property at build time.
+ * <p>Null entity returns null response (test-driven). Mapping is field-by-field; MapStruct flags
+ * any missing or type-mismatched source property at build time.
  */
 @Mapper(componentModel = "spring")
 public interface WeeklyPlanMapper {

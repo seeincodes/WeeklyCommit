@@ -213,9 +213,7 @@ class WeeklyPlanServiceTest {
     AuthenticatedPrincipal ic = principal(callerId, ZoneId.of("UTC"));
 
     assertThatThrownBy(
-            () ->
-                service(clock)
-                    .findPlan(peerEmployeeId, LocalDate.parse("2026-04-27"), ic))
+            () -> service(clock).findPlan(peerEmployeeId, LocalDate.parse("2026-04-27"), ic))
         .isInstanceOf(AccessDeniedException.class);
 
     verify(plans, never()).findByEmployeeIdAndWeekStart(any(), any());
@@ -254,8 +252,7 @@ class WeeklyPlanServiceTest {
     // (managers review, they don't act on the IC's behalf).
     AuthenticatedPrincipal managerCaller = managerPrincipal(differentCallerId);
 
-    assertThatThrownBy(
-            () -> service(clock).transitionPlan(planId, PlanState.LOCKED, managerCaller))
+    assertThatThrownBy(() -> service(clock).transitionPlan(planId, PlanState.LOCKED, managerCaller))
         .isInstanceOf(AccessDeniedException.class);
 
     verify(stateMachine, never()).transition(any(), any(), any());
@@ -271,11 +268,8 @@ class WeeklyPlanServiceTest {
             () ->
                 service(clock)
                     .transitionPlan(
-                        planId,
-                        PlanState.LOCKED,
-                        principal(UUID.randomUUID(), ZoneId.of("UTC"))))
-        .isInstanceOf(
-            com.acme.weeklycommit.api.exception.ResourceNotFoundException.class);
+                        planId, PlanState.LOCKED, principal(UUID.randomUUID(), ZoneId.of("UTC"))))
+        .isInstanceOf(com.acme.weeklycommit.api.exception.ResourceNotFoundException.class);
 
     verify(stateMachine, never()).transition(any(), any(), any());
   }
@@ -295,12 +289,7 @@ class WeeklyPlanServiceTest {
                 "timezone", "UTC",
                 "roles", java.util.List.of("MANAGER")));
     return new AuthenticatedPrincipal(
-        employeeId,
-        UUID.randomUUID(),
-        Optional.empty(),
-        Set.of("MANAGER"),
-        ZoneId.of("UTC"),
-        jwt);
+        employeeId, UUID.randomUUID(), Optional.empty(), Set.of("MANAGER"), ZoneId.of("UTC"), jwt);
   }
 
   private static AuthenticatedPrincipal principal(UUID employeeId, ZoneId tz) {

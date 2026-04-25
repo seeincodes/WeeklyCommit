@@ -22,11 +22,11 @@ import org.springframework.security.web.SecurityFilterChain;
  * Auth0 OAuth2 resource-server wiring.
  *
  * <p>Issuer URI and expected audience come from environment (see {@code application.yml}). Spring
- * validates signature + issuer + audience automatically once {@code issuer-uri} + {@code
- * audiences} are set.
+ * validates signature + issuer + audience automatically once {@code issuer-uri} + {@code audiences}
+ * are set.
  *
- * <p>JWT claims we care about are extracted in {@link AuthenticatedPrincipal}. This class only
- * maps the {@code roles} claim into Spring authorities so {@code @PreAuthorize("hasRole('MANAGER')")}
+ * <p>JWT claims we care about are extracted in {@link AuthenticatedPrincipal}. This class only maps
+ * the {@code roles} claim into Spring authorities so {@code @PreAuthorize("hasRole('MANAGER')")}
  * works unchanged.
  */
 @Configuration
@@ -41,9 +41,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers(
-                        "/actuator/health/**",
-                        "/actuator/info",
-                        "/actuator/prometheus")
+                        "/actuator/health/**", "/actuator/info", "/actuator/prometheus")
                     .permitAll()
                     // Admin surface (DLT replay, unassigned-employees report) requires ADMIN role
                     .requestMatchers("/api/v1/admin/**")

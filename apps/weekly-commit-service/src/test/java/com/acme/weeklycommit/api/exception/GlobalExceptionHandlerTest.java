@@ -16,7 +16,8 @@ class GlobalExceptionHandlerTest {
 
   @Test
   void optimisticLockException_maps_to_409() {
-    ResponseEntity<ApiErrorEnvelope> resp = handler.handleOptimisticLock(new OptimisticLockException("stale"));
+    ResponseEntity<ApiErrorEnvelope> resp =
+        handler.handleOptimisticLock(new OptimisticLockException("stale"));
     assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     assertThat(resp.getBody()).isNotNull();
     assertThat(resp.getBody().error().code()).isEqualTo("CONFLICT_OPTIMISTIC_LOCK");
