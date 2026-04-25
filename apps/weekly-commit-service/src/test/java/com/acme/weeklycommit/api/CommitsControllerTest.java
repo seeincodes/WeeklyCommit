@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -284,6 +285,23 @@ class CommitsControllerTest {
             patch("/api/v1/commits/" + commitId)
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{}"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  // --- DELETE /api/v1/commits/{id} ---
+
+  @Test
+  void deleteCommit_204NoContent() throws Exception {
+    UUID commitId = UUID.randomUUID();
+
+    mvc.perform(delete("/api/v1/commits/" + commitId).with(validJwt()))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void deleteCommit_unauthenticated_returns401() throws Exception {
+    UUID commitId = UUID.randomUUID();
+    mvc.perform(delete("/api/v1/commits/" + commitId))
         .andExpect(status().isUnauthorized());
   }
 }

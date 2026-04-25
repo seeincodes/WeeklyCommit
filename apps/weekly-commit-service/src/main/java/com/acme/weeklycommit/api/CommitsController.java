@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -100,5 +101,17 @@ public class CommitsController {
     DerivedFieldService.Derived d = derivedFieldService.deriveFor(saved.getId());
     WeeklyCommitResponse body = mapper.toResponse(saved, d.carryStreak(), d.stuckFlag());
     return ResponseEntity.ok(ApiEnvelope.of(body));
+  }
+
+  /**
+   * Delete a commit. Owner-only, DRAFT-only (service enforces). Returns 204 with no body.
+   * Carry-forward back-references on neighbouring commits are nulled by the FK {@code ON DELETE
+   * SET NULL} constraint.
+   */
+  @DeleteMapping("/commits/{commitId}")
+  public ResponseEntity<Void> deleteCommit(
+      @PathVariable UUID commitId, AuthenticatedPrincipal caller) {
+    commitService.deleteCommit(commitId, caller);
+    return ResponseEntity.noContent().build();
   }
 }
