@@ -230,4 +230,20 @@ public class WeeklyCommitService {
       commit.setActualNote(r.actualNote());
     }
   }
+
+  /**
+   * Delete a commit. Owner-only, DRAFT-only. The {@code ON DELETE SET NULL} FK constraints on
+   * {@code carried_forward_from_id} / {@code carried_forward_to_id} mean neighbouring commits
+   * automatically have their back-references nulled — no manual cleanup here.
+   */
+  @Transactional
+  public void deleteCommit(UUID commitId, AuthenticatedPrincipal caller) {
+    WeeklyCommit commit =
+        commits
+            .findById(commitId)
+            .orElseThrow(() -> new ResourceNotFoundException("WeeklyCommit", commitId));
+    WeeklyPlan plan = requireOwnedByCaller(commit.getPlanId(), caller);
+    requireDraftForMutation(plan);
+    commits.delete(commit);
+  }
 }

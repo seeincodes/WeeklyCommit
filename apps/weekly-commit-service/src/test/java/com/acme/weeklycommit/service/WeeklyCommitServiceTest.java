@@ -423,6 +423,70 @@ class WeeklyCommitServiceTest {
         .isInstanceOf(ResourceNotFoundException.class);
   }
 
+  // --- deleteCommit (DELETE /commits/{id}) ---
+
+  @Test
+  void deleteCommit_draftOwner_deletes() {
+    UUID commitId = UUID.randomUUID();
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    WeeklyCommit commit =
+        new WeeklyCommit(commitId, planId, "x", UUID.randomUUID(), ChessTier.ROCK, 0);
+    when(commits.findById(commitId)).thenReturn(Optional.of(commit));
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+
+    service().deleteCommit(commitId, principal(employeeId));
+
+    verify(commits).delete(commit);
+  }
+
+  @Test
+  void deleteCommit_lockedPlan_rejected() {
+    UUID commitId = UUID.randomUUID();
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    plan.setState(PlanState.LOCKED);
+    WeeklyCommit commit =
+        new WeeklyCommit(commitId, planId, "x", UUID.randomUUID(), ChessTier.ROCK, 0);
+    when(commits.findById(commitId)).thenReturn(Optional.of(commit));
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+
+    assertThatThrownBy(() -> service().deleteCommit(commitId, principal(employeeId)))
+        .isInstanceOf(InvalidStateTransitionException.class);
+
+    verify(commits, never()).delete(any(WeeklyCommit.class));
+  }
+
+  @Test
+  void deleteCommit_nonOwner_throwsAccessDenied() {
+    UUID commitId = UUID.randomUUID();
+    UUID planId = UUID.randomUUID();
+    UUID planOwnerId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, planOwnerId, LocalDate.parse("2026-04-27"));
+    WeeklyCommit commit =
+        new WeeklyCommit(commitId, planId, "x", UUID.randomUUID(), ChessTier.ROCK, 0);
+    when(commits.findById(commitId)).thenReturn(Optional.of(commit));
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+
+    assertThatThrownBy(
+            () -> service().deleteCommit(commitId, managerPrincipal(UUID.randomUUID())))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(commits, never()).delete(any(WeeklyCommit.class));
+  }
+
+  @Test
+  void deleteCommit_commitNotFound_throwsResourceNotFound() {
+    UUID commitId = UUID.randomUUID();
+    when(commits.findById(commitId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () -> service().deleteCommit(commitId, principal(UUID.randomUUID())))
+        .isInstanceOf(ResourceNotFoundException.class);
+  }
+
   // --- helpers ---
 
   private static AuthenticatedPrincipal principal(UUID employeeId) {
