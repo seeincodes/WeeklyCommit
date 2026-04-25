@@ -60,6 +60,15 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+  cloudwatch:
+    metrics:
+      export:
+        # Namespace under which Micrometer publishes to CloudWatch. Disabled by default
+        # (step=PT0S) so dev/test runs don't try to push without AWS creds; prod sets a real
+        # step (e.g. 60s) via env override.
+        namespace: ${MICROMETER_CLOUDWATCH_NAMESPACE:WeeklyCommit}
+        step: ${MICROMETER_CLOUDWATCH_STEP:PT0S}
+        enabled: ${MICROMETER_CLOUDWATCH_ENABLED:false}
   health:
     livenessState:
       enabled: true
