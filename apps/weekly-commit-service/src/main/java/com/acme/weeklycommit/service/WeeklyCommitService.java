@@ -12,6 +12,7 @@ import com.acme.weeklycommit.repo.WeeklyCommitRepository;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
@@ -229,6 +230,94 @@ public class WeeklyCommitService {
     if (r.actualNote() != null) {
       commit.setActualNote(r.actualNote());
     }
+  }
+
+  /**
+   * Carry a commit forward into next week's DRAFT plan. Source plan must be in a post-reconcile
+   * state: either RECONCILED, or LOCKED with the reconciliation window open (now ≥ weekStart +
+   * 4 days). Owner-only.
+   *
+   * <p>If next week's plan doesn't exist, one is auto-created (DRAFT, same employee). If the
+   * source has already been carried forward (idempotent guard via {@code carriedForwardToId}),
+   * the existing twin is returned without creating a duplicate.
+   */
+  @Transactional
+  public WeeklyCommit carryForwardCommit(
+      UUID sourceCommitId, AuthenticatedPrincipal caller) {
+    WeeklyCommit source =
+        commits
+            .findById(sourceCommitId)
+            .orElseThrow(
+                () -> new ResourceNotFoundException("WeeklyCommit", sourceCommitId));
+    WeeklyPlan sourcePlan = requireOwnedByCaller(source.getPlanId(), caller);
+    requireCarryForwardable(sourcePlan);
+
+    // Idempotent guard.
+    if (source.getCarriedForwardToId() != null) {
+      return commits
+          .findById(source.getCarriedForwardToId())
+          .orElseThrow(
+              () ->
+                  new IllegalStateException(
+                      "invariant: commit "
+                          + sourceCommitId
+                          + " has carriedForwardToId "
+                          + source.getCarriedForwardToId()
+                          + " but that target does not exist"));
+    }
+
+    LocalDate nextWeek = sourcePlan.getWeekStart().plusDays(7);
+    WeeklyPlan targetPlan =
+        plans
+            .findByEmployeeIdAndWeekStart(sourcePlan.getEmployeeId(), nextWeek)
+            .orElseGet(
+                () ->
+                    plans.save(
+                        new WeeklyPlan(
+                            UUID.randomUUID(), sourcePlan.getEmployeeId(), nextWeek)));
+
+    WeeklyCommit twin =
+        new WeeklyCommit(
+            UUID.randomUUID(),
+            targetPlan.getId(),
+            source.getTitle(),
+            source.getSupportingOutcomeId(),
+            source.getChessTier(),
+            nextDisplayOrder(targetPlan.getId()));
+    twin.setDescription(source.getDescription());
+    twin.setEstimatedHours(source.getEstimatedHours());
+    twin.setRelatedMeeting(source.getRelatedMeeting());
+    twin.setCategoryTags(source.getCategoryTags());
+    twin.setCarriedForwardFromId(source.getId());
+    WeeklyCommit savedTwin = commits.save(twin);
+
+    // Back-reference so DerivedFieldService's streak walk can link both directions.
+    source.setCarriedForwardToId(savedTwin.getId());
+    commits.save(source);
+
+    return savedTwin;
+  }
+
+  /**
+   * Carry-forward is only valid from RECONCILED plans or LOCKED plans whose reconciliation
+   * window is already open. Anything else rejects with the standard 422 envelope.
+   */
+  private void requireCarryForwardable(WeeklyPlan plan) {
+    PlanState state = plan.getState();
+    if (state == PlanState.RECONCILED) {
+      return;
+    }
+    if (state == PlanState.LOCKED) {
+      Instant opensAt =
+          plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
+      if (!Instant.now(clock).isBefore(opensAt)) {
+        return;
+      }
+    }
+    throw new InvalidStateTransitionException(
+        state.name(),
+        "CARRIED_FORWARD",
+        "carry-forward requires RECONCILED or LOCKED-in-reconciliation-mode state");
   }
 
   /**
