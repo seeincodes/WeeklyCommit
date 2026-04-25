@@ -1,9 +1,12 @@
 package com.acme.weeklycommit.service;
 
+import com.acme.weeklycommit.api.dto.CreateCommitRequest;
+import com.acme.weeklycommit.api.exception.InvalidStateTransitionException;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyCommit;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
+import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.WeeklyCommitRepository;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import java.util.List;
@@ -44,6 +47,49 @@ public class WeeklyCommitService {
   }
 
   /**
+   * Create a new commit on a DRAFT plan. Owner-only — even a MANAGER cannot create commits on
+   * another IC's plan. Only valid in DRAFT state; any other state throws {@link
+   * InvalidStateTransitionException}.
+   *
+   * <p>{@code displayOrder} is auto-assigned to {@code max(existing)+1} if the request omits it;
+   * otherwise honored as given.
+   */
+  @Transactional
+  public WeeklyCommit createCommit(
+      UUID planId, CreateCommitRequest request, AuthenticatedPrincipal caller) {
+    WeeklyPlan plan = requireOwnedByCaller(planId, caller);
+    requireDraftForMutation(plan);
+
+    int displayOrder =
+        request.displayOrder() != null ? request.displayOrder() : nextDisplayOrder(planId);
+
+    WeeklyCommit commit =
+        new WeeklyCommit(
+            UUID.randomUUID(),
+            planId,
+            request.title(),
+            request.supportingOutcomeId(),
+            request.chessTier(),
+            displayOrder);
+    commit.setDescription(request.description());
+    commit.setEstimatedHours(request.estimatedHours());
+    commit.setRelatedMeeting(request.relatedMeeting());
+    commit.setCategoryTags(
+        request.categoryTags() == null
+            ? new String[0]
+            : request.categoryTags().toArray(String[]::new));
+    return commits.save(commit);
+  }
+
+  private int nextDisplayOrder(UUID planId) {
+    return commits.findByPlanIdOrderByDisplayOrderAsc(planId).stream()
+        .mapToInt(WeeklyCommit::getDisplayOrder)
+        .max()
+        .orElse(-1)
+        + 1;
+  }
+
+  /**
    * Load the plan and enforce self-or-MANAGER authz. Throws {@link ResourceNotFoundException} if
    * missing (so peer existence can't be probed) and {@link AccessDeniedException} if the caller is
    * unrelated.
@@ -58,5 +104,37 @@ public class WeeklyCommitService {
           "caller " + caller.employeeId() + " cannot access commits on plan " + planId);
     }
     return plan;
+  }
+
+  /**
+   * Load the plan and enforce owner-only authz. Stricter than {@link #requireReadableByCaller} —
+   * MANAGER role does NOT grant write access on someone else's plan.
+   */
+  private WeeklyPlan requireOwnedByCaller(UUID planId, AuthenticatedPrincipal caller) {
+    WeeklyPlan plan =
+        plans
+            .findById(planId)
+            .orElseThrow(() -> new ResourceNotFoundException("WeeklyPlan", planId));
+    if (!plan.getEmployeeId().equals(caller.employeeId())) {
+      throw new AccessDeniedException(
+          "caller "
+              + caller.employeeId()
+              + " cannot mutate commits on plan "
+              + planId
+              + " (owned by "
+              + plan.getEmployeeId()
+              + ")");
+    }
+    return plan;
+  }
+
+  /** Commit CRUD is DRAFT-only. Anything else rejects with the standard 422 envelope. */
+  private static void requireDraftForMutation(WeeklyPlan plan) {
+    if (plan.getState() != PlanState.DRAFT) {
+      throw new InvalidStateTransitionException(
+          plan.getState().name(),
+          "DRAFT",
+          "commit mutation only allowed in DRAFT state");
+    }
   }
 }
