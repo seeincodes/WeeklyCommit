@@ -7,13 +7,17 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.acme.weeklycommit.api.dto.CreateCommitRequest;
+import com.acme.weeklycommit.api.exception.InvalidStateTransitionException;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyCommit;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.ChessTier;
+import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.WeeklyCommitRepository;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -24,6 +28,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
@@ -91,6 +96,141 @@ class WeeklyCommitServiceTest {
         .isInstanceOf(ResourceNotFoundException.class);
 
     verify(commits, never()).findByPlanIdOrderByDisplayOrderAsc(any());
+  }
+
+  // --- createCommit (POST /plans/{planId}/commits) ---
+
+  @Test
+  void createCommit_draftPlanOwner_savesCommit() {
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    UUID outcomeId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    // plan.state defaults to DRAFT
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    when(commits.findByPlanIdOrderByDisplayOrderAsc(planId)).thenReturn(List.of());
+    when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    CreateCommitRequest req =
+        new CreateCommitRequest(
+            "land RCDO spike",
+            "description text",
+            outcomeId,
+            ChessTier.ROCK,
+            List.of("spike", "infra"),
+            new BigDecimal("4.5"),
+            null, // displayOrder auto-assigned
+            "Tues 10am sync");
+
+    WeeklyCommit result = service().createCommit(planId, req, principal(employeeId));
+
+    ArgumentCaptor<WeeklyCommit> captor = ArgumentCaptor.forClass(WeeklyCommit.class);
+    verify(commits).save(captor.capture());
+    WeeklyCommit saved = captor.getValue();
+    assertThat(saved.getPlanId()).isEqualTo(planId);
+    assertThat(saved.getTitle()).isEqualTo("land RCDO spike");
+    assertThat(saved.getDescription()).isEqualTo("description text");
+    assertThat(saved.getSupportingOutcomeId()).isEqualTo(outcomeId);
+    assertThat(saved.getChessTier()).isEqualTo(ChessTier.ROCK);
+    assertThat(saved.getCategoryTags()).containsExactly("spike", "infra");
+    assertThat(saved.getEstimatedHours()).isEqualByComparingTo("4.5");
+    assertThat(saved.getDisplayOrder()).isEqualTo(0); // first, since list empty
+    assertThat(saved.getRelatedMeeting()).isEqualTo("Tues 10am sync");
+    assertThat(result).isSameAs(saved);
+  }
+
+  @Test
+  void createCommit_displayOrder_autoAssignedAsNext() {
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    WeeklyCommit existing1 =
+        new WeeklyCommit(UUID.randomUUID(), planId, "a", UUID.randomUUID(), ChessTier.ROCK, 0);
+    WeeklyCommit existing2 =
+        new WeeklyCommit(UUID.randomUUID(), planId, "b", UUID.randomUUID(), ChessTier.PEBBLE, 1);
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    when(commits.findByPlanIdOrderByDisplayOrderAsc(planId))
+        .thenReturn(List.of(existing1, existing2));
+    when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    CreateCommitRequest req =
+        new CreateCommitRequest(
+            "c", null, UUID.randomUUID(), ChessTier.SAND, null, null, null, null);
+
+    WeeklyCommit result = service().createCommit(planId, req, principal(employeeId));
+
+    assertThat(result.getDisplayOrder()).isEqualTo(2); // next after 0, 1
+  }
+
+  @Test
+  void createCommit_displayOrder_honoredWhenProvided() {
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    CreateCommitRequest req =
+        new CreateCommitRequest(
+            "x", null, UUID.randomUUID(), ChessTier.ROCK, null, null, 7, null);
+
+    WeeklyCommit result = service().createCommit(planId, req, principal(employeeId));
+
+    assertThat(result.getDisplayOrder()).isEqualTo(7);
+  }
+
+  @Test
+  void createCommit_nonOwner_throwsAccessDenied_evenIfManager() {
+    // Owner-only; managers review, they don't create commits for others.
+    UUID planId = UUID.randomUUID();
+    UUID planOwnerId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, planOwnerId, LocalDate.parse("2026-04-27"));
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+
+    CreateCommitRequest req =
+        new CreateCommitRequest(
+            "x", null, UUID.randomUUID(), ChessTier.ROCK, null, null, null, null);
+
+    assertThatThrownBy(
+            () ->
+                service()
+                    .createCommit(planId, req, managerPrincipal(UUID.randomUUID())))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(commits, never()).save(any(WeeklyCommit.class));
+  }
+
+  @Test
+  void createCommit_lockedPlan_rejected() {
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    plan.setState(PlanState.LOCKED);
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+
+    CreateCommitRequest req =
+        new CreateCommitRequest(
+            "x", null, UUID.randomUUID(), ChessTier.ROCK, null, null, null, null);
+
+    assertThatThrownBy(() -> service().createCommit(planId, req, principal(employeeId)))
+        .isInstanceOf(InvalidStateTransitionException.class)
+        .hasMessageContaining("DRAFT");
+
+    verify(commits, never()).save(any(WeeklyCommit.class));
+  }
+
+  @Test
+  void createCommit_planNotFound_throwsResourceNotFound() {
+    UUID planId = UUID.randomUUID();
+    when(plans.findById(planId)).thenReturn(Optional.empty());
+
+    CreateCommitRequest req =
+        new CreateCommitRequest(
+            "x", null, UUID.randomUUID(), ChessTier.ROCK, null, null, null, null);
+
+    assertThatThrownBy(
+            () -> service().createCommit(planId, req, principal(UUID.randomUUID())))
+        .isInstanceOf(ResourceNotFoundException.class);
   }
 
   // --- helpers ---
