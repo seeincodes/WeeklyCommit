@@ -1,17 +1,22 @@
 package com.acme.weeklycommit.api;
 
 import com.acme.weeklycommit.api.dto.ApiEnvelope;
+import com.acme.weeklycommit.api.dto.CreateCommitRequest;
 import com.acme.weeklycommit.api.dto.WeeklyCommitMapper;
 import com.acme.weeklycommit.api.dto.WeeklyCommitResponse;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyCommit;
 import com.acme.weeklycommit.service.DerivedFieldService;
 import com.acme.weeklycommit.service.WeeklyCommitService;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -61,5 +66,21 @@ public class CommitsController {
                 })
             .toList();
     return ResponseEntity.ok(ApiEnvelope.of(body));
+  }
+
+  /**
+   * Create a new commit on the given DRAFT plan. Owner-only authz (service enforces). Returns
+   * 201 with the created commit in the envelope, carryStreak=1 by construction (new commits are
+   * never carried from anywhere at creation time — derived computed uniformly for consistency).
+   */
+  @PostMapping("/plans/{planId}/commits")
+  public ResponseEntity<ApiEnvelope<WeeklyCommitResponse>> createCommit(
+      @PathVariable UUID planId,
+      @Valid @RequestBody CreateCommitRequest request,
+      AuthenticatedPrincipal caller) {
+    WeeklyCommit saved = commitService.createCommit(planId, request, caller);
+    DerivedFieldService.Derived d = derivedFieldService.deriveFor(saved.getId());
+    WeeklyCommitResponse body = mapper.toResponse(saved, d.carryStreak(), d.stuckFlag());
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiEnvelope.of(body));
   }
 }

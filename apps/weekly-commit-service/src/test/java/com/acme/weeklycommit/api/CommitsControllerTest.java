@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -108,6 +109,114 @@ class CommitsControllerTest {
   @Test
   void listCommits_unauthenticated_returns401() throws Exception {
     mvc.perform(get("/api/v1/plans/" + UUID.randomUUID() + "/commits"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  // --- POST /api/v1/plans/{planId}/commits ---
+
+  @Test
+  void createCommit_201WithEnvelope() throws Exception {
+    UUID planId = UUID.randomUUID();
+    WeeklyCommit saved =
+        new WeeklyCommit(
+            UUID.randomUUID(), planId, "new commit", UUID.randomUUID(), ChessTier.ROCK, 0);
+    when(commitService.createCommit(any(), any(), any())).thenReturn(saved);
+    when(derivedFieldService.deriveFor(saved.getId()))
+        .thenReturn(new DerivedFieldService.Derived(1, false));
+    when(mapper.toResponse(any(WeeklyCommit.class), anyInt(), anyBoolean()))
+        .thenAnswer(
+            inv -> {
+              WeeklyCommit c = inv.getArgument(0);
+              int streak = inv.getArgument(1);
+              boolean stuck = inv.getArgument(2);
+              return new WeeklyCommitResponse(
+                  c.getId(),
+                  c.getPlanId(),
+                  c.getTitle(),
+                  null,
+                  c.getSupportingOutcomeId(),
+                  c.getChessTier(),
+                  List.of(),
+                  null,
+                  c.getDisplayOrder(),
+                  null,
+                  null,
+                  null,
+                  ActualStatus.PENDING,
+                  null,
+                  new WeeklyCommitResponse.Derived(streak, stuck));
+            });
+
+    String body =
+        """
+        {
+          "title": "new commit",
+          "supportingOutcomeId": "11111111-1111-1111-1111-111111111111",
+          "chessTier": "ROCK"
+        }
+        """;
+
+    mvc.perform(
+            post("/api/v1/plans/" + planId + "/commits")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content(body)
+                .with(validJwt()))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.id").value(saved.getId().toString()))
+        .andExpect(jsonPath("$.data.title").value("new commit"))
+        .andExpect(jsonPath("$.data.derived.carryStreak").value(1));
+  }
+
+  @Test
+  void createCommit_400WhenTitleMissing() throws Exception {
+    UUID planId = UUID.randomUUID();
+    String body =
+        """
+        {
+          "supportingOutcomeId": "11111111-1111-1111-1111-111111111111",
+          "chessTier": "ROCK"
+        }
+        """;
+
+    mvc.perform(
+            post("/api/v1/plans/" + planId + "/commits")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content(body)
+                .with(validJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  void createCommit_400WhenTitleTooLong() throws Exception {
+    UUID planId = UUID.randomUUID();
+    String tooLong = "x".repeat(201);
+    String body =
+        """
+        {
+          "title": "%s",
+          "supportingOutcomeId": "11111111-1111-1111-1111-111111111111",
+          "chessTier": "ROCK"
+        }
+        """
+            .formatted(tooLong);
+
+    mvc.perform(
+            post("/api/v1/plans/" + planId + "/commits")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content(body)
+                .with(validJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  void createCommit_unauthenticated_returns401() throws Exception {
+    UUID planId = UUID.randomUUID();
+    mvc.perform(
+            post("/api/v1/plans/" + planId + "/commits")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{}"))
         .andExpect(status().isUnauthorized());
   }
 }
