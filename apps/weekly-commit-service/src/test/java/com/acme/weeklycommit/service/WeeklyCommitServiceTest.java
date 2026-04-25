@@ -487,6 +487,206 @@ class WeeklyCommitServiceTest {
         .isInstanceOf(ResourceNotFoundException.class);
   }
 
+  // --- carryForwardCommit (POST /commits/{id}/carry-forward) ---
+
+  @Test
+  void carryForwardCommit_reconciledSource_nextPlanExists_createsTwin() {
+    UUID sourceCommitId = UUID.randomUUID();
+    UUID sourcePlanId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    UUID nextPlanId = UUID.randomUUID();
+    LocalDate thisWeek = LocalDate.parse("2026-04-27");
+    LocalDate nextWeek = LocalDate.parse("2026-05-04");
+
+    WeeklyPlan sourcePlan = new WeeklyPlan(sourcePlanId, employeeId, thisWeek);
+    sourcePlan.setState(PlanState.RECONCILED);
+    WeeklyCommit source =
+        new WeeklyCommit(
+            sourceCommitId, sourcePlanId, "carry me", UUID.randomUUID(), ChessTier.ROCK, 0);
+    source.setDescription("the work");
+    WeeklyPlan nextPlan = new WeeklyPlan(nextPlanId, employeeId, nextWeek);
+    when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
+    when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, nextWeek)).thenReturn(Optional.of(nextPlan));
+    when(commits.findByPlanIdOrderByDisplayOrderAsc(nextPlanId)).thenReturn(List.of());
+    when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    WeeklyCommit twin = service().carryForwardCommit(sourceCommitId, principal(employeeId));
+
+    assertThat(twin.getPlanId()).isEqualTo(nextPlanId);
+    assertThat(twin.getTitle()).isEqualTo("carry me");
+    assertThat(twin.getDescription()).isEqualTo("the work");
+    assertThat(twin.getCarriedForwardFromId()).isEqualTo(sourceCommitId);
+    assertThat(twin.getChessTier()).isEqualTo(ChessTier.ROCK);
+    // Source gets the forward reference updated
+    assertThat(source.getCarriedForwardToId()).isEqualTo(twin.getId());
+  }
+
+  @Test
+  void carryForwardCommit_nextPlanMissing_autoCreatesDraft() {
+    UUID sourceCommitId = UUID.randomUUID();
+    UUID sourcePlanId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    LocalDate thisWeek = LocalDate.parse("2026-04-27");
+    LocalDate nextWeek = LocalDate.parse("2026-05-04");
+
+    WeeklyPlan sourcePlan = new WeeklyPlan(sourcePlanId, employeeId, thisWeek);
+    sourcePlan.setState(PlanState.RECONCILED);
+    WeeklyCommit source =
+        new WeeklyCommit(
+            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.PEBBLE, 0);
+    when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
+    when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, nextWeek))
+        .thenReturn(Optional.empty());
+    when(plans.save(any(WeeklyPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+    when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    service().carryForwardCommit(sourceCommitId, principal(employeeId));
+
+    // Captured plan save should be a fresh DRAFT for next week
+    ArgumentCaptor<WeeklyPlan> planCaptor = ArgumentCaptor.forClass(WeeklyPlan.class);
+    verify(plans).save(planCaptor.capture());
+    WeeklyPlan savedPlan = planCaptor.getValue();
+    assertThat(savedPlan.getWeekStart()).isEqualTo(nextWeek);
+    assertThat(savedPlan.getEmployeeId()).isEqualTo(employeeId);
+    assertThat(savedPlan.getState()).isEqualTo(PlanState.DRAFT);
+  }
+
+  @Test
+  void carryForwardCommit_lockedReconcileMode_allowed() {
+    // weekStart 2026-04-27 -> reconciliation opens 2026-05-01T00:00Z.
+    // DEFAULT_CLOCK = 2026-05-01T12:00Z -> window open.
+    UUID sourceCommitId = UUID.randomUUID();
+    UUID sourcePlanId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    LocalDate thisWeek = LocalDate.parse("2026-04-27");
+    LocalDate nextWeek = LocalDate.parse("2026-05-04");
+
+    WeeklyPlan sourcePlan = new WeeklyPlan(sourcePlanId, employeeId, thisWeek);
+    sourcePlan.setState(PlanState.LOCKED);
+    WeeklyCommit source =
+        new WeeklyCommit(
+            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+    WeeklyPlan nextPlan = new WeeklyPlan(UUID.randomUUID(), employeeId, nextWeek);
+    when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
+    when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, nextWeek)).thenReturn(Optional.of(nextPlan));
+    when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    WeeklyCommit twin = service().carryForwardCommit(sourceCommitId, principal(employeeId));
+
+    assertThat(twin).isNotNull();
+  }
+
+  @Test
+  void carryForwardCommit_draftSource_rejected() {
+    UUID sourceCommitId = UUID.randomUUID();
+    UUID sourcePlanId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    WeeklyPlan sourcePlan =
+        new WeeklyPlan(sourcePlanId, employeeId, LocalDate.parse("2026-04-27"));
+    // state = DRAFT
+    WeeklyCommit source =
+        new WeeklyCommit(
+            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+    when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
+    when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
+
+    assertThatThrownBy(
+            () -> service().carryForwardCommit(sourceCommitId, principal(employeeId)))
+        .isInstanceOf(InvalidStateTransitionException.class);
+
+    verify(commits, never()).save(any(WeeklyCommit.class));
+  }
+
+  @Test
+  void carryForwardCommit_lockedPreWindow_rejected() {
+    // weekStart 2026-04-28 -> window opens 2026-05-02T00:00Z.
+    // DEFAULT_CLOCK = 2026-05-01T12:00Z -> closed.
+    UUID sourceCommitId = UUID.randomUUID();
+    UUID sourcePlanId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    WeeklyPlan sourcePlan =
+        new WeeklyPlan(sourcePlanId, employeeId, LocalDate.parse("2026-04-28"));
+    sourcePlan.setState(PlanState.LOCKED);
+    WeeklyCommit source =
+        new WeeklyCommit(
+            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+    when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
+    when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
+
+    assertThatThrownBy(
+            () -> service().carryForwardCommit(sourceCommitId, principal(employeeId)))
+        .isInstanceOf(InvalidStateTransitionException.class);
+  }
+
+  @Test
+  void carryForwardCommit_nonOwner_throwsAccessDenied() {
+    UUID sourceCommitId = UUID.randomUUID();
+    UUID sourcePlanId = UUID.randomUUID();
+    UUID planOwnerId = UUID.randomUUID();
+    WeeklyPlan sourcePlan =
+        new WeeklyPlan(sourcePlanId, planOwnerId, LocalDate.parse("2026-04-27"));
+    sourcePlan.setState(PlanState.RECONCILED);
+    WeeklyCommit source =
+        new WeeklyCommit(
+            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+    when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
+    when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
+
+    assertThatThrownBy(
+            () ->
+                service()
+                    .carryForwardCommit(
+                        sourceCommitId, managerPrincipal(UUID.randomUUID())))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(commits, never()).save(any(WeeklyCommit.class));
+  }
+
+  @Test
+  void carryForwardCommit_alreadyCarried_returnsExistingTwin_noDuplicate() {
+    // Idempotent: second call returns the pre-existing twin without re-saving.
+    UUID sourceCommitId = UUID.randomUUID();
+    UUID existingTwinId = UUID.randomUUID();
+    UUID sourcePlanId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+
+    WeeklyPlan sourcePlan =
+        new WeeklyPlan(sourcePlanId, employeeId, LocalDate.parse("2026-04-27"));
+    sourcePlan.setState(PlanState.RECONCILED);
+    WeeklyCommit source =
+        new WeeklyCommit(
+            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+    source.setCarriedForwardToId(existingTwinId);
+    WeeklyCommit existingTwin =
+        new WeeklyCommit(
+            existingTwinId, UUID.randomUUID(), "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+    when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
+    when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
+    when(commits.findById(existingTwinId)).thenReturn(Optional.of(existingTwin));
+
+    WeeklyCommit result =
+        service().carryForwardCommit(sourceCommitId, principal(employeeId));
+
+    assertThat(result).isSameAs(existingTwin);
+    verify(commits, never()).save(any(WeeklyCommit.class));
+    verify(plans, never()).save(any(WeeklyPlan.class));
+  }
+
+  @Test
+  void carryForwardCommit_sourceNotFound_throwsResourceNotFound() {
+    UUID sourceCommitId = UUID.randomUUID();
+    when(commits.findById(sourceCommitId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service()
+                    .carryForwardCommit(sourceCommitId, principal(UUID.randomUUID())))
+        .isInstanceOf(ResourceNotFoundException.class);
+  }
+
   // --- helpers ---
 
   private static AuthenticatedPrincipal principal(UUID employeeId) {
