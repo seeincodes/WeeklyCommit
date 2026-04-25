@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -237,5 +238,55 @@ class PlansControllerTest {
         .andExpect(jsonPath("$.error.code").value("INVALID_STATE_TRANSITION"))
         .andExpect(jsonPath("$.meta.fromState").value("DRAFT"))
         .andExpect(jsonPath("$.meta.toState").value("RECONCILED"));
+  }
+
+  // --- PATCH /api/v1/plans/{id} ---
+
+  @Test
+  void updateReflection_200OnHappyPath() throws Exception {
+    UUID planId = UUID.randomUUID();
+    WeeklyPlan updated = new WeeklyPlan(planId, EMPLOYEE_ID, LocalDate.parse("2026-04-27"));
+    updated.setState(PlanState.LOCKED);
+    updated.setReflectionNote("shipped the picker");
+    when(planService.updateReflectionNote(any(), any(), any())).thenReturn(updated);
+    when(mapper.toResponse(updated))
+        .thenReturn(
+            new com.acme.weeklycommit.api.dto.WeeklyPlanResponse(
+                planId, EMPLOYEE_ID, LocalDate.parse("2026-04-27"), PlanState.LOCKED,
+                null, null, null, "shipped the picker", 1L));
+
+    mvc.perform(
+            patch("/api/v1/plans/" + planId)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"reflectionNote\":\"shipped the picker\"}")
+                .with(validJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.reflectionNote").value("shipped the picker"));
+  }
+
+  @Test
+  void updateReflection_400OnOversizedNote() throws Exception {
+    UUID planId = UUID.randomUUID();
+    // 501 chars — exceeds @Size(max=500)
+    String oversized = "x".repeat(501);
+
+    mvc.perform(
+            patch("/api/v1/plans/" + planId)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"reflectionNote\":\"" + oversized + "\"}")
+                .with(validJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  void updateReflection_unauthenticated_returns401() throws Exception {
+    UUID planId = UUID.randomUUID();
+
+    mvc.perform(
+            patch("/api/v1/plans/" + planId)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"reflectionNote\":\"x\"}"))
+        .andExpect(status().isUnauthorized());
   }
 }
