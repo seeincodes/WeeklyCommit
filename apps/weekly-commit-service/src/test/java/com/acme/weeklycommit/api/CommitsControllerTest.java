@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -215,6 +216,72 @@ class CommitsControllerTest {
     UUID planId = UUID.randomUUID();
     mvc.perform(
             post("/api/v1/plans/" + planId + "/commits")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{}"))
+        .andExpect(status().isUnauthorized());
+  }
+
+  // --- PATCH /api/v1/commits/{id} ---
+
+  @Test
+  void updateCommit_200WithEnvelope() throws Exception {
+    UUID commitId = UUID.randomUUID();
+    UUID planId = UUID.randomUUID();
+    WeeklyCommit updated =
+        new WeeklyCommit(commitId, planId, "updated", UUID.randomUUID(), ChessTier.ROCK, 0);
+    when(commitService.updateCommit(any(), any(), any())).thenReturn(updated);
+    when(derivedFieldService.deriveFor(commitId))
+        .thenReturn(new DerivedFieldService.Derived(1, false));
+    when(mapper.toResponse(any(WeeklyCommit.class), anyInt(), anyBoolean()))
+        .thenAnswer(
+            inv -> {
+              WeeklyCommit c = inv.getArgument(0);
+              return new WeeklyCommitResponse(
+                  c.getId(),
+                  c.getPlanId(),
+                  c.getTitle(),
+                  null,
+                  c.getSupportingOutcomeId(),
+                  c.getChessTier(),
+                  List.of(),
+                  null,
+                  c.getDisplayOrder(),
+                  null,
+                  null,
+                  null,
+                  ActualStatus.PENDING,
+                  null,
+                  new WeeklyCommitResponse.Derived(1, false));
+            });
+
+    mvc.perform(
+            patch("/api/v1/commits/" + commitId)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"updated\"}")
+                .with(validJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.title").value("updated"));
+  }
+
+  @Test
+  void updateCommit_400OnOversizedTitle() throws Exception {
+    UUID commitId = UUID.randomUUID();
+    String oversized = "x".repeat(201);
+
+    mvc.perform(
+            patch("/api/v1/commits/" + commitId)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"title\":\"" + oversized + "\"}")
+                .with(validJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  void updateCommit_unauthenticated_returns401() throws Exception {
+    UUID commitId = UUID.randomUUID();
+    mvc.perform(
+            patch("/api/v1/commits/" + commitId)
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{}"))
         .andExpect(status().isUnauthorized());
