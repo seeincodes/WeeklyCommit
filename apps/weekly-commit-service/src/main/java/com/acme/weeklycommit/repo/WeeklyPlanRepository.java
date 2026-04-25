@@ -7,6 +7,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -55,4 +57,26 @@ public interface WeeklyPlanRepository extends JpaRepository<WeeklyPlan, UUID> {
           """)
   List<WeeklyPlan> findUnreviewedReconciledBefore(
       @Param("reconciledState") PlanState reconciledState, @Param("threshold") Instant threshold);
+
+  /**
+   * Manager team view: all plans for {@code weekStart} whose employee's {@code manager_id}
+   * matches. JOINs {@code Employee} (populated by Auth0 sync) to bridge the relationship, which
+   * doesn't exist on {@code WeeklyPlan} directly. Filters out inactive employees so rollups never
+   * include deactivated accounts.
+   *
+   * <p>Hot path for {@code GET /plans/team} and {@code GET /rollup/team}. Paginated; default
+   * page size 20, max 100 (enforced in the controller).
+   */
+  @Query(
+      """
+          SELECT p FROM WeeklyPlan p, Employee e
+           WHERE p.employeeId = e.id
+             AND e.managerId = :managerId
+             AND e.active = true
+             AND p.weekStart = :weekStart
+          """)
+  Page<WeeklyPlan> findTeamPlans(
+      @Param("managerId") UUID managerId,
+      @Param("weekStart") LocalDate weekStart,
+      Pageable pageable);
 }
