@@ -64,7 +64,11 @@ class AutoLockJobTest {
     int locked = job(clock, 36).runOnce();
 
     assertThat(locked).isEqualTo(0);
-    verify(stateMachine, never()).transition(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    verify(stateMachine, never())
+        .transition(
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any());
   }
 
   @Test

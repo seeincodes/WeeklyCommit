@@ -20,8 +20,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * release fast while a wedged pod can't hog the lock forever.
  *
  * <p>Gated by {@code SHEDLOCK_ENABLED} (default {@code true}). Set to {@code false} in test
- * profiles where scheduling is unwanted (e.g. unit tests of business logic that import this
- * config indirectly via {@code @SpringBootTest}).
+ * profiles where scheduling is unwanted (e.g. unit tests of business logic that import this config
+ * indirectly via {@code @SpringBootTest}).
  */
 @Configuration
 @ConditionalOnProperty(name = "shedlock.enabled", havingValue = "true", matchIfMissing = true)
