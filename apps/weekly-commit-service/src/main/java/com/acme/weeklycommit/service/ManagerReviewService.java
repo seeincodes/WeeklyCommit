@@ -5,12 +5,14 @@ import com.acme.weeklycommit.api.exception.InvalidStateTransitionException;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.AuditLog;
+import com.acme.weeklycommit.domain.entity.Employee;
 import com.acme.weeklycommit.domain.entity.ManagerReview;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.AuditEntityType;
 import com.acme.weeklycommit.domain.enums.AuditEventType;
 import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.AuditLogRepository;
+import com.acme.weeklycommit.repo.EmployeeRepository;
 import com.acme.weeklycommit.repo.ManagerReviewRepository;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import java.time.Clock;
@@ -37,16 +39,19 @@ public class ManagerReviewService {
   private final WeeklyPlanRepository plans;
   private final ManagerReviewRepository reviews;
   private final AuditLogRepository audits;
+  private final EmployeeRepository employees;
   private final Clock clock;
 
   public ManagerReviewService(
       WeeklyPlanRepository plans,
       ManagerReviewRepository reviews,
       AuditLogRepository audits,
+      EmployeeRepository employees,
       Clock clock) {
     this.plans = plans;
     this.reviews = reviews;
     this.audits = audits;
+    this.employees = employees;
     this.clock = clock;
   }
 
@@ -92,10 +97,9 @@ public class ManagerReviewService {
   }
 
   /**
-   * List reviews on a plan. Self-or-MANAGER: the plan owner can read their own reviews; any MANAGER
-   * role can read any plan's reviews. 404 before authz + DB if plan missing — the load happens
-   * BEFORE the authz check here because the IC must be allowed to read their own reviews and we
-   * need plan.employeeId for that distinction.
+   * List reviews on a plan. Authz follows USER_FLOW.md row 366-367: plan owner OR plan owner's
+   * <i>direct</i> manager OR ADMIN. The plan load must happen first so {@code plan.employeeId} is
+   * available for the owner-equality and direct-manager checks.
    */
   @Transactional(readOnly = true)
   public List<ManagerReview> listReviews(UUID planId, AuthenticatedPrincipal caller) {
@@ -103,10 +107,34 @@ public class ManagerReviewService {
         plans
             .findById(planId)
             .orElseThrow(() -> new ResourceNotFoundException("WeeklyPlan", planId));
-    if (!plan.getEmployeeId().equals(caller.employeeId()) && !caller.isManager()) {
-      throw new AccessDeniedException(
-          "caller " + caller.employeeId() + " cannot read reviews on plan " + planId);
-    }
+    requireReadAccess(plan, caller);
     return reviews.findByPlanIdOrderByAcknowledgedAtAsc(planId);
+  }
+
+  /**
+   * Authz check ordered cheapest-first: owner equality and ADMIN-role short-circuit before any DB
+   * read. The Employee lookup only fires for MANAGER callers, and only to confirm the
+   * direct-manager relationship.
+   */
+  private void requireReadAccess(WeeklyPlan plan, AuthenticatedPrincipal caller) {
+    if (plan.getEmployeeId().equals(caller.employeeId())) {
+      return; // self
+    }
+    if (caller.hasRole("ADMIN")) {
+      return; // skip-level / ops scope
+    }
+    if (caller.isManager() && isDirectManagerOf(plan.getEmployeeId(), caller.employeeId())) {
+      return;
+    }
+    throw new AccessDeniedException(
+        "caller " + caller.employeeId() + " cannot read reviews on plan " + plan.getId());
+  }
+
+  private boolean isDirectManagerOf(UUID employeeId, UUID candidateManagerId) {
+    return employees
+        .findById(employeeId)
+        .map(Employee::getManagerId)
+        .filter(candidateManagerId::equals)
+        .isPresent();
   }
 }
