@@ -80,7 +80,8 @@ class DltReplayServiceTest {
   void replay_happyPath_sendsAndDeletes() throws Exception {
     UUID dltId = UUID.randomUUID();
     UUID planId = UUID.randomUUID();
-    NotificationEvent original = new NotificationEvent(planId, PlanState.DRAFT, PlanState.LOCKED, 3L);
+    NotificationEvent original =
+        new NotificationEvent(planId, PlanState.DRAFT, PlanState.LOCKED, 3L);
     JsonNode payload = objectMapper.valueToTree(original);
     NotificationDlt row =
         new NotificationDlt(dltId, "PLAN_LOCKED", payload, "503 from notification-svc", 5);
@@ -98,7 +99,8 @@ class DltReplayServiceTest {
   void replay_whenSenderThrows_doesNotDeleteRow() {
     UUID dltId = UUID.randomUUID();
     UUID planId = UUID.randomUUID();
-    NotificationEvent original = new NotificationEvent(planId, PlanState.LOCKED, PlanState.RECONCILED, 4L);
+    NotificationEvent original =
+        new NotificationEvent(planId, PlanState.LOCKED, PlanState.RECONCILED, 4L);
     JsonNode payload = objectMapper.valueToTree(original);
     NotificationDlt row = new NotificationDlt(dltId, "PLAN_RECONCILED", payload, "boom", 5);
     when(dltRepo.findById(dltId)).thenReturn(Optional.of(row));
