@@ -72,9 +72,9 @@ public class CommitsController {
   }
 
   /**
-   * Create a new commit on the given DRAFT plan. Owner-only authz (service enforces). Returns
-   * 201 with the created commit in the envelope, carryStreak=1 by construction (new commits are
-   * never carried from anywhere at creation time — derived computed uniformly for consistency).
+   * Create a new commit on the given DRAFT plan. Owner-only authz (service enforces). Returns 201
+   * with the created commit in the envelope, carryStreak=1 by construction (new commits are never
+   * carried from anywhere at creation time — derived computed uniformly for consistency).
    */
   @PostMapping("/plans/{planId}/commits")
   public ResponseEntity<ApiEnvelope<WeeklyCommitResponse>> createCommit(
@@ -88,9 +88,9 @@ public class CommitsController {
   }
 
   /**
-   * State-aware partial update. In DRAFT the definition fields (title, description, chessTier,
-   * ...) are mutable; in LOCKED past day-4 only actual* fields are mutable. Owner-only authz
-   * and state/window enforcement live in the service.
+   * State-aware partial update. In DRAFT the definition fields (title, description, chessTier, ...)
+   * are mutable; in LOCKED past day-4 only actual* fields are mutable. Owner-only authz and
+   * state/window enforcement live in the service.
    */
   @PatchMapping("/commits/{commitId}")
   public ResponseEntity<ApiEnvelope<WeeklyCommitResponse>> updateCommit(
@@ -105,8 +105,8 @@ public class CommitsController {
 
   /**
    * Delete a commit. Owner-only, DRAFT-only (service enforces). Returns 204 with no body.
-   * Carry-forward back-references on neighbouring commits are nulled by the FK {@code ON DELETE
-   * SET NULL} constraint.
+   * Carry-forward back-references on neighbouring commits are nulled by the FK {@code ON DELETE SET
+   * NULL} constraint.
    */
   @DeleteMapping("/commits/{commitId}")
   public ResponseEntity<Void> deleteCommit(

@@ -29,17 +29,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Aggregates a week's worth of plans for a manager into the dashboard payload (USER_FLOW.md
- * Manager Review). Computes alignment / completion percentages, tier distribution, unreviewed
- * plan count, stuck commit count, and per-member cards with the standard flag set.
+ * Aggregates a week's worth of plans for a manager into the dashboard payload (USER_FLOW.md Manager
+ * Review). Computes alignment / completion percentages, tier distribution, unreviewed plan count,
+ * stuck commit count, and per-member cards with the standard flag set.
  *
- * <p><b>Performance:</b> v1 implementation walks plans → commits → derived per member. At our
- * scale (≤50 reports, ≤10 commits/plan, carry-streak cap 52) the worst case is roughly
- * {@code 50 × 10 × 52 = 26000} repo calls per request. The CTE rewrite documented on
- * {@link DerivedFieldService#carryStreak} addresses this when the rollup P95 target regresses.
+ * <p><b>Performance:</b> v1 implementation walks plans → commits → derived per member. At our scale
+ * (≤50 reports, ≤10 commits/plan, carry-streak cap 52) the worst case is roughly {@code 50 × 10 ×
+ * 52 = 26000} repo calls per request. The CTE rewrite documented on {@link
+ * DerivedFieldService#carryStreak} addresses this when the rollup P95 target regresses.
  *
- * <p><b>Authz:</b> caller must be the queried managerId, or hold the {@code ADMIN} role
- * (skip-level / ops). Same rule as {@link WeeklyPlanService#findTeamPlans}.
+ * <p><b>Authz:</b> caller must be the queried managerId, or hold the {@code ADMIN} role (skip-level
+ * / ops). Same rule as {@link WeeklyPlanService#findTeamPlans}.
  */
 @Service
 public class RollupService {
@@ -78,7 +78,8 @@ public class RollupService {
     requireOwnTeamOrAdmin(managerId, caller);
 
     List<WeeklyPlan> teamPlans =
-        plans.findTeamPlans(managerId, weekStart, PageRequest.of(0, TEAM_FETCH_PAGE_SIZE))
+        plans
+            .findTeamPlans(managerId, weekStart, PageRequest.of(0, TEAM_FETCH_PAGE_SIZE))
             .getContent();
     if (teamPlans.isEmpty()) {
       return emptyRollup();
@@ -181,8 +182,7 @@ public class RollupService {
     if (plan.getState() == PlanState.RECONCILED
         && plan.getManagerReviewedAt() == null
         && plan.getReconciledAt() != null
-        && Duration.between(plan.getReconciledAt(), now).toHours()
-            >= UNREVIEWED_THRESHOLD_HOURS) {
+        && Duration.between(plan.getReconciledAt(), now).toHours() >= UNREVIEWED_THRESHOLD_HOURS) {
       flags.add("UNREVIEWED_72H");
     }
     if (plan.getState() == PlanState.DRAFT && planCommits.isEmpty()) {
@@ -209,10 +209,7 @@ public class RollupService {
     boolean isAdmin = caller.hasRole("ADMIN");
     if (!isOwnTeam && !isAdmin) {
       throw new AccessDeniedException(
-          "caller "
-              + caller.employeeId()
-              + " cannot read rollup for manager "
-              + managerId);
+          "caller " + caller.employeeId() + " cannot read rollup for manager " + managerId);
     }
   }
 
@@ -238,7 +235,6 @@ public class RollupService {
     emptyTiers.put(ChessTier.ROCK.name(), 0);
     emptyTiers.put(ChessTier.PEBBLE.name(), 0);
     emptyTiers.put(ChessTier.SAND.name(), 0);
-    return new RollupResponse(
-        BigDecimal.ZERO, BigDecimal.ZERO, emptyTiers, 0, 0, List.of());
+    return new RollupResponse(BigDecimal.ZERO, BigDecimal.ZERO, emptyTiers, 0, 0, List.of());
   }
 }

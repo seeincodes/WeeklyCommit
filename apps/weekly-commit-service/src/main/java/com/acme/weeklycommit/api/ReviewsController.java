@@ -33,8 +33,8 @@ public class ReviewsController {
   }
 
   /**
-   * Create a manager review on a RECONCILED plan. MANAGER-only. Side-effects (managerReviewedAt
-   * + audit row) are owned by the service. Returns 201.
+   * Create a manager review on a RECONCILED plan. MANAGER-only. Side-effects (managerReviewedAt +
+   * audit row) are owned by the service. Returns 201.
    */
   @PostMapping("/{planId}/reviews")
   public ResponseEntity<ApiEnvelope<ManagerReviewResponse>> createReview(
@@ -42,8 +42,7 @@ public class ReviewsController {
       @Valid @RequestBody CreateReviewRequest request,
       AuthenticatedPrincipal caller) {
     ManagerReview saved = reviewService.createReview(planId, request, caller);
-    return ResponseEntity.status(HttpStatus.CREATED)
-        .body(ApiEnvelope.of(mapper.toResponse(saved)));
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiEnvelope.of(mapper.toResponse(saved)));
   }
 
   /** List reviews on a plan. Self-or-MANAGER. */

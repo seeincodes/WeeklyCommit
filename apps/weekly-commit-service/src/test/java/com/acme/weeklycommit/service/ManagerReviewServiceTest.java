@@ -126,9 +126,7 @@ class ManagerReviewServiceTest {
             () ->
                 service()
                     .createReview(
-                        planId,
-                        new CreateReviewRequest(null),
-                        managerPrincipal(UUID.randomUUID())))
+                        planId, new CreateReviewRequest(null), managerPrincipal(UUID.randomUUID())))
         .isInstanceOf(InvalidStateTransitionException.class);
 
     verify(reviews, never()).save(any(ManagerReview.class));
@@ -144,9 +142,7 @@ class ManagerReviewServiceTest {
             () ->
                 service()
                     .createReview(
-                        planId,
-                        new CreateReviewRequest(null),
-                        managerPrincipal(UUID.randomUUID())))
+                        planId, new CreateReviewRequest(null), managerPrincipal(UUID.randomUUID())))
         .isInstanceOf(ResourceNotFoundException.class);
   }
 

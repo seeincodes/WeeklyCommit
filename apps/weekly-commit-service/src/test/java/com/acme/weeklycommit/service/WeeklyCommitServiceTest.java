@@ -47,8 +47,7 @@ class WeeklyCommitServiceTest {
    * (state-aware PATCH) override via {@link #service(java.time.Clock)}.
    */
   private static final java.time.Clock DEFAULT_CLOCK =
-      java.time.Clock.fixed(
-          Instant.parse("2026-05-01T12:00:00Z"), java.time.ZoneOffset.UTC);
+      java.time.Clock.fixed(Instant.parse("2026-05-01T12:00:00Z"), java.time.ZoneOffset.UTC);
 
   private WeeklyCommitService service() {
     return service(DEFAULT_CLOCK);
@@ -185,8 +184,7 @@ class WeeklyCommitServiceTest {
     when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
 
     CreateCommitRequest req =
-        new CreateCommitRequest(
-            "x", null, UUID.randomUUID(), ChessTier.ROCK, null, null, 7, null);
+        new CreateCommitRequest("x", null, UUID.randomUUID(), ChessTier.ROCK, null, null, 7, null);
 
     WeeklyCommit result = service().createCommit(planId, req, principal(employeeId));
 
@@ -206,9 +204,7 @@ class WeeklyCommitServiceTest {
             "x", null, UUID.randomUUID(), ChessTier.ROCK, null, null, null, null);
 
     assertThatThrownBy(
-            () ->
-                service()
-                    .createCommit(planId, req, managerPrincipal(UUID.randomUUID())))
+            () -> service().createCommit(planId, req, managerPrincipal(UUID.randomUUID())))
         .isInstanceOf(AccessDeniedException.class);
 
     verify(commits, never()).save(any(WeeklyCommit.class));
@@ -242,8 +238,7 @@ class WeeklyCommitServiceTest {
         new CreateCommitRequest(
             "x", null, UUID.randomUUID(), ChessTier.ROCK, null, null, null, null);
 
-    assertThatThrownBy(
-            () -> service().createCommit(planId, req, principal(UUID.randomUUID())))
+    assertThatThrownBy(() -> service().createCommit(planId, req, principal(UUID.randomUUID())))
         .isInstanceOf(ResourceNotFoundException.class);
   }
 
@@ -296,8 +291,7 @@ class WeeklyCommitServiceTest {
     WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
     plan.setState(PlanState.LOCKED);
     WeeklyCommit commit =
-        new WeeklyCommit(
-            commitId, planId, "locked commit", UUID.randomUUID(), ChessTier.ROCK, 0);
+        new WeeklyCommit(commitId, planId, "locked commit", UUID.randomUUID(), ChessTier.ROCK, 0);
     when(commits.findById(commitId)).thenReturn(Optional.of(commit));
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
     when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -353,8 +347,7 @@ class WeeklyCommitServiceTest {
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
 
     UpdateCommitRequest req =
-        new UpdateCommitRequest(
-            "new title", null, null, null, null, null, null, null, null, null);
+        new UpdateCommitRequest("new title", null, null, null, null, null, null, null, null, null);
 
     assertThatThrownBy(() -> service().updateCommit(commitId, req, principal(employeeId)))
         .isInstanceOf(InvalidStateTransitionException.class);
@@ -396,14 +389,10 @@ class WeeklyCommitServiceTest {
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
 
     UpdateCommitRequest req =
-        new UpdateCommitRequest(
-            "new", null, null, null, null, null, null, null, null, null);
+        new UpdateCommitRequest("new", null, null, null, null, null, null, null, null, null);
 
     assertThatThrownBy(
-            () ->
-                service()
-                    .updateCommit(
-                        commitId, req, managerPrincipal(UUID.randomUUID())))
+            () -> service().updateCommit(commitId, req, managerPrincipal(UUID.randomUUID())))
         .isInstanceOf(AccessDeniedException.class);
 
     verify(commits, never()).save(any(WeeklyCommit.class));
@@ -415,11 +404,9 @@ class WeeklyCommitServiceTest {
     when(commits.findById(commitId)).thenReturn(Optional.empty());
 
     UpdateCommitRequest req =
-        new UpdateCommitRequest(
-            "new", null, null, null, null, null, null, null, null, null);
+        new UpdateCommitRequest("new", null, null, null, null, null, null, null, null, null);
 
-    assertThatThrownBy(
-            () -> service().updateCommit(commitId, req, principal(UUID.randomUUID())))
+    assertThatThrownBy(() -> service().updateCommit(commitId, req, principal(UUID.randomUUID())))
         .isInstanceOf(ResourceNotFoundException.class);
   }
 
@@ -470,8 +457,7 @@ class WeeklyCommitServiceTest {
     when(commits.findById(commitId)).thenReturn(Optional.of(commit));
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
 
-    assertThatThrownBy(
-            () -> service().deleteCommit(commitId, managerPrincipal(UUID.randomUUID())))
+    assertThatThrownBy(() -> service().deleteCommit(commitId, managerPrincipal(UUID.randomUUID())))
         .isInstanceOf(AccessDeniedException.class);
 
     verify(commits, never()).delete(any(WeeklyCommit.class));
@@ -482,8 +468,7 @@ class WeeklyCommitServiceTest {
     UUID commitId = UUID.randomUUID();
     when(commits.findById(commitId)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(
-            () -> service().deleteCommit(commitId, principal(UUID.randomUUID())))
+    assertThatThrownBy(() -> service().deleteCommit(commitId, principal(UUID.randomUUID())))
         .isInstanceOf(ResourceNotFoundException.class);
   }
 
@@ -507,7 +492,8 @@ class WeeklyCommitServiceTest {
     WeeklyPlan nextPlan = new WeeklyPlan(nextPlanId, employeeId, nextWeek);
     when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
     when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
-    when(plans.findByEmployeeIdAndWeekStart(employeeId, nextWeek)).thenReturn(Optional.of(nextPlan));
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, nextWeek))
+        .thenReturn(Optional.of(nextPlan));
     when(commits.findByPlanIdOrderByDisplayOrderAsc(nextPlanId)).thenReturn(List.of());
     when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -533,12 +519,10 @@ class WeeklyCommitServiceTest {
     WeeklyPlan sourcePlan = new WeeklyPlan(sourcePlanId, employeeId, thisWeek);
     sourcePlan.setState(PlanState.RECONCILED);
     WeeklyCommit source =
-        new WeeklyCommit(
-            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.PEBBLE, 0);
+        new WeeklyCommit(sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.PEBBLE, 0);
     when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
     when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
-    when(plans.findByEmployeeIdAndWeekStart(employeeId, nextWeek))
-        .thenReturn(Optional.empty());
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, nextWeek)).thenReturn(Optional.empty());
     when(plans.save(any(WeeklyPlan.class))).thenAnswer(inv -> inv.getArgument(0));
     when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -566,12 +550,12 @@ class WeeklyCommitServiceTest {
     WeeklyPlan sourcePlan = new WeeklyPlan(sourcePlanId, employeeId, thisWeek);
     sourcePlan.setState(PlanState.LOCKED);
     WeeklyCommit source =
-        new WeeklyCommit(
-            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+        new WeeklyCommit(sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
     WeeklyPlan nextPlan = new WeeklyPlan(UUID.randomUUID(), employeeId, nextWeek);
     when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
     when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
-    when(plans.findByEmployeeIdAndWeekStart(employeeId, nextWeek)).thenReturn(Optional.of(nextPlan));
+    when(plans.findByEmployeeIdAndWeekStart(employeeId, nextWeek))
+        .thenReturn(Optional.of(nextPlan));
     when(commits.save(any(WeeklyCommit.class))).thenAnswer(inv -> inv.getArgument(0));
 
     WeeklyCommit twin = service().carryForwardCommit(sourceCommitId, principal(employeeId));
@@ -584,17 +568,14 @@ class WeeklyCommitServiceTest {
     UUID sourceCommitId = UUID.randomUUID();
     UUID sourcePlanId = UUID.randomUUID();
     UUID employeeId = UUID.randomUUID();
-    WeeklyPlan sourcePlan =
-        new WeeklyPlan(sourcePlanId, employeeId, LocalDate.parse("2026-04-27"));
+    WeeklyPlan sourcePlan = new WeeklyPlan(sourcePlanId, employeeId, LocalDate.parse("2026-04-27"));
     // state = DRAFT
     WeeklyCommit source =
-        new WeeklyCommit(
-            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+        new WeeklyCommit(sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
     when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
     when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
 
-    assertThatThrownBy(
-            () -> service().carryForwardCommit(sourceCommitId, principal(employeeId)))
+    assertThatThrownBy(() -> service().carryForwardCommit(sourceCommitId, principal(employeeId)))
         .isInstanceOf(InvalidStateTransitionException.class);
 
     verify(commits, never()).save(any(WeeklyCommit.class));
@@ -607,17 +588,14 @@ class WeeklyCommitServiceTest {
     UUID sourceCommitId = UUID.randomUUID();
     UUID sourcePlanId = UUID.randomUUID();
     UUID employeeId = UUID.randomUUID();
-    WeeklyPlan sourcePlan =
-        new WeeklyPlan(sourcePlanId, employeeId, LocalDate.parse("2026-04-28"));
+    WeeklyPlan sourcePlan = new WeeklyPlan(sourcePlanId, employeeId, LocalDate.parse("2026-04-28"));
     sourcePlan.setState(PlanState.LOCKED);
     WeeklyCommit source =
-        new WeeklyCommit(
-            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+        new WeeklyCommit(sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
     when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
     when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
 
-    assertThatThrownBy(
-            () -> service().carryForwardCommit(sourceCommitId, principal(employeeId)))
+    assertThatThrownBy(() -> service().carryForwardCommit(sourceCommitId, principal(employeeId)))
         .isInstanceOf(InvalidStateTransitionException.class);
   }
 
@@ -630,16 +608,12 @@ class WeeklyCommitServiceTest {
         new WeeklyPlan(sourcePlanId, planOwnerId, LocalDate.parse("2026-04-27"));
     sourcePlan.setState(PlanState.RECONCILED);
     WeeklyCommit source =
-        new WeeklyCommit(
-            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+        new WeeklyCommit(sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
     when(commits.findById(sourceCommitId)).thenReturn(Optional.of(source));
     when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
 
     assertThatThrownBy(
-            () ->
-                service()
-                    .carryForwardCommit(
-                        sourceCommitId, managerPrincipal(UUID.randomUUID())))
+            () -> service().carryForwardCommit(sourceCommitId, managerPrincipal(UUID.randomUUID())))
         .isInstanceOf(AccessDeniedException.class);
 
     verify(commits, never()).save(any(WeeklyCommit.class));
@@ -653,12 +627,10 @@ class WeeklyCommitServiceTest {
     UUID sourcePlanId = UUID.randomUUID();
     UUID employeeId = UUID.randomUUID();
 
-    WeeklyPlan sourcePlan =
-        new WeeklyPlan(sourcePlanId, employeeId, LocalDate.parse("2026-04-27"));
+    WeeklyPlan sourcePlan = new WeeklyPlan(sourcePlanId, employeeId, LocalDate.parse("2026-04-27"));
     sourcePlan.setState(PlanState.RECONCILED);
     WeeklyCommit source =
-        new WeeklyCommit(
-            sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
+        new WeeklyCommit(sourceCommitId, sourcePlanId, "t", UUID.randomUUID(), ChessTier.ROCK, 0);
     source.setCarriedForwardToId(existingTwinId);
     WeeklyCommit existingTwin =
         new WeeklyCommit(
@@ -667,8 +639,7 @@ class WeeklyCommitServiceTest {
     when(plans.findById(sourcePlanId)).thenReturn(Optional.of(sourcePlan));
     when(commits.findById(existingTwinId)).thenReturn(Optional.of(existingTwin));
 
-    WeeklyCommit result =
-        service().carryForwardCommit(sourceCommitId, principal(employeeId));
+    WeeklyCommit result = service().carryForwardCommit(sourceCommitId, principal(employeeId));
 
     assertThat(result).isSameAs(existingTwin);
     verify(commits, never()).save(any(WeeklyCommit.class));
@@ -681,9 +652,7 @@ class WeeklyCommitServiceTest {
     when(commits.findById(sourceCommitId)).thenReturn(Optional.empty());
 
     assertThatThrownBy(
-            () ->
-                service()
-                    .carryForwardCommit(sourceCommitId, principal(UUID.randomUUID())))
+            () -> service().carryForwardCommit(sourceCommitId, principal(UUID.randomUUID())))
         .isInstanceOf(ResourceNotFoundException.class);
   }
 

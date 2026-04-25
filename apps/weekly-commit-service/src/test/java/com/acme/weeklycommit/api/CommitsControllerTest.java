@@ -301,8 +301,7 @@ class CommitsControllerTest {
   @Test
   void deleteCommit_unauthenticated_returns401() throws Exception {
     UUID commitId = UUID.randomUUID();
-    mvc.perform(delete("/api/v1/commits/" + commitId))
-        .andExpect(status().isUnauthorized());
+    mvc.perform(delete("/api/v1/commits/" + commitId)).andExpect(status().isUnauthorized());
   }
 
   // --- POST /api/v1/commits/{id}/carry-forward ---
@@ -312,7 +311,8 @@ class CommitsControllerTest {
     UUID sourceId = UUID.randomUUID();
     UUID nextPlanId = UUID.randomUUID();
     WeeklyCommit twin =
-        new WeeklyCommit(UUID.randomUUID(), nextPlanId, "carried", UUID.randomUUID(), ChessTier.ROCK, 0);
+        new WeeklyCommit(
+            UUID.randomUUID(), nextPlanId, "carried", UUID.randomUUID(), ChessTier.ROCK, 0);
     twin.setCarriedForwardFromId(sourceId);
     when(commitService.carryForwardCommit(any(), any())).thenReturn(twin);
     when(derivedFieldService.deriveFor(twin.getId()))

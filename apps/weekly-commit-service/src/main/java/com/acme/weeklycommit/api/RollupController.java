@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Manager team rollup. Single endpoint per USER_FLOW.md: aggregates a week's plans for a
- * manager into the dashboard payload (alignment %, completion %, tier distribution, unreviewed
- * count, stuck commit count, per-member cards with flags).
+ * Manager team rollup. Single endpoint per USER_FLOW.md: aggregates a week's plans for a manager
+ * into the dashboard payload (alignment %, completion %, tier distribution, unreviewed count, stuck
+ * commit count, per-member cards with flags).
  */
 @RestController
 @RequestMapping("/api/v1/rollup")

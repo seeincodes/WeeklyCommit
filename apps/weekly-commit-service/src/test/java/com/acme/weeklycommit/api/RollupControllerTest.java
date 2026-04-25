@@ -28,8 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 class RollupControllerTest {
 
-  private static final UUID EMPLOYEE_ID =
-      UUID.fromString("00000000-0000-0000-0000-0000000000a1");
+  private static final UUID EMPLOYEE_ID = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
   private static final UUID ORG_ID = UUID.fromString("00000000-0000-0000-0000-0000000000b2");
 
   @Autowired private MockMvc mvc;
@@ -46,12 +45,7 @@ class RollupControllerTest {
     Map<String, Integer> tiers = Map.of("ROCK", 4, "PEBBLE", 6, "SAND", 2);
     RollupResponse rollup =
         new RollupResponse(
-            new BigDecimal("0.9100"),
-            new BigDecimal("0.7600"),
-            tiers,
-            3,
-            2,
-            List.of());
+            new BigDecimal("0.9100"), new BigDecimal("0.7600"), tiers, 3, 2, List.of());
     when(rollupService.computeRollup(any(), any(), any())).thenReturn(rollup);
 
     mvc.perform(

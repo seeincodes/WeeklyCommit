@@ -11,10 +11,9 @@ import java.util.UUID;
  * Manager team rollup view (per USER_FLOW.md). Aggregates a week's plans for a manager into the
  * dashboard payload.
  *
- * <p>{@code byOutcome} is intentionally absent in v1 — it requires RCDO outcome metadata that
- * the backend doesn't have until group 7's RCDO client lands. Re-introduce as a follow-up; the
- * frontend can call {@code GET /rcdo/supporting-outcomes} directly to enrich its own view in
- * the meantime.
+ * <p>{@code byOutcome} is intentionally absent in v1 — it requires RCDO outcome metadata that the
+ * backend doesn't have until group 7's RCDO client lands. Re-introduce as a follow-up; the frontend
+ * can call {@code GET /rcdo/supporting-outcomes} directly to enrich its own view in the meantime.
  */
 @JsonInclude(JsonInclude.Include.ALWAYS)
 public record RollupResponse(

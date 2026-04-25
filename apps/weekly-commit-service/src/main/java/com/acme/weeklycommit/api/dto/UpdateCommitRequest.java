@@ -14,14 +14,14 @@ import java.util.UUID;
  * Request body for {@code PATCH /commits/{id}}.
  *
  * <p><b>Partial update semantics</b>: non-null fields are applied; null fields are ignored (keep
- * current value). To clear an optional string field, send {@code ""} and the service coerces it
- * to {@code null} before save.
+ * current value). To clear an optional string field, send {@code ""} and the service coerces it to
+ * {@code null} before save.
  *
  * <p><b>State-aware</b>: in DRAFT the service accepts the definition fields (title, description,
  * chessTier, etc.); in LOCKED past day-4 only {@code actualStatus} + {@code actualNote} are
- * accepted; any other state rejects the whole request. Supplying a non-null definition field
- * while the plan is in reconciliation mode also rejects — the client is trying to mutate an
- * immutable field for that state.
+ * accepted; any other state rejects the whole request. Supplying a non-null definition field while
+ * the plan is in reconciliation mode also rejects — the client is trying to mutate an immutable
+ * field for that state.
  */
 public record UpdateCommitRequest(
     @Size(max = 200) String title,

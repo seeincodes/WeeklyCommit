@@ -27,8 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
  * <ul>
  *   <li>Authz: only MANAGER can create reviews; self-or-MANAGER can list.
  *   <li>State guard: reviews are only valid on RECONCILED plans.
- *   <li>Side effects: creating a review sets {@code plan.managerReviewedAt} and appends an
- *       {@code audit_log} row in the same transaction.
+ *   <li>Side effects: creating a review sets {@code plan.managerReviewedAt} and appends an {@code
+ *       audit_log} row in the same transaction.
  * </ul>
  */
 @Service
@@ -51,9 +51,9 @@ public class ManagerReviewService {
   }
 
   /**
-   * Create a manager review on a RECONCILED plan. Caller must hold the {@code MANAGER} role —
-   * the plan owner cannot review themselves. Side effects: stamps {@code
-   * plan.managerReviewedAt}, appends a {@code MANAGER_REVIEW} audit row.
+   * Create a manager review on a RECONCILED plan. Caller must hold the {@code MANAGER} role — the
+   * plan owner cannot review themselves. Side effects: stamps {@code plan.managerReviewedAt},
+   * appends a {@code MANAGER_REVIEW} audit row.
    */
   @Transactional
   public ManagerReview createReview(
@@ -68,9 +68,7 @@ public class ManagerReviewService {
             .orElseThrow(() -> new ResourceNotFoundException("WeeklyPlan", planId));
     if (plan.getState() != PlanState.RECONCILED) {
       throw new InvalidStateTransitionException(
-          plan.getState().name(),
-          "RECONCILED",
-          "reviews are only valid on RECONCILED plans");
+          plan.getState().name(), "RECONCILED", "reviews are only valid on RECONCILED plans");
     }
 
     Instant now = Instant.now(clock);
@@ -94,10 +92,10 @@ public class ManagerReviewService {
   }
 
   /**
-   * List reviews on a plan. Self-or-MANAGER: the plan owner can read their own reviews; any
-   * MANAGER role can read any plan's reviews. 404 before authz + DB if plan missing — the load
-   * happens BEFORE the authz check here because the IC must be allowed to read their own
-   * reviews and we need plan.employeeId for that distinction.
+   * List reviews on a plan. Self-or-MANAGER: the plan owner can read their own reviews; any MANAGER
+   * role can read any plan's reviews. 404 before authz + DB if plan missing — the load happens
+   * BEFORE the authz check here because the IC must be allowed to read their own reviews and we
+   * need plan.employeeId for that distinction.
    */
   @Transactional(readOnly = true)
   public List<ManagerReview> listReviews(UUID planId, AuthenticatedPrincipal caller) {

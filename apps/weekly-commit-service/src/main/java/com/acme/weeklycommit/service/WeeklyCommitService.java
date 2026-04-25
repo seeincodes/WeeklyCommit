@@ -91,9 +91,9 @@ public class WeeklyCommitService {
 
   private int nextDisplayOrder(UUID planId) {
     return commits.findByPlanIdOrderByDisplayOrderAsc(planId).stream()
-        .mapToInt(WeeklyCommit::getDisplayOrder)
-        .max()
-        .orElse(-1)
+            .mapToInt(WeeklyCommit::getDisplayOrder)
+            .max()
+            .orElse(-1)
         + 1;
   }
 
@@ -140,9 +140,7 @@ public class WeeklyCommitService {
   private static void requireDraftForMutation(WeeklyPlan plan) {
     if (plan.getState() != PlanState.DRAFT) {
       throw new InvalidStateTransitionException(
-          plan.getState().name(),
-          "DRAFT",
-          "commit mutation only allowed in DRAFT state");
+          plan.getState().name(), "DRAFT", "commit mutation only allowed in DRAFT state");
     }
   }
 
@@ -170,13 +168,10 @@ public class WeeklyCommitService {
       applyDefinitionFields(commit, request);
     } else if (state == PlanState.LOCKED) {
       // Reconciliation window: now >= weekStart + 4 days (UTC start-of-day).
-      Instant opensAt =
-          plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
+      Instant opensAt = plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
       if (Instant.now(clock).isBefore(opensAt)) {
         throw new InvalidStateTransitionException(
-            state.name(),
-            "RECONCILIATION_MODE",
-            "reconciliation window opens at " + opensAt);
+            state.name(), "RECONCILIATION_MODE", "reconciliation window opens at " + opensAt);
       }
       if (request.touchesDefinitionFields()) {
         throw new InvalidStateTransitionException(
@@ -188,9 +183,7 @@ public class WeeklyCommitService {
     } else {
       // RECONCILED or ARCHIVED — no mutations at all.
       throw new InvalidStateTransitionException(
-          state.name(),
-          "DRAFT_OR_RECONCILIATION_MODE",
-          "commit is immutable in state " + state);
+          state.name(), "DRAFT_OR_RECONCILIATION_MODE", "commit is immutable in state " + state);
     }
 
     return commits.save(commit);
@@ -234,21 +227,19 @@ public class WeeklyCommitService {
 
   /**
    * Carry a commit forward into next week's DRAFT plan. Source plan must be in a post-reconcile
-   * state: either RECONCILED, or LOCKED with the reconciliation window open (now ≥ weekStart +
-   * 4 days). Owner-only.
+   * state: either RECONCILED, or LOCKED with the reconciliation window open (now ≥ weekStart + 4
+   * days). Owner-only.
    *
-   * <p>If next week's plan doesn't exist, one is auto-created (DRAFT, same employee). If the
-   * source has already been carried forward (idempotent guard via {@code carriedForwardToId}),
-   * the existing twin is returned without creating a duplicate.
+   * <p>If next week's plan doesn't exist, one is auto-created (DRAFT, same employee). If the source
+   * has already been carried forward (idempotent guard via {@code carriedForwardToId}), the
+   * existing twin is returned without creating a duplicate.
    */
   @Transactional
-  public WeeklyCommit carryForwardCommit(
-      UUID sourceCommitId, AuthenticatedPrincipal caller) {
+  public WeeklyCommit carryForwardCommit(UUID sourceCommitId, AuthenticatedPrincipal caller) {
     WeeklyCommit source =
         commits
             .findById(sourceCommitId)
-            .orElseThrow(
-                () -> new ResourceNotFoundException("WeeklyCommit", sourceCommitId));
+            .orElseThrow(() -> new ResourceNotFoundException("WeeklyCommit", sourceCommitId));
     WeeklyPlan sourcePlan = requireOwnedByCaller(source.getPlanId(), caller);
     requireCarryForwardable(sourcePlan);
 
@@ -273,8 +264,7 @@ public class WeeklyCommitService {
             .orElseGet(
                 () ->
                     plans.save(
-                        new WeeklyPlan(
-                            UUID.randomUUID(), sourcePlan.getEmployeeId(), nextWeek)));
+                        new WeeklyPlan(UUID.randomUUID(), sourcePlan.getEmployeeId(), nextWeek)));
 
     WeeklyCommit twin =
         new WeeklyCommit(
@@ -299,8 +289,8 @@ public class WeeklyCommitService {
   }
 
   /**
-   * Carry-forward is only valid from RECONCILED plans or LOCKED plans whose reconciliation
-   * window is already open. Anything else rejects with the standard 422 envelope.
+   * Carry-forward is only valid from RECONCILED plans or LOCKED plans whose reconciliation window
+   * is already open. Anything else rejects with the standard 422 envelope.
    */
   private void requireCarryForwardable(WeeklyPlan plan) {
     PlanState state = plan.getState();
@@ -308,8 +298,7 @@ public class WeeklyCommitService {
       return;
     }
     if (state == PlanState.LOCKED) {
-      Instant opensAt =
-          plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
+      Instant opensAt = plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
       if (!Instant.now(clock).isBefore(opensAt)) {
         return;
       }
