@@ -1,16 +1,21 @@
 package com.acme.weeklycommit.api;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.Employee;
 import com.acme.weeklycommit.service.AdminEmployeeService;
+import com.acme.weeklycommit.service.DltReplayService;
 import com.acme.weeklycommit.testsupport.WebMvcTestConfig;
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +40,7 @@ class AdminControllerTest {
   @Autowired private MockMvc mvc;
 
   @MockBean private AdminEmployeeService adminEmployeeService;
+  @MockBean private DltReplayService dltReplayService;
 
   private static JwtRequestPostProcessor adminJwt() {
     return jwt()
@@ -106,5 +112,66 @@ class AdminControllerTest {
     mvc.perform(get("/api/v1/admin/unassigned-employees")).andExpect(status().isUnauthorized());
     verify(adminEmployeeService, never())
         .listUnassignedEmployees(org.mockito.ArgumentMatchers.any());
+  }
+
+  // --- POST /admin/notifications/dlt/{id}/replay ---
+
+  @Test
+  void replayDlt_202_whenAdmin() throws Exception {
+    UUID dltId = UUID.randomUUID();
+
+    mvc.perform(post("/api/v1/admin/notifications/dlt/{id}/replay", dltId).with(adminJwt()))
+        .andExpect(status().isAccepted());
+
+    verify(dltReplayService).replay(eq(dltId), any(AuthenticatedPrincipal.class));
+  }
+
+  @Test
+  void replayDlt_404_whenDltRowMissing() throws Exception {
+    UUID dltId = UUID.randomUUID();
+    org.mockito.Mockito.doThrow(new ResourceNotFoundException("NotificationDlt", dltId))
+        .when(dltReplayService)
+        .replay(eq(dltId), any(AuthenticatedPrincipal.class));
+
+    mvc.perform(post("/api/v1/admin/notifications/dlt/{id}/replay", dltId).with(adminJwt()))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void replayDlt_403_whenManagerOnly() throws Exception {
+    UUID dltId = UUID.randomUUID();
+
+    mvc.perform(post("/api/v1/admin/notifications/dlt/{id}/replay", dltId).with(managerJwt()))
+        .andExpect(status().isForbidden());
+
+    verify(dltReplayService, never()).replay(any(), any());
+  }
+
+  @Test
+  void replayDlt_403_whenNoRoles() throws Exception {
+    UUID dltId = UUID.randomUUID();
+
+    mvc.perform(post("/api/v1/admin/notifications/dlt/{id}/replay", dltId).with(noRoleJwt()))
+        .andExpect(status().isForbidden());
+
+    verify(dltReplayService, never()).replay(any(), any());
+  }
+
+  @Test
+  void replayDlt_401_whenUnauthenticated() throws Exception {
+    UUID dltId = UUID.randomUUID();
+
+    mvc.perform(post("/api/v1/admin/notifications/dlt/{id}/replay", dltId))
+        .andExpect(status().isUnauthorized());
+
+    verify(dltReplayService, never()).replay(any(), any());
+  }
+
+  @Test
+  void replayDlt_400_whenIdNotUuid() throws Exception {
+    mvc.perform(post("/api/v1/admin/notifications/dlt/{id}/replay", "not-a-uuid").with(adminJwt()))
+        .andExpect(status().isBadRequest());
+
+    verify(dltReplayService, never()).replay(any(), any());
   }
 }
