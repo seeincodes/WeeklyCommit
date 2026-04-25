@@ -304,4 +304,54 @@ class CommitsControllerTest {
     mvc.perform(delete("/api/v1/commits/" + commitId))
         .andExpect(status().isUnauthorized());
   }
+
+  // --- POST /api/v1/commits/{id}/carry-forward ---
+
+  @Test
+  void carryForward_201WithTwinEnvelope() throws Exception {
+    UUID sourceId = UUID.randomUUID();
+    UUID nextPlanId = UUID.randomUUID();
+    WeeklyCommit twin =
+        new WeeklyCommit(UUID.randomUUID(), nextPlanId, "carried", UUID.randomUUID(), ChessTier.ROCK, 0);
+    twin.setCarriedForwardFromId(sourceId);
+    when(commitService.carryForwardCommit(any(), any())).thenReturn(twin);
+    when(derivedFieldService.deriveFor(twin.getId()))
+        .thenReturn(new DerivedFieldService.Derived(2, false));
+    when(mapper.toResponse(any(WeeklyCommit.class), anyInt(), anyBoolean()))
+        .thenAnswer(
+            inv -> {
+              WeeklyCommit c = inv.getArgument(0);
+              int streak = inv.getArgument(1);
+              boolean stuck = inv.getArgument(2);
+              return new WeeklyCommitResponse(
+                  c.getId(),
+                  c.getPlanId(),
+                  c.getTitle(),
+                  null,
+                  c.getSupportingOutcomeId(),
+                  c.getChessTier(),
+                  List.of(),
+                  null,
+                  c.getDisplayOrder(),
+                  null,
+                  sourceId,
+                  null,
+                  ActualStatus.PENDING,
+                  null,
+                  new WeeklyCommitResponse.Derived(streak, stuck));
+            });
+
+    mvc.perform(post("/api/v1/commits/" + sourceId + "/carry-forward").with(validJwt()))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.data.title").value("carried"))
+        .andExpect(jsonPath("$.data.carriedForwardFromId").value(sourceId.toString()))
+        .andExpect(jsonPath("$.data.derived.carryStreak").value(2));
+  }
+
+  @Test
+  void carryForward_unauthenticated_returns401() throws Exception {
+    UUID sourceId = UUID.randomUUID();
+    mvc.perform(post("/api/v1/commits/" + sourceId + "/carry-forward"))
+        .andExpect(status().isUnauthorized());
+  }
 }

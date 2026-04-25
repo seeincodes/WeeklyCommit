@@ -114,4 +114,18 @@ public class CommitsController {
     commitService.deleteCommit(commitId, caller);
     return ResponseEntity.noContent().build();
   }
+
+  /**
+   * Carry the commit forward into next week's DRAFT plan. Source plan must be RECONCILED or
+   * LOCKED-in-reconciliation-mode (service enforces). Returns 201 with the new twin in the
+   * envelope. Idempotent: a second call returns the existing twin without duplicating.
+   */
+  @PostMapping("/commits/{commitId}/carry-forward")
+  public ResponseEntity<ApiEnvelope<WeeklyCommitResponse>> carryForward(
+      @PathVariable UUID commitId, AuthenticatedPrincipal caller) {
+    WeeklyCommit twin = commitService.carryForwardCommit(commitId, caller);
+    DerivedFieldService.Derived d = derivedFieldService.deriveFor(twin.getId());
+    WeeklyCommitResponse body = mapper.toResponse(twin, d.carryStreak(), d.stuckFlag());
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiEnvelope.of(body));
+  }
 }
