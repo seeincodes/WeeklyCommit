@@ -289,4 +289,75 @@ class PlansControllerTest {
                 .content("{\"reflectionNote\":\"x\"}"))
         .andExpect(status().isUnauthorized());
   }
+
+  // --- GET /api/v1/plans/team?managerId=&weekStart= ---
+
+  @Test
+  void getTeam_200WithPagedEnvelope() throws Exception {
+    UUID managerId = UUID.randomUUID();
+    LocalDate week = LocalDate.parse("2026-04-27");
+    WeeklyPlan p1 = new WeeklyPlan(UUID.randomUUID(), UUID.randomUUID(), week);
+    WeeklyPlan p2 = new WeeklyPlan(UUID.randomUUID(), UUID.randomUUID(), week);
+    org.springframework.data.domain.Page<WeeklyPlan> servicePage =
+        new org.springframework.data.domain.PageImpl<>(
+            java.util.List.of(p1, p2),
+            org.springframework.data.domain.PageRequest.of(0, 20),
+            2);
+    when(planService.findTeamPlans(any(), any(), any(), any())).thenReturn(servicePage);
+    when(mapper.toResponse(any(WeeklyPlan.class)))
+        .thenAnswer(
+            inv -> {
+              WeeklyPlan p = inv.getArgument(0);
+              return new com.acme.weeklycommit.api.dto.WeeklyPlanResponse(
+                  p.getId(),
+                  p.getEmployeeId(),
+                  p.getWeekStart(),
+                  PlanState.DRAFT,
+                  null,
+                  null,
+                  null,
+                  null,
+                  0L);
+            });
+
+    mvc.perform(
+            get("/api/v1/plans/team")
+                .param("managerId", managerId.toString())
+                .param("weekStart", "2026-04-27")
+                .with(validJwt()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.length()").value(2))
+        .andExpect(jsonPath("$.data[0].id").value(p1.getId().toString()))
+        .andExpect(jsonPath("$.meta.totalElements").value(2))
+        .andExpect(jsonPath("$.meta.page").value(0))
+        .andExpect(jsonPath("$.meta.size").value(20));
+  }
+
+  @Test
+  void getTeam_400WhenSizeExceedsCap() throws Exception {
+    mvc.perform(
+            get("/api/v1/plans/team")
+                .param("managerId", UUID.randomUUID().toString())
+                .param("weekStart", "2026-04-27")
+                .param("size", "101")
+                .with(validJwt()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+  }
+
+  @Test
+  void getTeam_400WhenMissingManagerId() throws Exception {
+    mvc.perform(
+            get("/api/v1/plans/team").param("weekStart", "2026-04-27").with(validJwt()))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void getTeam_unauthenticated_returns401() throws Exception {
+    mvc.perform(
+            get("/api/v1/plans/team")
+                .param("managerId", UUID.randomUUID().toString())
+                .param("weekStart", "2026-04-27"))
+        .andExpect(status().isUnauthorized());
+  }
 }
