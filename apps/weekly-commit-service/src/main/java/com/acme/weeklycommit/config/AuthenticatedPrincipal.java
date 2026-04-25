@@ -26,10 +26,10 @@ public record AuthenticatedPrincipal(
     Jwt jwt) {
 
   /**
-   * Compact constructor — defensively copies {@code roles} into an immutable {@link Set}. Gives
-   * the record genuine value-object semantics: once constructed, mutation attempts on the
-   * returned Set throw {@code UnsupportedOperationException}, so neither callers nor later code
-   * can alter the authorization view of this principal.
+   * Compact constructor — defensively copies {@code roles} into an immutable {@link Set}. Gives the
+   * record genuine value-object semantics: once constructed, mutation attempts on the returned Set
+   * throw {@code UnsupportedOperationException}, so neither callers nor later code can alter the
+   * authorization view of this principal.
    */
   public AuthenticatedPrincipal {
     roles = Set.copyOf(roles);

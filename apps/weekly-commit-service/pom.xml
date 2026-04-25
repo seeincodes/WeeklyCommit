@@ -36,6 +36,10 @@
     <!-- Coverage thresholds (PRD [MVP12] + TESTING_STRATEGY.md) -->
     <jacoco.line.minimum>0.80</jacoco.line.minimum>
     <jacoco.branch.minimum>0.75</jacoco.branch.minimum>
+
+    <!-- Default: warn on coverage miss (local dev without Docker / Testcontainers).
+         CI overrides with -Djacoco.check.halt=true to fail the build on a miss. -->
+    <jacoco.check.halt>false</jacoco.check.halt>
   </properties>
 
   <dependencyManagement>
@@ -372,6 +376,11 @@
             </goals>
             <phase>verify</phase>
             <configuration>
+              <!-- haltOnFailure is controlled by the `jacoco.check.halt` property so local
+                     dev (where Docker / Testcontainers may not be running and ITs contribute
+                     nothing to coverage) gets a warning rather than a failed build. CI
+                     enforces hard via `-Djacoco.check.halt=true` in backend-pr.yml. -->
+              <haltOnFailure>${jacoco.check.halt}</haltOnFailure>
               <rules>
                 <rule>
                   <element>BUNDLE</element>
