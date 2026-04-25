@@ -3,35 +3,34 @@ package com.acme.weeklycommit.integration.rcdo;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
+import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 /**
- * Contract tests for {@link RcdoClient} against a WireMock-stubbed RCDO service. Pins the
- * client's behavior against the contract documented in docs/adr/0001-rcdo-contract.md.
+ * Contract tests for {@link RcdoClient} against a WireMock-stubbed RCDO service. Pins the client's
+ * behavior against the contract documented in docs/adr/0001-rcdo-contract.md.
  *
- * <p>Resilience4j retry / circuit breaker are <i>not</i> exercised here -- those are
- * cross-cutting AOP concerns wired by Spring at runtime. A separate {@code RcdoClientResilienceIT}
- * (full-context Spring boot) covers them. Keeping this test lightweight (no Spring) keeps the
- * happy-path / 404 / 5xx semantics easy to read.
+ * <p>Resilience4j retry / circuit breaker are <i>not</i> exercised here -- those are cross-cutting
+ * AOP concerns wired by Spring at runtime. A separate {@code RcdoClientResilienceIT} (full-context
+ * Spring boot) covers them. Keeping this test lightweight (no Spring) keeps the happy-path / 404 /
+ * 5xx semantics easy to read.
  */
+@WireMockTest
 class RcdoClientTest {
-
-  @RegisterExtension
-  static WireMockExtension rcdo = WireMockExtension.newInstance().build();
 
   private RcdoClient client(WireMockRuntimeInfo info) {
     WebClient webClient =
@@ -45,7 +44,7 @@ class RcdoClientTest {
   @Test
   void findSupportingOutcome_200_returnsHydratedView(WireMockRuntimeInfo info) {
     UUID id = UUID.fromString("c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44");
-    rcdo.stubFor(
+    stubFor(
         get(urlPathEqualTo("/rcdo/supporting-outcomes/" + id))
             .withQueryParam("hydrate", equalTo("full"))
             .willReturn(
@@ -84,8 +83,7 @@ class RcdoClientTest {
     assertThat(view.breadcrumb().supportingOutcome().id()).isEqualTo(id);
 
     verify(
-        com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor(
-                urlPathEqualTo("/rcdo/supporting-outcomes/" + id))
+        getRequestedFor(urlPathEqualTo("/rcdo/supporting-outcomes/" + id))
             .withHeader("Authorization", equalTo("Bearer test-token")));
   }
 
@@ -94,7 +92,7 @@ class RcdoClientTest {
     // ADR-0001: 404 on a deleted/deactivated outcome is the *expected* behavior. Map it to
     // Optional.empty() so callers can render a "outcome removed" chip without try/catch.
     UUID id = UUID.randomUUID();
-    rcdo.stubFor(
+    stubFor(
         get(urlPathEqualTo("/rcdo/supporting-outcomes/" + id))
             .willReturn(
                 aResponse()
@@ -111,7 +109,7 @@ class RcdoClientTest {
     // 503 is retryable per Resilience4j config -- but the client itself just propagates
     // WebClientResponseException. The retry happens at the AOP layer (separate IT).
     UUID id = UUID.randomUUID();
-    rcdo.stubFor(
+    stubFor(
         get(urlPathEqualTo("/rcdo/supporting-outcomes/" + id))
             .willReturn(aResponse().withStatus(503).withBody("upstream down")));
 
@@ -124,7 +122,7 @@ class RcdoClientTest {
     UUID orgId = UUID.fromString("00000000-0000-0000-0000-0000000000b2");
     UUID id1 = UUID.fromString("c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44");
     UUID id2 = UUID.fromString("d5b2f8c3-0e39-4f4d-9b72-2f8e4d0e3c55");
-    rcdo.stubFor(
+    stubFor(
         get(urlPathEqualTo("/rcdo/supporting-outcomes"))
             .withQueryParam("orgId", equalTo(orgId.toString()))
             .withQueryParam("active", equalTo("true"))
@@ -175,7 +173,7 @@ class RcdoClientTest {
   @Test
   void findActiveSupportingOutcomes_emptyList_returnsEmptyList(WireMockRuntimeInfo info) {
     UUID orgId = UUID.randomUUID();
-    rcdo.stubFor(
+    stubFor(
         get(urlPathEqualTo("/rcdo/supporting-outcomes"))
             .withQueryParam("orgId", equalTo(orgId.toString()))
             .willReturn(

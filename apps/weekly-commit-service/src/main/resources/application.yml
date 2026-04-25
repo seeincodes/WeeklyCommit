@@ -104,9 +104,11 @@ weekly-commit:
   rcdo:
     base-url: ${RCDO_BASE_URL}
     timeout-ms: ${RCDO_TIMEOUT_MS:2000}
+    service-token: ${RCDO_SERVICE_TOKEN:}
   notification:
     base-url: ${NOTIFICATION_SVC_BASE_URL}
     timeout-ms: ${NOTIFICATION_SVC_TIMEOUT_MS:3000}
+    service-token: ${NOTIFICATION_SVC_SERVICE_TOKEN:}
   scheduled:
     auto-lock-cron: ${AUTO_LOCK_CRON:0 0 * * * *}
     archival-cron: ${ARCHIVAL_CRON:0 0 2 * * *}

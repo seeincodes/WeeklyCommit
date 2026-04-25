@@ -140,8 +140,10 @@ AUTH0_AUDIENCE=                  # API audience for this service
 # --- Upstream services ---
 RCDO_BASE_URL=                   # https://rcdo.internal
 RCDO_TIMEOUT_MS=2000
+RCDO_SERVICE_TOKEN=              # Bearer token for service-to-service auth (ADR-0001). Empty in dev/test; required in prod.
 NOTIFICATION_SVC_BASE_URL=       # https://notification-svc.internal
 NOTIFICATION_SVC_TIMEOUT_MS=3000
+NOTIFICATION_SVC_SERVICE_TOKEN=  # Bearer token for service-to-service auth (ADR-0002). Same sourcing as RCDO_SERVICE_TOKEN.
 
 # --- Resilience4j (optional overrides; defaults in application.yml) ---
 RESILIENCE4J_NOTIFICATION_MAX_ATTEMPTS=3
