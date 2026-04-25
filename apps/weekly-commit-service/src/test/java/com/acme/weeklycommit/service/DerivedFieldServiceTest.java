@@ -126,6 +126,25 @@ class DerivedFieldServiceTest {
     assertThat(service().stuckFlag(c)).isTrue();
   }
 
+  // --- deriveFor (batched) ---
+
+  @Test
+  void deriveFor_returnsBothValues_fromASingleWalk() {
+    // Avoid the double-walk cost if a caller needs both streak + flag
+    // (carryStreak is O(52) repo calls; calling stuckFlag after doubles it).
+    UUID a = UUID.randomUUID();
+    UUID b = UUID.randomUUID();
+    UUID c = UUID.randomUUID();
+    when(commits.findByIdForStreakWalk(c)).thenReturn(Optional.of(commit(c, b)));
+    when(commits.findByIdForStreakWalk(b)).thenReturn(Optional.of(commit(b, a)));
+    when(commits.findByIdForStreakWalk(a)).thenReturn(Optional.of(commit(a, null)));
+
+    DerivedFieldService.Derived d = service().deriveFor(c);
+
+    assertThat(d.carryStreak()).isEqualTo(3);
+    assertThat(d.stuckFlag()).isTrue();
+  }
+
   // --- helpers ---
 
   private static WeeklyCommit commit(UUID id, UUID carriedForwardFromId) {

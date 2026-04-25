@@ -32,9 +32,22 @@ public class DerivedFieldService {
   /** Streak threshold at which a commit is flagged as stuck (presearch §3). */
   static final int STUCK_FLAG_THRESHOLD = 3;
 
+  /** Pair of derived values for a single commit. Use {@link #deriveFor(UUID)} to batch. */
+  public record Derived(int carryStreak, boolean stuckFlag) {}
+
   /** {@code true} when the commit has been carried forward 3+ consecutive weeks. */
   public boolean stuckFlag(UUID commitId) {
     return carryStreak(commitId) >= STUCK_FLAG_THRESHOLD;
+  }
+
+  /**
+   * Compute both derived values in one walk. Callers needing both (controllers building response
+   * DTOs) should prefer this over calling {@link #carryStreak} + {@link #stuckFlag} separately,
+   * which walks the chain twice (each walk is O(52) repo calls).
+   */
+  public Derived deriveFor(UUID commitId) {
+    int streak = carryStreak(commitId);
+    return new Derived(streak, streak >= STUCK_FLAG_THRESHOLD);
   }
 
   /**
