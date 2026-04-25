@@ -74,7 +74,7 @@ References: [MVP1], [MVP2], [MVP6], [MVP9], [MVP10], [MVP13], [MVP17], [MVP22]
 - [x] Admin controller: `POST /admin/notifications/dlt/{id}/replay` *(synchronous send-and-delete in one tx; pins DLT payload contract = NotificationEvent JSON shape, which group 7's NotificationClient must obey when writing rows)*
 - [x] OpenAPI spec generated; committed to `libs/contracts/openapi.yaml` *(code-first via springdoc; `OpenApiSpecGenerationIT` round-trips the runtime spec against the committed file -- drift fails CI, regenerate with `./mvnw verify -Pgen-openapi`)*
 - [x] `openapi-typescript` wired; TS regenerates on spec change *(committed `libs/contracts/generated/types.d.ts`; drift script `verify:ts` in `libs/contracts/package.json`. **Java-client generation via `openapi-generator-maven-plugin` deferred to group 7** -- the only consumer of generated Java types is the RcdoClient/NotificationClient pair landing then, so wiring it now would be premature plumbing)*
-- [ ] MapStruct mappers; null-safety unit-tested
+- [x] MapStruct mappers; null-safety unit-tested *(WeeklyPlan, WeeklyCommit, ManagerReview -- each test covers fully-populated entity, null fields pass through, null entity -> null DTO)*
 
 ### 7. Backend: integrations (RCDO + notification-svc)
 References: [MVP3], [MVP14], [MVP15]
