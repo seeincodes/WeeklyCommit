@@ -119,6 +119,11 @@ weekly-commit:
   admin:
     replay-enabled: ${ADMIN_REPLAY_ENABLED:true}
 
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+
 logging:
   level:
     root: INFO

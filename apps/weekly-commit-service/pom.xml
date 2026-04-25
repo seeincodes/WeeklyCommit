@@ -25,6 +25,7 @@
     <mapstruct.version>1.6.2</mapstruct.version>
     <resilience4j.version>2.2.0</resilience4j.version>
     <shedlock.version>5.16.0</shedlock.version>
+    <springdoc.version>2.6.0</springdoc.version>
     <testcontainers.version>1.20.2</testcontainers.version>
     <wiremock.version>3.9.1</wiremock.version>
     <spotless.version>2.43.0</spotless.version>
@@ -68,6 +69,15 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webflux</artifactId>
       <!-- WebClient for RCDO + notification-svc (integration layer, group 7) -->
+    </dependency>
+
+    <!-- OpenAPI: code-first contract derived from controllers; dumped to
+         libs/contracts/openapi.yaml via OpenApiSpecGenerationIT (-Pgen-openapi).
+         No -ui dependency — this is a backend service; UI tooling is separate. -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+      <version>${springdoc.version}</version>
     </dependency>
 
     <!-- Persistence -->
@@ -408,6 +418,31 @@
   <profiles>
     <!-- Nightly mutation testing profile — CI runs with -Ppitest (see TESTING_STRATEGY.md).
              Not part of `mvn verify` default. -->
+    <!-- Regenerate libs/contracts/openapi.yaml from the live springdoc spec.
+             Activates the system property the spec-generation IT reads to flip from
+             "drift check" to "overwrite the file" mode. Run with:
+               ./mvnw -pl apps/weekly-commit-service verify -Pgen-openapi -DskipUTs=false
+             (No-op without verify because the IT runs under Failsafe.) -->
+    <profile>
+      <id>gen-openapi</id>
+      <properties>
+        <gen-openapi>true</gen-openapi>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <systemPropertyVariables>
+                <gen-openapi>true</gen-openapi>
+              </systemPropertyVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
     <profile>
       <id>pitest</id>
       <build>

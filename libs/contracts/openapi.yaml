@@ -1,12 +1,790 @@
-openapi: 3.0.3
+openapi: 3.0.1
 info:
   title: Weekly Commit API
+  description: REST contract between weekly-commit-ui (Module Federation remote) and
+    weekly-commit-service. Generated from controller annotations; regenerate via `./mvnw
+    verify -Pgen-openapi` whenever endpoints change.
   version: 0.1.0
-  description: |
-    Source of truth for REST contract between weekly-commit-ui and weekly-commit-service.
-    Fleshed out in task group 6 (Backend: REST API + DTOs).
 servers:
-  - url: /api/v1
-paths: {}
+- url: /api/v1
+  description: Default server (relative)
+security:
+- BearerAuth: []
+paths:
+  /api/v1/plans:
+    get:
+      tags:
+      - plans-controller
+      operationId: getPlanByEmployeeAndWeek
+      parameters:
+      - name: employeeId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: weekStart
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyPlanResponse"
+    post:
+      tags:
+      - plans-controller
+      operationId: createCurrentForMe
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyPlanResponse"
+  /api/v1/plans/{planId}/transitions:
+    post:
+      tags:
+      - plans-controller
+      operationId: transition
+      parameters:
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransitionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyPlanResponse"
+  /api/v1/plans/{planId}/reviews:
+    get:
+      tags:
+      - reviews-controller
+      operationId: listReviews
+      parameters:
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeListManagerReviewResponse"
+    post:
+      tags:
+      - reviews-controller
+      operationId: createReview
+      parameters:
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReviewRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeManagerReviewResponse"
+  /api/v1/plans/{planId}/commits:
+    get:
+      tags:
+      - commits-controller
+      operationId: listCommits
+      parameters:
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeListWeeklyCommitResponse"
+    post:
+      tags:
+      - commits-controller
+      operationId: createCommit
+      parameters:
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommitRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyCommitResponse"
+  /api/v1/commits/{commitId}/carry-forward:
+    post:
+      tags:
+      - commits-controller
+      operationId: carryForward
+      parameters:
+      - name: commitId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyCommitResponse"
+  /api/v1/admin/notifications/dlt/{id}/replay:
+    post:
+      tags:
+      - admin-controller
+      operationId: replayDltRow
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "202":
+          description: Accepted
+  /api/v1/plans/{planId}:
+    patch:
+      tags:
+      - plans-controller
+      operationId: updateReflection
+      parameters:
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateReflectionRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyPlanResponse"
+  /api/v1/commits/{commitId}:
+    delete:
+      tags:
+      - commits-controller
+      operationId: deleteCommit
+      parameters:
+      - name: commitId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+    patch:
+      tags:
+      - commits-controller
+      operationId: updateCommit
+      parameters:
+      - name: commitId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCommitRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyCommitResponse"
+  /api/v1/rollup/team:
+    get:
+      tags:
+      - rollup-controller
+      operationId: getTeamRollup
+      parameters:
+      - name: managerId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: weekStart
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeRollupResponse"
+  /api/v1/plans/team:
+    get:
+      tags:
+      - plans-controller
+      operationId: getTeam
+      parameters:
+      - name: managerId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: weekStart
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeListWeeklyPlanResponse"
+  /api/v1/plans/me/current:
+    get:
+      tags:
+      - plans-controller
+      operationId: getCurrentForMe
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyPlanResponse"
+  /api/v1/audit/plans/{id}:
+    get:
+      tags:
+      - audit-controller
+      operationId: getAuditForPlan
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeListAuditLogResponse"
+  /api/v1/admin/unassigned-employees:
+    get:
+      tags:
+      - admin-controller
+      operationId: listUnassignedEmployees
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeListUnassignedEmployeeResponse"
 components:
-  schemas: {}
+  schemas:
+    ApiEnvelopeWeeklyPlanResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/WeeklyPlanResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
+    WeeklyPlanResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+        weekStart:
+          type: string
+          format: date
+        state:
+          type: string
+          enum:
+          - DRAFT
+          - LOCKED
+          - RECONCILED
+          - ARCHIVED
+        lockedAt:
+          type: string
+          format: date-time
+        reconciledAt:
+          type: string
+          format: date-time
+        managerReviewedAt:
+          type: string
+          format: date-time
+        reflectionNote:
+          type: string
+        version:
+          type: integer
+          format: int64
+    TransitionRequest:
+      required:
+      - to
+      type: object
+      properties:
+        to:
+          type: string
+          enum:
+          - DRAFT
+          - LOCKED
+          - RECONCILED
+          - ARCHIVED
+    CreateReviewRequest:
+      type: object
+      properties:
+        comment:
+          maxLength: 5000
+          minLength: 0
+          type: string
+    ApiEnvelopeManagerReviewResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/ManagerReviewResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
+    ManagerReviewResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        planId:
+          type: string
+          format: uuid
+        managerId:
+          type: string
+          format: uuid
+        comment:
+          type: string
+        acknowledgedAt:
+          type: string
+          format: date-time
+    CreateCommitRequest:
+      required:
+      - chessTier
+      - supportingOutcomeId
+      - title
+      type: object
+      properties:
+        title:
+          maxLength: 200
+          minLength: 0
+          type: string
+        description:
+          maxLength: 5000
+          minLength: 0
+          type: string
+        supportingOutcomeId:
+          type: string
+          format: uuid
+        chessTier:
+          type: string
+          enum:
+          - ROCK
+          - PEBBLE
+          - SAND
+        categoryTags:
+          type: array
+          items:
+            type: string
+        estimatedHours:
+          maximum: 99.9
+          exclusiveMaximum: false
+          minimum: 0.0
+          exclusiveMinimum: false
+          type: number
+        displayOrder:
+          type: integer
+          format: int32
+        relatedMeeting:
+          maxLength: 200
+          minLength: 0
+          type: string
+    ApiEnvelopeWeeklyCommitResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/WeeklyCommitResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
+    Derived:
+      type: object
+      properties:
+        carryStreak:
+          type: integer
+          format: int32
+        stuckFlag:
+          type: boolean
+    WeeklyCommitResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        planId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        supportingOutcomeId:
+          type: string
+          format: uuid
+        chessTier:
+          type: string
+          enum:
+          - ROCK
+          - PEBBLE
+          - SAND
+        categoryTags:
+          type: array
+          items:
+            type: string
+        estimatedHours:
+          type: number
+        displayOrder:
+          type: integer
+          format: int32
+        relatedMeeting:
+          type: string
+        carriedForwardFromId:
+          type: string
+          format: uuid
+        carriedForwardToId:
+          type: string
+          format: uuid
+        actualStatus:
+          type: string
+          enum:
+          - PENDING
+          - DONE
+          - PARTIAL
+          - MISSED
+        actualNote:
+          type: string
+        derived:
+          $ref: "#/components/schemas/Derived"
+    UpdateReflectionRequest:
+      type: object
+      properties:
+        reflectionNote:
+          maxLength: 500
+          minLength: 0
+          type: string
+    UpdateCommitRequest:
+      type: object
+      properties:
+        title:
+          maxLength: 200
+          minLength: 0
+          type: string
+        description:
+          maxLength: 5000
+          minLength: 0
+          type: string
+        supportingOutcomeId:
+          type: string
+          format: uuid
+        chessTier:
+          type: string
+          enum:
+          - ROCK
+          - PEBBLE
+          - SAND
+        categoryTags:
+          type: array
+          items:
+            type: string
+        estimatedHours:
+          maximum: 99.9
+          exclusiveMaximum: false
+          minimum: 0.0
+          exclusiveMinimum: false
+          type: number
+        displayOrder:
+          type: integer
+          format: int32
+        relatedMeeting:
+          maxLength: 200
+          minLength: 0
+          type: string
+        actualStatus:
+          type: string
+          enum:
+          - PENDING
+          - DONE
+          - PARTIAL
+          - MISSED
+        actualNote:
+          maxLength: 5000
+          minLength: 0
+          type: string
+    ApiEnvelopeRollupResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/RollupResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
+    MemberCard:
+      type: object
+      properties:
+        employeeId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        planState:
+          type: string
+          enum:
+          - DRAFT
+          - LOCKED
+          - RECONCILED
+          - ARCHIVED
+        topRock:
+          $ref: "#/components/schemas/TopRockSummary"
+        tierCounts:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        reflectionPreview:
+          type: string
+        flags:
+          type: array
+          items:
+            type: string
+    RollupResponse:
+      type: object
+      properties:
+        alignmentPct:
+          type: number
+        completionPct:
+          type: number
+        tierDistribution:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+        unreviewedCount:
+          type: integer
+          format: int32
+        stuckCommitCount:
+          type: integer
+          format: int32
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberCard"
+    TopRockSummary:
+      type: object
+      properties:
+        commitId:
+          type: string
+          format: uuid
+        title:
+          type: string
+    ApiEnvelopeListManagerReviewResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManagerReviewResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
+    ApiEnvelopeListWeeklyCommitResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyCommitResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
+    ApiEnvelopeListWeeklyPlanResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyPlanResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
+    ApiEnvelopeListAuditLogResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLogResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
+    AuditLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          enum:
+          - WEEKLY_PLAN
+          - MANAGER_REVIEW
+        entityId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+          enum:
+          - STATE_TRANSITION
+          - MANAGER_REVIEW
+        actorId:
+          type: string
+          format: uuid
+        fromState:
+          type: string
+        toState:
+          type: string
+        metadata:
+          $ref: "#/components/schemas/JsonNode"
+        occurredAt:
+          type: string
+          format: date-time
+    JsonNode:
+      type: object
+    ApiEnvelopeListUnassignedEmployeeResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/UnassignedEmployeeResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
+    UnassignedEmployeeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        lastSyncedAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    BearerAuth:
+      type: http
+      description: Auth0-issued JWT. Required on every /api/v1/** endpoint.
+      in: header
+      scheme: bearer
+      bearerFormat: JWT

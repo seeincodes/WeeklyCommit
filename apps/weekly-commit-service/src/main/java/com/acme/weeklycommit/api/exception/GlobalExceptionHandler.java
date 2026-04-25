@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Central mapping from exception types to HTTP status + {@link ApiErrorEnvelope}. Referenced from
@@ -129,8 +130,8 @@ public class GlobalExceptionHandler {
         ApiErrorEnvelope.of("UNSUPPORTED_MEDIA_TYPE", "Content-Type not supported"));
   }
 
-  @ExceptionHandler(NoHandlerFoundException.class)
-  public ResponseEntity<ApiErrorEnvelope> handleNoHandler(NoHandlerFoundException ex) {
+  @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
+  public ResponseEntity<ApiErrorEnvelope> handleNoHandler(Exception ex) {
     return status(HttpStatus.NOT_FOUND, ApiErrorEnvelope.of("NOT_FOUND", "No handler for path"));
   }
 

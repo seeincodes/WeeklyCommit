@@ -43,6 +43,11 @@ public class SecurityConfig {
                 auth.requestMatchers(
                         "/actuator/health/**", "/actuator/info", "/actuator/prometheus")
                     .permitAll()
+                    // Springdoc-generated API docs. The spec describes endpoints that exist
+                    // regardless; gating it adds no real protection and breaks the
+                    // spec-generation IT.
+                    .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml")
+                    .permitAll()
                     // Admin surface (DLT replay, unassigned-employees report) requires ADMIN role
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")
