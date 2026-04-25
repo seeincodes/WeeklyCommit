@@ -72,8 +72,8 @@ References: [MVP1], [MVP2], [MVP6], [MVP9], [MVP10], [MVP13], [MVP17], [MVP22]
 - [x] Audit controller: `GET /audit/plans/{id}` with self-or-manager authz *(matches existing ManagerReviewService.listReviews loose rule: any MANAGER role; tighten both to "direct manager only" together — see follow-up below)*
 - [ ] **Follow-up:** harmonize `AuditService.findForPlan` and `ManagerReviewService.listReviews` to "self-or-direct-manager-or-ADMIN" using `EmployeeRepository.findById(plan.employeeId).managerId == caller.employeeId()`. USER_FLOW.md row 366-367 specifies the strict rule; current loose impl was kept consistent within group 6 to avoid mixing strict + loose authz on the same plan.
 - [x] Admin controller: `POST /admin/notifications/dlt/{id}/replay` *(synchronous send-and-delete in one tx; pins DLT payload contract = NotificationEvent JSON shape, which group 7's NotificationClient must obey when writing rows)*
-- [ ] OpenAPI spec generated; committed to `libs/contracts/openapi.yaml`
-- [ ] `openapi-generator-maven-plugin` + `openapi-typescript` wired; TS + Java client regenerate on spec change
+- [x] OpenAPI spec generated; committed to `libs/contracts/openapi.yaml` *(code-first via springdoc; `OpenApiSpecGenerationIT` round-trips the runtime spec against the committed file -- drift fails CI, regenerate with `./mvnw verify -Pgen-openapi`)*
+- [x] `openapi-typescript` wired; TS regenerates on spec change *(committed `libs/contracts/generated/types.d.ts`; drift script `verify:ts` in `libs/contracts/package.json`. **Java-client generation via `openapi-generator-maven-plugin` deferred to group 7** -- the only consumer of generated Java types is the RcdoClient/NotificationClient pair landing then, so wiring it now would be premature plumbing)*
 - [ ] MapStruct mappers; null-safety unit-tested
 
 ### 7. Backend: integrations (RCDO + notification-svc)

@@ -2,13 +2,18 @@
   "name": "@wc/contracts",
   "version": "0.1.0",
   "private": true,
-  "description": "OpenAPI contract source of truth. TS types generated via openapi-typescript; Java via openapi-generator-maven-plugin.",
+  "description": "OpenAPI contract source of truth. TS types generated via openapi-typescript; Java via openapi-generator-maven-plugin (group 7).",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
-    "generate:ts": "openapi-typescript openapi.yaml -o generated/types.d.ts"
+    "generate:ts": "openapi-typescript openapi.yaml -o generated/types.d.ts",
+    "verify:ts": "openapi-typescript openapi.yaml -o /tmp/wc-contracts-check.d.ts && cmp -s /tmp/wc-contracts-check.d.ts generated/types.d.ts || (echo 'TS contract drift -- run yarn workspace @wc/contracts generate:ts' && exit 1)"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "5.6.2"
   }
 }

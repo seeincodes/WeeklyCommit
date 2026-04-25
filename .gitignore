@@ -118,6 +118,9 @@ yarn-error.log*
 .testcontainers/
 
 # ------------------------------------------------------------
-# Generated OpenAPI clients (re-generated on build)
+# Generated OpenAPI clients
 # ------------------------------------------------------------
-libs/contracts/generated/
+# libs/contracts/generated/types.d.ts IS committed -- the openapi.yaml +
+# openapi-typescript pair is treated like Spotless: regenerate via
+# `yarn workspace @wc/contracts generate:ts` after changing the spec; CI
+# fails if drift is detected (see scripts/verify:ts).
