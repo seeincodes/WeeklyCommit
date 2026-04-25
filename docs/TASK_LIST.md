@@ -69,7 +69,8 @@ References: [MVP1], [MVP2], [MVP6], [MVP9], [MVP10], [MVP13], [MVP17], [MVP22]
 - [x] Reviews controller: `POST /plans/{id}/reviews`, `GET /plans/{id}/reviews`
 - [x] Rollup controller: `GET /rollup/team` — member card builder, flag computer, byOutcome aggregator *(headline aggregates + member cards + 4-flag set done; `byOutcome` deferred — needs RCDO metadata that arrives with group 7's RCDO client)*
 - [x] Null-manager handling: rollup with `manager_id IS NULL` returns empty; `GET /admin/unassigned-employees` surfaces the list for HRIS fix-up
-- [ ] Audit controller: `GET /audit/plans/{id}` with self-or-manager authz
+- [x] Audit controller: `GET /audit/plans/{id}` with self-or-manager authz *(matches existing ManagerReviewService.listReviews loose rule: any MANAGER role; tighten both to "direct manager only" together — see follow-up below)*
+- [ ] **Follow-up:** harmonize `AuditService.findForPlan` and `ManagerReviewService.listReviews` to "self-or-direct-manager-or-ADMIN" using `EmployeeRepository.findById(plan.employeeId).managerId == caller.employeeId()`. USER_FLOW.md row 366-367 specifies the strict rule; current loose impl was kept consistent within group 6 to avoid mixing strict + loose authz on the same plan.
 - [ ] Admin controller: `POST /admin/notifications/dlt/{id}/replay`
 - [ ] OpenAPI spec generated; committed to `libs/contracts/openapi.yaml`
 - [ ] `openapi-generator-maven-plugin` + `openapi-typescript` wired; TS + Java client regenerate on spec change
