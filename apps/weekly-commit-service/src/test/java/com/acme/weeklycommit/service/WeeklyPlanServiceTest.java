@@ -274,6 +274,139 @@ class WeeklyPlanServiceTest {
     verify(stateMachine, never()).transition(any(), any(), any());
   }
 
+  // --- updateReflectionNote (PATCH /plans/{id}) ---
+
+  @Test
+  void updateReflectionNote_owner_inReconciliationWindow_persists() {
+    // weekStart 2026-04-27 => reconciliation opens 2026-05-01T00:00Z.
+    // FROZEN_NOW via clock = 2026-05-01T12:00Z -> window open.
+    Clock clock = Clock.fixed(Instant.parse("2026-05-01T12:00:00Z"), ZoneId.of("UTC"));
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    plan.setState(PlanState.LOCKED);
+    plan.setLockedAt(Instant.parse("2026-04-27T17:00:00Z"));
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    when(plans.save(any(WeeklyPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    WeeklyPlan result =
+        service(clock).updateReflectionNote(planId, "solid week, unblocked the picker", caller);
+
+    assertThat(result.getReflectionNote()).isEqualTo("solid week, unblocked the picker");
+    verify(plans).save(plan);
+  }
+
+  @Test
+  void updateReflectionNote_nullClearsTheNote() {
+    Clock clock = Clock.fixed(Instant.parse("2026-05-01T12:00:00Z"), ZoneId.of("UTC"));
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    plan.setState(PlanState.LOCKED);
+    plan.setReflectionNote("will be cleared");
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    when(plans.save(any(WeeklyPlan.class))).thenAnswer(inv -> inv.getArgument(0));
+
+    WeeklyPlan result = service(clock).updateReflectionNote(planId, null, caller);
+
+    assertThat(result.getReflectionNote()).isNull();
+  }
+
+  @Test
+  void updateReflectionNote_nonOwner_throwsAccessDenied() {
+    Clock clock = Clock.fixed(Instant.parse("2026-05-01T12:00:00Z"), ZoneId.of("UTC"));
+    UUID planId = UUID.randomUUID();
+    UUID planOwnerId = UUID.randomUUID();
+    UUID differentCallerId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, planOwnerId, LocalDate.parse("2026-04-27"));
+    plan.setState(PlanState.LOCKED);
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+
+    // Even a MANAGER role cannot write someone else's reflection.
+    AuthenticatedPrincipal managerCaller = managerPrincipal(differentCallerId);
+
+    assertThatThrownBy(
+            () -> service(clock).updateReflectionNote(planId, "nope", managerCaller))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(plans, never()).save(any(WeeklyPlan.class));
+  }
+
+  @Test
+  void updateReflectionNote_draftPlan_rejected() {
+    // DRAFT = commits mutable; reflection note is reconciliation-mode-only.
+    Clock clock = Clock.fixed(Instant.parse("2026-05-01T12:00:00Z"), ZoneId.of("UTC"));
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    // state stays DRAFT
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+
+    assertThatThrownBy(() -> service(clock).updateReflectionNote(planId, "x", caller))
+        .isInstanceOf(
+            com.acme.weeklycommit.api.exception.InvalidStateTransitionException.class);
+
+    verify(plans, never()).save(any(WeeklyPlan.class));
+  }
+
+  @Test
+  void updateReflectionNote_lockedButWindowNotOpen_rejected() {
+    // weekStart 2026-04-28 => window opens 2026-05-02T00:00Z.
+    // Clock at 2026-05-01T12:00Z -> still closed; update rejected.
+    Clock clock = Clock.fixed(Instant.parse("2026-05-01T12:00:00Z"), ZoneId.of("UTC"));
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-28"));
+    plan.setState(PlanState.LOCKED);
+    plan.setLockedAt(Instant.parse("2026-04-28T17:00:00Z"));
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+
+    assertThatThrownBy(() -> service(clock).updateReflectionNote(planId, "x", caller))
+        .isInstanceOf(
+            com.acme.weeklycommit.api.exception.InvalidStateTransitionException.class)
+        .hasMessageContaining("reconciliation");
+
+    verify(plans, never()).save(any(WeeklyPlan.class));
+  }
+
+  @Test
+  void updateReflectionNote_reconciledPlan_rejected() {
+    // Once submitted, reflection is immutable.
+    Clock clock = Clock.fixed(Instant.parse("2026-05-01T12:00:00Z"), ZoneId.of("UTC"));
+    UUID planId = UUID.randomUUID();
+    UUID employeeId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = principal(employeeId, ZoneId.of("UTC"));
+    WeeklyPlan plan = new WeeklyPlan(planId, employeeId, LocalDate.parse("2026-04-27"));
+    plan.setState(PlanState.RECONCILED);
+    plan.setReconciledAt(Instant.parse("2026-05-01T10:00:00Z"));
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+
+    assertThatThrownBy(() -> service(clock).updateReflectionNote(planId, "x", caller))
+        .isInstanceOf(
+            com.acme.weeklycommit.api.exception.InvalidStateTransitionException.class);
+
+    verify(plans, never()).save(any(WeeklyPlan.class));
+  }
+
+  @Test
+  void updateReflectionNote_planNotFound_throwsResourceNotFound() {
+    Clock clock = Clock.fixed(Instant.parse("2026-05-01T12:00:00Z"), ZoneId.of("UTC"));
+    UUID planId = UUID.randomUUID();
+    when(plans.findById(planId)).thenReturn(Optional.empty());
+
+    assertThatThrownBy(
+            () ->
+                service(clock)
+                    .updateReflectionNote(
+                        planId, "x", principal(UUID.randomUUID(), ZoneId.of("UTC"))))
+        .isInstanceOf(
+            com.acme.weeklycommit.api.exception.ResourceNotFoundException.class);
+  }
+
   // --- helpers ---
 
   private static AuthenticatedPrincipal managerPrincipal(UUID employeeId) {
