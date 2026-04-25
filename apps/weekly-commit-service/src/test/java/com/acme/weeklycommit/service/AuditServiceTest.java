@@ -78,8 +78,7 @@ class AuditServiceTest {
             AuditEntityType.WEEKLY_PLAN, planId))
         .thenReturn(List.of(row));
 
-    List<AuditLog> result =
-        service().findForPlan(planId, managerPrincipal(UUID.randomUUID()));
+    List<AuditLog> result = service().findForPlan(planId, managerPrincipal(UUID.randomUUID()));
 
     assertThat(result).containsExactly(row);
   }
@@ -114,8 +113,9 @@ class AuditServiceTest {
     assertThatThrownBy(() -> service().findForPlan(planId, icPrincipal(UUID.randomUUID())))
         .isInstanceOf(AccessDeniedException.class);
 
-    verify(audits, never()).findByEntityTypeAndEntityIdOrderByOccurredAtDesc(
-        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    verify(audits, never())
+        .findByEntityTypeAndEntityIdOrderByOccurredAtDesc(
+            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
   }
 
   @Test
@@ -126,8 +126,9 @@ class AuditServiceTest {
     assertThatThrownBy(() -> service().findForPlan(planId, icPrincipal(UUID.randomUUID())))
         .isInstanceOf(ResourceNotFoundException.class);
 
-    verify(audits, never()).findByEntityTypeAndEntityIdOrderByOccurredAtDesc(
-        org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+    verify(audits, never())
+        .findByEntityTypeAndEntityIdOrderByOccurredAtDesc(
+            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
   }
 
   @Test
