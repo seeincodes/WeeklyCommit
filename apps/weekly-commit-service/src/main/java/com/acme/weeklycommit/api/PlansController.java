@@ -2,6 +2,7 @@ package com.acme.weeklycommit.api;
 
 import com.acme.weeklycommit.api.dto.ApiEnvelope;
 import com.acme.weeklycommit.api.dto.TransitionRequest;
+import com.acme.weeklycommit.api.dto.UpdateReflectionRequest;
 import com.acme.weeklycommit.api.dto.WeeklyPlanMapper;
 import com.acme.weeklycommit.api.dto.WeeklyPlanResponse;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
@@ -15,6 +16,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -97,6 +99,21 @@ public class PlansController {
       @Valid @RequestBody TransitionRequest request,
       AuthenticatedPrincipal caller) {
     WeeklyPlan plan = planService.transitionPlan(planId, request.to(), caller);
+    return ResponseEntity.ok(ApiEnvelope.of(mapper.toResponse(plan)));
+  }
+
+  /**
+   * Update the plan's reflection note. Owner-only (service enforces); only valid in
+   * reconciliation mode (LOCKED past day-4). Null {@code reflectionNote} is accepted and clears
+   * the field.
+   */
+  @PatchMapping("/{planId}")
+  public ResponseEntity<ApiEnvelope<WeeklyPlanResponse>> updateReflection(
+      @PathVariable UUID planId,
+      @Valid @RequestBody UpdateReflectionRequest request,
+      AuthenticatedPrincipal caller) {
+    WeeklyPlan plan =
+        planService.updateReflectionNote(planId, request.reflectionNote(), caller);
     return ResponseEntity.ok(ApiEnvelope.of(mapper.toResponse(plan)));
   }
 }
