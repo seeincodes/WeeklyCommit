@@ -79,9 +79,9 @@ References: [MVP1], [MVP2], [MVP6], [MVP9], [MVP10], [MVP13], [MVP17], [MVP22]
 ### 7. Backend: integrations (RCDO + notification-svc)
 References: [MVP3], [MVP14], [MVP15]
 
-- [ ] `RcdoClient` WebClient wrapper; Resilience4j retry + circuit breaker
-- [ ] `NotificationClient` WebClient wrapper; retry + circuit breaker; DLT write on permanent failure
-- [ ] WireMock contract tests for both clients
+- [x] `RcdoClient` WebClient wrapper; Resilience4j retry + circuit breaker *(WireMock-driven contract tests; 404 -> Optional.empty before retry sees it; 5xx propagates so AOP can apply backoff)*
+- [x] `NotificationClient` WebClient wrapper; retry + circuit breaker; DLT write on permanent failure *(layered: NotificationClient handles status-code mapping (202/409 success, 400 -> NotificationValidationException, 5xx propagate); ResilientNotificationSender wraps with Retry + CircuitBreaker programmatically and writes DLT row on retries-exhausted / circuit-open. Never throws -- the state-transition tx already committed when the dispatcher fires)*
+- [x] WireMock contract tests for both clients *(RcdoClientTest + NotificationClientTest pin request/response shapes; RcdoClientResilienceIT proves the @Retry @CircuitBreaker annotations + application.yml config wire through the Spring proxy by counting 3 wire calls under 503. Fixture-validation against docs/spikes/*.json deferred -- those are explicit stub data ("Inputs are invented") flagged for replacement once the real upstream services are reachable)*
 - [ ] CloudWatch alarm definitions (Terraform): DLT < 1h rule, circuit-breaker-open rule
 - [ ] `AdminReplayController` integration test
 
