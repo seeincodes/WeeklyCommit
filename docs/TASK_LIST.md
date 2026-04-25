@@ -64,7 +64,7 @@ References: [MVP4], [MVP5], [MVP6], [MVP7], [MVP8], [MVP12], [MVP17]
 ### 6. Backend: REST API + DTOs
 References: [MVP1], [MVP2], [MVP6], [MVP9], [MVP10], [MVP13], [MVP17], [MVP22]
 
-- [ ] Plans controller: `GET /plans/me/current`, `GET /plans`, `POST /plans`, `POST /plans/{id}/transitions`, `PATCH /plans/{id}`, `GET /plans/team`
+- [x] Plans controller: `GET /plans/me/current`, `GET /plans`, `POST /plans`, `POST /plans/{id}/transitions`, `PATCH /plans/{id}`, `GET /plans/team`
 - [ ] Commits controller: `GET /plans/{planId}/commits`, `POST /plans/{planId}/commits`, `PATCH /commits/{id}`, `DELETE /commits/{id}`, `POST /commits/{id}/carry-forward`
 - [ ] Reviews controller: `POST /plans/{id}/reviews`, `GET /plans/{id}/reviews`
 - [ ] Rollup controller: `GET /rollup/team` — member card builder, flag computer, byOutcome aggregator

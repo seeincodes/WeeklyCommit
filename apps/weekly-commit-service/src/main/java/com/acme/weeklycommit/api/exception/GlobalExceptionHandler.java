@@ -103,6 +103,17 @@ public class GlobalExceptionHandler {
             List.of(new FieldError(ex.getName(), "invalid format"))));
   }
 
+  @ExceptionHandler(PageSizeExceededException.class)
+  public ResponseEntity<ApiErrorEnvelope> handlePageSizeExceeded(
+      PageSizeExceededException ex) {
+    return status(
+        HttpStatus.BAD_REQUEST,
+        ApiErrorEnvelope.of(
+            "VALIDATION_FAILED",
+            ex.getMessage(),
+            List.of(new FieldError("size", "max " + ex.getMaxSize()))));
+  }
+
   @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
   public ResponseEntity<ApiErrorEnvelope> handleMethodNotAllowed(
       HttpRequestMethodNotSupportedException ex) {

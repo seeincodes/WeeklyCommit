@@ -5,13 +5,21 @@ import com.acme.weeklycommit.api.dto.TransitionRequest;
 import com.acme.weeklycommit.api.dto.UpdateReflectionRequest;
 import com.acme.weeklycommit.api.dto.WeeklyPlanMapper;
 import com.acme.weeklycommit.api.dto.WeeklyPlanResponse;
+import com.acme.weeklycommit.api.exception.PageSizeExceededException;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.service.WeeklyPlanService;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -115,5 +123,50 @@ public class PlansController {
     WeeklyPlan plan =
         planService.updateReflectionNote(planId, request.reflectionNote(), caller);
     return ResponseEntity.ok(ApiEnvelope.of(mapper.toResponse(plan)));
+  }
+
+  /** Server-side cap on page size (per USER_FLOW.md). */
+  private static final int MAX_PAGE_SIZE = 100;
+
+  /** Default page size when the caller doesn't supply one. */
+  private static final int DEFAULT_PAGE_SIZE = 20;
+
+  /**
+   * Manager team view for a given week. Authz: caller must be {@code managerId} themselves or
+   * hold the {@code ADMIN} role (skip-level). Page size is capped at {@link #MAX_PAGE_SIZE};
+   * larger values produce 400 rather than being silently clamped (explicit > magic).
+   *
+   * <p>Response envelope:
+   * <ul>
+   *   <li>{@code data} — array of {@link WeeklyPlanResponse}
+   *   <li>{@code meta.page}, {@code meta.size}, {@code meta.totalElements},
+   *       {@code meta.totalPages} — standard paging fields, mirroring the shape the frontend
+   *       expects without leaking Spring's verbose Page serialization.
+   * </ul>
+   */
+  @GetMapping("/team")
+  public ResponseEntity<ApiEnvelope<List<WeeklyPlanResponse>>> getTeam(
+      @RequestParam("managerId") UUID managerId,
+      @RequestParam("weekStart") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
+      @RequestParam(value = "page", defaultValue = "0") int page,
+      @RequestParam(value = "size", defaultValue = "" + DEFAULT_PAGE_SIZE) int size,
+      AuthenticatedPrincipal caller) {
+    if (size > MAX_PAGE_SIZE) {
+      throw new PageSizeExceededException(size, MAX_PAGE_SIZE);
+    }
+    Pageable pageable = PageRequest.of(page, size);
+    Page<WeeklyPlan> result = planService.findTeamPlans(managerId, weekStart, pageable, caller);
+
+    List<WeeklyPlanResponse> items =
+        result.getContent().stream().map(mapper::toResponse).toList();
+
+    Map<String, Object> meta = new LinkedHashMap<>();
+    meta.put("now", Instant.now().toString());
+    meta.put("page", result.getNumber());
+    meta.put("size", result.getSize());
+    meta.put("totalElements", result.getTotalElements());
+    meta.put("totalPages", result.getTotalPages());
+
+    return ResponseEntity.ok(new ApiEnvelope<>(items, meta));
   }
 }
