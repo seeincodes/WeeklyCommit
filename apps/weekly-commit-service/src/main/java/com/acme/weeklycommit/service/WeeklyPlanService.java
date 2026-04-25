@@ -18,6 +18,8 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -85,6 +87,30 @@ public class WeeklyPlanService {
 
   private static boolean isSelfOrManager(UUID targetEmployeeId, AuthenticatedPrincipal caller) {
     return caller.employeeId().equals(targetEmployeeId) || caller.isManager();
+  }
+
+  /**
+   * Paged team view: all plans for {@code weekStart} where employee reports to {@code
+   * managerId}. Authz: caller must be {@code managerId} themselves, or hold the {@code ADMIN}
+   * role (skip-level / ops scope). MANAGER role alone is not enough — a manager cannot query a
+   * peer manager's team.
+   *
+   * <p>Rejects with {@link AccessDeniedException} <b>before</b> the DB lookup. Page size cap
+   * (100) is enforced at the controller boundary.
+   */
+  @Transactional(readOnly = true)
+  public Page<WeeklyPlan> findTeamPlans(
+      UUID managerId, LocalDate weekStart, Pageable pageable, AuthenticatedPrincipal caller) {
+    boolean isOwnTeam = caller.employeeId().equals(managerId);
+    boolean isAdmin = caller.hasRole("ADMIN");
+    if (!isOwnTeam && !isAdmin) {
+      throw new AccessDeniedException(
+          "caller "
+              + caller.employeeId()
+              + " cannot query team plans for manager "
+              + managerId);
+    }
+    return plans.findTeamPlans(managerId, weekStart, pageable);
   }
 
   /**
