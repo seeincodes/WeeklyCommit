@@ -76,7 +76,8 @@ class UnreviewedDigestJobTest {
     UUID planB = UUID.randomUUID();
     UUID planC = UUID.randomUUID();
 
-    when(plans.findUnreviewedReconciledBefore(eq(PlanState.RECONCILED), org.mockito.ArgumentMatchers.any()))
+    when(plans.findUnreviewedReconciledBefore(
+            eq(PlanState.RECONCILED), org.mockito.ArgumentMatchers.any()))
         .thenReturn(List.of(plan(planA, emp1), plan(planB, emp4), plan(planC, emp5)));
 
     when(employees.findById(emp1)).thenReturn(Optional.of(emp(emp1, emp2)));
@@ -173,8 +174,7 @@ class UnreviewedDigestJobTest {
     when(plans.findUnreviewedReconciledBefore(
             eq(PlanState.RECONCILED), org.mockito.ArgumentMatchers.any()))
         .thenReturn(List.of(plan(plan1, owner1), plan(plan2, owner2)));
-    when(employees.findById(owner1))
-        .thenThrow(new RuntimeException("simulated DB blip on owner1"));
+    when(employees.findById(owner1)).thenThrow(new RuntimeException("simulated DB blip on owner1"));
     when(employees.findById(owner2)).thenReturn(Optional.of(emp(owner2, manager2)));
     when(employees.findById(manager2)).thenReturn(Optional.of(emp(manager2, skipLevel2)));
 
