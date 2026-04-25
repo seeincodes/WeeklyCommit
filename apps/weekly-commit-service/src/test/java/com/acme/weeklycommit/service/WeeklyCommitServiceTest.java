@@ -51,8 +51,7 @@ class WeeklyCommitServiceTest {
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
     when(commits.findByPlanIdOrderByDisplayOrderAsc(planId)).thenReturn(List.of(c1, c2));
 
-    List<WeeklyCommit> result =
-        service().findCommitsForPlan(planId, principal(employeeId));
+    List<WeeklyCommit> result = service().findCommitsForPlan(planId, principal(employeeId));
 
     assertThat(result).containsExactly(c1, c2);
   }
@@ -60,8 +59,7 @@ class WeeklyCommitServiceTest {
   @Test
   void findCommitsForPlan_manager_canReadAnyPlansCommits() {
     UUID planId = UUID.randomUUID();
-    WeeklyPlan plan =
-        new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
+    WeeklyPlan plan = new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
     WeeklyCommit c =
         new WeeklyCommit(UUID.randomUUID(), planId, "x", UUID.randomUUID(), ChessTier.SAND, 0);
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
@@ -74,8 +72,7 @@ class WeeklyCommitServiceTest {
   @Test
   void findCommitsForPlan_nonOwnerIc_throwsAccessDenied_commitsNeverLoaded() {
     UUID planId = UUID.randomUUID();
-    WeeklyPlan plan =
-        new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
+    WeeklyPlan plan = new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
     AuthenticatedPrincipal stranger = principal(UUID.randomUUID());
 
@@ -90,8 +87,7 @@ class WeeklyCommitServiceTest {
     UUID planId = UUID.randomUUID();
     when(plans.findById(planId)).thenReturn(Optional.empty());
 
-    assertThatThrownBy(
-            () -> service().findCommitsForPlan(planId, principal(UUID.randomUUID())))
+    assertThatThrownBy(() -> service().findCommitsForPlan(planId, principal(UUID.randomUUID())))
         .isInstanceOf(ResourceNotFoundException.class);
 
     verify(commits, never()).findByPlanIdOrderByDisplayOrderAsc(any());
@@ -127,11 +123,6 @@ class WeeklyCommitServiceTest {
                 "timezone", "UTC",
                 "roles", List.of("MANAGER")));
     return new AuthenticatedPrincipal(
-        employeeId,
-        UUID.randomUUID(),
-        Optional.empty(),
-        Set.of("MANAGER"),
-        ZoneId.of("UTC"),
-        jwt);
+        employeeId, UUID.randomUUID(), Optional.empty(), Set.of("MANAGER"), ZoneId.of("UTC"), jwt);
   }
 }

@@ -21,7 +21,8 @@ class WeeklyCommitMapperTest {
     UUID outcomeId = UUID.randomUUID();
     UUID carriedFromId = UUID.randomUUID();
 
-    WeeklyCommit entity = new WeeklyCommit(commitId, planId, "ship picker", outcomeId, ChessTier.ROCK, 0);
+    WeeklyCommit entity =
+        new WeeklyCommit(commitId, planId, "ship picker", outcomeId, ChessTier.ROCK, 0);
     entity.setDescription("spike + RCDO integration");
     entity.setEstimatedHours(new BigDecimal("4.5"));
     entity.setCategoryTags(new String[] {"spike", "infra"});
@@ -55,7 +56,8 @@ class WeeklyCommitMapperTest {
   @Test
   void toResponse_freshCommit_nullsPassThrough() {
     WeeklyCommit fresh =
-        new WeeklyCommit(UUID.randomUUID(), UUID.randomUUID(), "t", UUID.randomUUID(), ChessTier.PEBBLE, 2);
+        new WeeklyCommit(
+            UUID.randomUUID(), UUID.randomUUID(), "t", UUID.randomUUID(), ChessTier.PEBBLE, 2);
 
     WeeklyCommitResponse resp = mapper.toResponse(fresh, 1, false);
 

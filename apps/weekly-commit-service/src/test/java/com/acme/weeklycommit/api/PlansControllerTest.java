@@ -252,8 +252,15 @@ class PlansControllerTest {
     when(mapper.toResponse(updated))
         .thenReturn(
             new com.acme.weeklycommit.api.dto.WeeklyPlanResponse(
-                planId, EMPLOYEE_ID, LocalDate.parse("2026-04-27"), PlanState.LOCKED,
-                null, null, null, "shipped the picker", 1L));
+                planId,
+                EMPLOYEE_ID,
+                LocalDate.parse("2026-04-27"),
+                PlanState.LOCKED,
+                null,
+                null,
+                null,
+                "shipped the picker",
+                1L));
 
     mvc.perform(
             patch("/api/v1/plans/" + planId)
@@ -300,9 +307,7 @@ class PlansControllerTest {
     WeeklyPlan p2 = new WeeklyPlan(UUID.randomUUID(), UUID.randomUUID(), week);
     org.springframework.data.domain.Page<WeeklyPlan> servicePage =
         new org.springframework.data.domain.PageImpl<>(
-            java.util.List.of(p1, p2),
-            org.springframework.data.domain.PageRequest.of(0, 20),
-            2);
+            java.util.List.of(p1, p2), org.springframework.data.domain.PageRequest.of(0, 20), 2);
     when(planService.findTeamPlans(any(), any(), any(), any())).thenReturn(servicePage);
     when(mapper.toResponse(any(WeeklyPlan.class)))
         .thenAnswer(
@@ -347,8 +352,7 @@ class PlansControllerTest {
 
   @Test
   void getTeam_400WhenMissingManagerId() throws Exception {
-    mvc.perform(
-            get("/api/v1/plans/team").param("weekStart", "2026-04-27").with(validJwt()))
+    mvc.perform(get("/api/v1/plans/team").param("weekStart", "2026-04-27").with(validJwt()))
         .andExpect(status().isBadRequest());
   }
 

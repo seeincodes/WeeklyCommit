@@ -111,17 +111,15 @@ public class PlansController {
   }
 
   /**
-   * Update the plan's reflection note. Owner-only (service enforces); only valid in
-   * reconciliation mode (LOCKED past day-4). Null {@code reflectionNote} is accepted and clears
-   * the field.
+   * Update the plan's reflection note. Owner-only (service enforces); only valid in reconciliation
+   * mode (LOCKED past day-4). Null {@code reflectionNote} is accepted and clears the field.
    */
   @PatchMapping("/{planId}")
   public ResponseEntity<ApiEnvelope<WeeklyPlanResponse>> updateReflection(
       @PathVariable UUID planId,
       @Valid @RequestBody UpdateReflectionRequest request,
       AuthenticatedPrincipal caller) {
-    WeeklyPlan plan =
-        planService.updateReflectionNote(planId, request.reflectionNote(), caller);
+    WeeklyPlan plan = planService.updateReflectionNote(planId, request.reflectionNote(), caller);
     return ResponseEntity.ok(ApiEnvelope.of(mapper.toResponse(plan)));
   }
 
@@ -132,16 +130,17 @@ public class PlansController {
   private static final int DEFAULT_PAGE_SIZE = 20;
 
   /**
-   * Manager team view for a given week. Authz: caller must be {@code managerId} themselves or
-   * hold the {@code ADMIN} role (skip-level). Page size is capped at {@link #MAX_PAGE_SIZE};
-   * larger values produce 400 rather than being silently clamped (explicit > magic).
+   * Manager team view for a given week. Authz: caller must be {@code managerId} themselves or hold
+   * the {@code ADMIN} role (skip-level). Page size is capped at {@link #MAX_PAGE_SIZE}; larger
+   * values produce 400 rather than being silently clamped (explicit > magic).
    *
    * <p>Response envelope:
+   *
    * <ul>
    *   <li>{@code data} — array of {@link WeeklyPlanResponse}
-   *   <li>{@code meta.page}, {@code meta.size}, {@code meta.totalElements},
-   *       {@code meta.totalPages} — standard paging fields, mirroring the shape the frontend
-   *       expects without leaking Spring's verbose Page serialization.
+   *   <li>{@code meta.page}, {@code meta.size}, {@code meta.totalElements}, {@code meta.totalPages}
+   *       — standard paging fields, mirroring the shape the frontend expects without leaking
+   *       Spring's verbose Page serialization.
    * </ul>
    */
   @GetMapping("/team")
@@ -157,8 +156,7 @@ public class PlansController {
     Pageable pageable = PageRequest.of(page, size);
     Page<WeeklyPlan> result = planService.findTeamPlans(managerId, weekStart, pageable, caller);
 
-    List<WeeklyPlanResponse> items =
-        result.getContent().stream().map(mapper::toResponse).toList();
+    List<WeeklyPlanResponse> items = result.getContent().stream().map(mapper::toResponse).toList();
 
     Map<String, Object> meta = new LinkedHashMap<>();
     meta.put("now", Instant.now().toString());

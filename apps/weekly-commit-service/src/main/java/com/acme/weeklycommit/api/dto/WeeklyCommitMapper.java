@@ -23,10 +23,7 @@ public interface WeeklyCommitMapper {
   @Mapping(source = "commit.description", target = "description")
   @Mapping(source = "commit.supportingOutcomeId", target = "supportingOutcomeId")
   @Mapping(source = "commit.chessTier", target = "chessTier")
-  @Mapping(
-      source = "commit.categoryTags",
-      target = "categoryTags",
-      qualifiedByName = "arrayToList")
+  @Mapping(source = "commit.categoryTags", target = "categoryTags", qualifiedByName = "arrayToList")
   @Mapping(source = "commit.estimatedHours", target = "estimatedHours")
   @Mapping(source = "commit.displayOrder", target = "displayOrder")
   @Mapping(source = "commit.relatedMeeting", target = "relatedMeeting")
@@ -34,7 +31,9 @@ public interface WeeklyCommitMapper {
   @Mapping(source = "commit.carriedForwardToId", target = "carriedForwardToId")
   @Mapping(source = "commit.actualStatus", target = "actualStatus")
   @Mapping(source = "commit.actualNote", target = "actualNote")
-  @Mapping(target = "derived", expression = "java(new WeeklyCommitResponse.Derived(carryStreak, stuckFlag))")
+  @Mapping(
+      target = "derived",
+      expression = "java(new WeeklyCommitResponse.Derived(carryStreak, stuckFlag))")
   WeeklyCommitResponse toResponse(WeeklyCommit commit, int carryStreak, boolean stuckFlag);
 
   /** String[] on entity -> List<String> on DTO (Jackson serializes List naturally). */

@@ -405,8 +405,7 @@ class WeeklyPlanServiceTest {
     // Even a MANAGER role cannot write someone else's reflection.
     AuthenticatedPrincipal managerCaller = managerPrincipal(differentCallerId);
 
-    assertThatThrownBy(
-            () -> service(clock).updateReflectionNote(planId, "nope", managerCaller))
+    assertThatThrownBy(() -> service(clock).updateReflectionNote(planId, "nope", managerCaller))
         .isInstanceOf(AccessDeniedException.class);
 
     verify(plans, never()).save(any(WeeklyPlan.class));
@@ -424,8 +423,7 @@ class WeeklyPlanServiceTest {
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
 
     assertThatThrownBy(() -> service(clock).updateReflectionNote(planId, "x", caller))
-        .isInstanceOf(
-            com.acme.weeklycommit.api.exception.InvalidStateTransitionException.class);
+        .isInstanceOf(com.acme.weeklycommit.api.exception.InvalidStateTransitionException.class);
 
     verify(plans, never()).save(any(WeeklyPlan.class));
   }
@@ -444,8 +442,7 @@ class WeeklyPlanServiceTest {
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
 
     assertThatThrownBy(() -> service(clock).updateReflectionNote(planId, "x", caller))
-        .isInstanceOf(
-            com.acme.weeklycommit.api.exception.InvalidStateTransitionException.class)
+        .isInstanceOf(com.acme.weeklycommit.api.exception.InvalidStateTransitionException.class)
         .hasMessageContaining("reconciliation");
 
     verify(plans, never()).save(any(WeeklyPlan.class));
@@ -464,8 +461,7 @@ class WeeklyPlanServiceTest {
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
 
     assertThatThrownBy(() -> service(clock).updateReflectionNote(planId, "x", caller))
-        .isInstanceOf(
-            com.acme.weeklycommit.api.exception.InvalidStateTransitionException.class);
+        .isInstanceOf(com.acme.weeklycommit.api.exception.InvalidStateTransitionException.class);
 
     verify(plans, never()).save(any(WeeklyPlan.class));
   }
@@ -481,8 +477,7 @@ class WeeklyPlanServiceTest {
                 service(clock)
                     .updateReflectionNote(
                         planId, "x", principal(UUID.randomUUID(), ZoneId.of("UTC"))))
-        .isInstanceOf(
-            com.acme.weeklycommit.api.exception.ResourceNotFoundException.class);
+        .isInstanceOf(com.acme.weeklycommit.api.exception.ResourceNotFoundException.class);
   }
 
   // --- helpers ---

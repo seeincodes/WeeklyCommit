@@ -211,9 +211,7 @@ class WeeklyPlanRepositoryIT {
 
     Page<WeeklyPlan> page = plans.findTeamPlans(managerId, week, PageRequest.of(0, 20));
 
-    assertThat(page.getContent())
-        .extracting(WeeklyPlan::getId)
-        .containsExactly(activePlan.getId());
+    assertThat(page.getContent()).extracting(WeeklyPlan::getId).containsExactly(activePlan.getId());
   }
 
   // --- helpers ---

@@ -17,11 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * HTTP surface for {@link WeeklyCommit}. Thin by design — composes {@link WeeklyCommitService}
- * (authz + persistence) with {@link DerivedFieldService} (computed fields) to produce the wire
- * DTO.
+ * (authz + persistence) with {@link DerivedFieldService} (computed fields) to produce the wire DTO.
  *
- * <p>All endpoints emit the standard {@link ApiEnvelope}. Authz is enforced at the service
- * boundary (memory §security); the controller only validates request shape.
+ * <p>All endpoints emit the standard {@link ApiEnvelope}. Authz is enforced at the service boundary
+ * (memory §security); the controller only validates request shape.
  */
 @RestController
 @RequestMapping("/api/v1")
@@ -41,13 +40,13 @@ public class CommitsController {
   }
 
   /**
-   * List commits for a plan, ordered by {@code displayOrder}. Self-or-MANAGER authz enforced in
-   * the service. Each response item includes the computed {@code derived} object (carryStreak +
+   * List commits for a plan, ordered by {@code displayOrder}. Self-or-MANAGER authz enforced in the
+   * service. Each response item includes the computed {@code derived} object (carryStreak +
    * stuckFlag) so the UI can render badges without a second round-trip.
    *
-   * <p>Performance: one {@code DerivedFieldService.deriveFor} call per commit; each walks up to
-   * 52 repo rows. Acceptable at v1 volume (≤ ~10 commits/plan × 52 hops = ~520 queries worst
-   * case). The recursive CTE rewrite is documented on {@code DerivedFieldService.carryStreak}.
+   * <p>Performance: one {@code DerivedFieldService.deriveFor} call per commit; each walks up to 52
+   * repo rows. Acceptable at v1 volume (≤ ~10 commits/plan × 52 hops = ~520 queries worst case).
+   * The recursive CTE rewrite is documented on {@code DerivedFieldService.carryStreak}.
    */
   @GetMapping("/plans/{planId}/commits")
   public ResponseEntity<ApiEnvelope<List<WeeklyCommitResponse>>> listCommits(

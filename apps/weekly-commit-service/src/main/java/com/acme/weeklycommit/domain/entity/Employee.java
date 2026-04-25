@@ -10,16 +10,16 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Projection of authoritative employee data from Auth0. Ownership is Auth0's; this row exists so
- * we can JOIN "who reports to whom" at query time. Kept deliberately small: the JWT already
- * carries employee_id, manager_id, and org_id for the calling user — this table is only for
- * *other* employees (team rollups, admin reports).
+ * Projection of authoritative employee data from Auth0. Ownership is Auth0's; this row exists so we
+ * can JOIN "who reports to whom" at query time. Kept deliberately small: the JWT already carries
+ * employee_id, manager_id, and org_id for the calling user — this table is only for *other*
+ * employees (team rollups, admin reports).
  *
  * <p>Null {@code managerId} is legitimate (unassigned); surfaces via {@code GET
  * /admin/unassigned-employees} per USER_FLOW.md.
  *
- * <p>No FK from {@code weekly_plan.employee_id} into this table — see V7 migration note. A sync
- * lag must not break plan writes.
+ * <p>No FK from {@code weekly_plan.employee_id} into this table — see V7 migration note. A sync lag
+ * must not break plan writes.
  */
 @Entity
 @Table(name = "employee")

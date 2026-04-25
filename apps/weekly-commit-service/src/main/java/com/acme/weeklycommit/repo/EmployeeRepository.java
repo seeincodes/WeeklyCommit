@@ -24,9 +24,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
   List<Employee> findDirectReports(@Param("managerId") UUID managerId);
 
   /**
-   * Employees in an org with no assigned manager. Powers {@code GET
-   * /admin/unassigned-employees}. Uses {@code idx_employee_unassigned} (partial index on
-   * manager_id IS NULL).
+   * Employees in an org with no assigned manager. Powers {@code GET /admin/unassigned-employees}.
+   * Uses {@code idx_employee_unassigned} (partial index on manager_id IS NULL).
    */
   @Query(
       """

@@ -59,13 +59,13 @@ public interface WeeklyPlanRepository extends JpaRepository<WeeklyPlan, UUID> {
       @Param("reconciledState") PlanState reconciledState, @Param("threshold") Instant threshold);
 
   /**
-   * Manager team view: all plans for {@code weekStart} whose employee's {@code manager_id}
-   * matches. JOINs {@code Employee} (populated by Auth0 sync) to bridge the relationship, which
-   * doesn't exist on {@code WeeklyPlan} directly. Filters out inactive employees so rollups never
-   * include deactivated accounts.
+   * Manager team view: all plans for {@code weekStart} whose employee's {@code manager_id} matches.
+   * JOINs {@code Employee} (populated by Auth0 sync) to bridge the relationship, which doesn't
+   * exist on {@code WeeklyPlan} directly. Filters out inactive employees so rollups never include
+   * deactivated accounts.
    *
-   * <p>Hot path for {@code GET /plans/team} and {@code GET /rollup/team}. Paginated; default
-   * page size 20, max 100 (enforced in the controller).
+   * <p>Hot path for {@code GET /plans/team} and {@code GET /rollup/team}. Paginated; default page
+   * size 20, max 100 (enforced in the controller).
    */
   @Query(
       """

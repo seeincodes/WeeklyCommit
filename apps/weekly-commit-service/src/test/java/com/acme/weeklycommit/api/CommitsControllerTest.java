@@ -33,8 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @ActiveProfiles("test")
 class CommitsControllerTest {
 
-  private static final UUID EMPLOYEE_ID =
-      UUID.fromString("00000000-0000-0000-0000-0000000000a1");
+  private static final UUID EMPLOYEE_ID = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
   private static final UUID ORG_ID = UUID.fromString("00000000-0000-0000-0000-0000000000b2");
 
   @Autowired private MockMvc mvc;
@@ -44,9 +43,7 @@ class CommitsControllerTest {
   @MockBean private WeeklyCommitMapper mapper;
 
   private static JwtRequestPostProcessor validJwt() {
-    return jwt().jwt(
-            b ->
-                b.subject(EMPLOYEE_ID.toString()).claim("org_id", ORG_ID.toString()));
+    return jwt().jwt(b -> b.subject(EMPLOYEE_ID.toString()).claim("org_id", ORG_ID.toString()));
   }
 
   @Test
@@ -55,7 +52,8 @@ class CommitsControllerTest {
     WeeklyCommit c1 =
         new WeeklyCommit(UUID.randomUUID(), planId, "first", UUID.randomUUID(), ChessTier.ROCK, 0);
     WeeklyCommit c2 =
-        new WeeklyCommit(UUID.randomUUID(), planId, "second", UUID.randomUUID(), ChessTier.PEBBLE, 1);
+        new WeeklyCommit(
+            UUID.randomUUID(), planId, "second", UUID.randomUUID(), ChessTier.PEBBLE, 1);
 
     when(commitService.findCommitsForPlan(any(), any())).thenReturn(List.of(c1, c2));
     when(derivedFieldService.deriveFor(c1.getId()))

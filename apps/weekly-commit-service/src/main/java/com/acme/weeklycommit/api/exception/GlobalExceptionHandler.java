@@ -104,8 +104,7 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(PageSizeExceededException.class)
-  public ResponseEntity<ApiErrorEnvelope> handlePageSizeExceeded(
-      PageSizeExceededException ex) {
+  public ResponseEntity<ApiErrorEnvelope> handlePageSizeExceeded(PageSizeExceededException ex) {
     return status(
         HttpStatus.BAD_REQUEST,
         ApiErrorEnvelope.of(

@@ -90,13 +90,12 @@ public class WeeklyPlanService {
   }
 
   /**
-   * Paged team view: all plans for {@code weekStart} where employee reports to {@code
-   * managerId}. Authz: caller must be {@code managerId} themselves, or hold the {@code ADMIN}
-   * role (skip-level / ops scope). MANAGER role alone is not enough — a manager cannot query a
-   * peer manager's team.
+   * Paged team view: all plans for {@code weekStart} where employee reports to {@code managerId}.
+   * Authz: caller must be {@code managerId} themselves, or hold the {@code ADMIN} role (skip-level
+   * / ops scope). MANAGER role alone is not enough — a manager cannot query a peer manager's team.
    *
-   * <p>Rejects with {@link AccessDeniedException} <b>before</b> the DB lookup. Page size cap
-   * (100) is enforced at the controller boundary.
+   * <p>Rejects with {@link AccessDeniedException} <b>before</b> the DB lookup. Page size cap (100)
+   * is enforced at the controller boundary.
    */
   @Transactional(readOnly = true)
   public Page<WeeklyPlan> findTeamPlans(
@@ -105,10 +104,7 @@ public class WeeklyPlanService {
     boolean isAdmin = caller.hasRole("ADMIN");
     if (!isOwnTeam && !isAdmin) {
       throw new AccessDeniedException(
-          "caller "
-              + caller.employeeId()
-              + " cannot query team plans for manager "
-              + managerId);
+          "caller " + caller.employeeId() + " cannot query team plans for manager " + managerId);
     }
     return plans.findTeamPlans(managerId, weekStart, pageable);
   }
@@ -209,8 +205,7 @@ public class WeeklyPlanService {
           "RECONCILIATION_MODE",
           "reflection note is reconciliation-mode-only (LOCKED plan past day-4)");
     }
-    Instant opensAt =
-        plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
+    Instant opensAt = plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
     if (Instant.now(clock).isBefore(opensAt)) {
       throw new InvalidStateTransitionException(
           plan.getState().name(),
