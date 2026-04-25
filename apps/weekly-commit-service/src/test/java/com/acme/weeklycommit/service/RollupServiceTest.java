@@ -68,7 +68,8 @@ class RollupServiceTest {
     plan1.setReconciledAt(FROZEN_NOW.minus(96, ChronoUnit.HOURS));
     plan1.setReflectionNote("solid week, picker shipped");
     WeeklyCommit p1c1 =
-        new WeeklyCommit(UUID.randomUUID(), plan1.getId(), "rock", UUID.randomUUID(), ChessTier.ROCK, 0);
+        new WeeklyCommit(
+            UUID.randomUUID(), plan1.getId(), "rock", UUID.randomUUID(), ChessTier.ROCK, 0);
     p1c1.setActualStatus(ActualStatus.DONE);
     WeeklyCommit p1c2 =
         new WeeklyCommit(
@@ -81,8 +82,7 @@ class RollupServiceTest {
 
     when(plans.findTeamPlans(eq(managerId), eq(WEEK), any(Pageable.class)))
         .thenReturn((Page<WeeklyPlan>) new PageImpl<>(List.of(plan1, plan2)));
-    when(commits.findByPlanIdOrderByDisplayOrderAsc(plan1.getId()))
-        .thenReturn(List.of(p1c1, p1c2));
+    when(commits.findByPlanIdOrderByDisplayOrderAsc(plan1.getId())).thenReturn(List.of(p1c1, p1c2));
     when(commits.findByPlanIdOrderByDisplayOrderAsc(plan2.getId())).thenReturn(List.of());
     Employee e1 = new Employee(emp1, UUID.randomUUID());
     e1.setDisplayName("Ada");
@@ -163,8 +163,7 @@ class RollupServiceTest {
   void rollup_reflectionPreview_truncatedAt80Chars() {
     UUID managerId = UUID.randomUUID();
     UUID empId = UUID.randomUUID();
-    String longNote =
-        "x".repeat(150); // 150 chars; preview should cut to 80
+    String longNote = "x".repeat(150); // 150 chars; preview should cut to 80
     WeeklyPlan plan = new WeeklyPlan(UUID.randomUUID(), empId, WEEK);
     plan.setState(PlanState.RECONCILED);
     plan.setReconciledAt(FROZEN_NOW.minus(1, ChronoUnit.HOURS));
@@ -205,8 +204,12 @@ class RollupServiceTest {
     when(plans.findTeamPlans(eq(managerId), eq(WEEK), any(Pageable.class)))
         .thenReturn(
             (Page<WeeklyPlan>) new PageImpl<>(List.of(cleanPlan, flaggedPlan))); // clean first
-    when(commits.findByPlanIdOrderByDisplayOrderAsc(cleanPlan.getId())).thenReturn(List.of(cleanRock));
+    when(commits.findByPlanIdOrderByDisplayOrderAsc(cleanPlan.getId()))
+        .thenReturn(List.of(cleanRock));
     when(commits.findByPlanIdOrderByDisplayOrderAsc(flaggedPlan.getId())).thenReturn(List.of());
+    // cleanRock runs through deriveFor — default is "not stuck, streak 1".
+    when(derivedFieldService.deriveFor(cleanRock.getId()))
+        .thenReturn(new DerivedFieldService.Derived(1, false));
     Employee a = new Employee(empClean, UUID.randomUUID());
     a.setDisplayName("Clean");
     Employee b = new Employee(empFlagged, UUID.randomUUID());
