@@ -68,7 +68,8 @@ class ResilientNotificationSenderTest {
   }
 
   private ResilientNotificationSender sender() {
-    return new ResilientNotificationSender(client, dltRepo, objectMapper, retry(), circuitBreaker());
+    return new ResilientNotificationSender(
+        client, dltRepo, objectMapper, retry(), circuitBreaker());
   }
 
   @Test
