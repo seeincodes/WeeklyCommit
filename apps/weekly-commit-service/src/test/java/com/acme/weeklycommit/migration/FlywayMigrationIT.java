@@ -63,7 +63,7 @@ class FlywayMigrationIT {
   @Test
   void allMigrationsApplied() {
     List<String> applied = appliedVersions();
-    assertThat(applied).containsExactly("1", "2", "3", "4", "5", "6");
+    assertThat(applied).containsExactly("1", "2", "3", "4", "5", "6", "7");
   }
 
   @Test
@@ -79,7 +79,23 @@ class FlywayMigrationIT {
             "manager_review",
             "notification_dlt",
             "audit_log",
-            "shedlock");
+            "shedlock",
+            "employee");
+  }
+
+  @Test
+  void employeeTable_hasManagerPartialIndex() {
+    // The manager lookup index is partial (WHERE manager_id IS NOT NULL) to keep unassigned
+    // rows out of the team-rollup hot path.
+    assertThat(
+            queryStrings(
+                """
+                SELECT indexdef FROM pg_indexes
+                 WHERE tablename = 'employee'
+                   AND indexname = 'idx_employee_manager'
+                """))
+        .hasSize(1)
+        .anyMatch(def -> def.contains("WHERE (manager_id IS NOT NULL)"));
   }
 
   @Test
