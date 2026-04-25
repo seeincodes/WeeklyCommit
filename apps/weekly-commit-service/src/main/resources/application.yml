@@ -109,13 +109,17 @@ resilience4j:
         permittedNumberOfCallsInHalfOpenState: 3
 
 # WeeklyCommit-specific config (read by @ConfigurationProperties beans in group 5+).
+# Base-URL defaults are intentionally empty -- prod deploys set them via env, dev/test
+# either supplies a real WireMock URL via @DynamicPropertySource or runs against the
+# stubbed LoggingNotificationSender. An empty base-url builds a WebClient that will
+# fail on first call, which is the right failure mode for a misconfigured deploy.
 weekly-commit:
   rcdo:
-    base-url: ${RCDO_BASE_URL}
+    base-url: ${RCDO_BASE_URL:}
     timeout-ms: ${RCDO_TIMEOUT_MS:2000}
     service-token: ${RCDO_SERVICE_TOKEN:}
   notification:
-    base-url: ${NOTIFICATION_SVC_BASE_URL}
+    base-url: ${NOTIFICATION_SVC_BASE_URL:}
     timeout-ms: ${NOTIFICATION_SVC_TIMEOUT_MS:3000}
     service-token: ${NOTIFICATION_SVC_SERVICE_TOKEN:}
   scheduled:
