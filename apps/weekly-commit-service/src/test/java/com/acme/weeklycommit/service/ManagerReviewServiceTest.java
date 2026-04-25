@@ -12,12 +12,14 @@ import com.acme.weeklycommit.api.exception.InvalidStateTransitionException;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.AuditLog;
+import com.acme.weeklycommit.domain.entity.Employee;
 import com.acme.weeklycommit.domain.entity.ManagerReview;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.AuditEntityType;
 import com.acme.weeklycommit.domain.enums.AuditEventType;
 import com.acme.weeklycommit.domain.enums.PlanState;
 import com.acme.weeklycommit.repo.AuditLogRepository;
+import com.acme.weeklycommit.repo.EmployeeRepository;
 import com.acme.weeklycommit.repo.ManagerReviewRepository;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import java.time.Clock;
@@ -46,9 +48,10 @@ class ManagerReviewServiceTest {
   @Mock private WeeklyPlanRepository plans;
   @Mock private ManagerReviewRepository reviews;
   @Mock private AuditLogRepository audits;
+  @Mock private EmployeeRepository employees;
 
   private ManagerReviewService service() {
-    return new ManagerReviewService(plans, reviews, audits, FIXED_CLOCK);
+    return new ManagerReviewService(plans, reviews, audits, employees, FIXED_CLOCK);
   }
 
   @Test
@@ -162,7 +165,43 @@ class ManagerReviewServiceTest {
   }
 
   @Test
-  void listReviews_manager_returnsList() {
+  void listReviews_directManager_returnsList() {
+    UUID planId = UUID.randomUUID();
+    UUID owner = UUID.randomUUID();
+    UUID managerId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, owner, LocalDate.parse("2026-04-27"));
+    Employee ownerRow = new Employee(owner, UUID.randomUUID());
+    ownerRow.setManagerId(managerId);
+    ManagerReview r =
+        new ManagerReview(UUID.randomUUID(), planId, UUID.randomUUID(), Instant.now());
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    when(employees.findById(owner)).thenReturn(Optional.of(ownerRow));
+    when(reviews.findByPlanIdOrderByAcknowledgedAtAsc(planId)).thenReturn(List.of(r));
+
+    assertThat(service().listReviews(planId, managerPrincipal(managerId))).containsExactly(r);
+  }
+
+  @Test
+  void listReviews_managerOfDifferentEmployee_throwsAccessDenied() {
+    // Tightened authz: a peer manager (MANAGER role but not THIS plan's manager) cannot
+    // read another team's review history.
+    UUID planId = UUID.randomUUID();
+    UUID owner = UUID.randomUUID();
+    UUID actualManager = UUID.randomUUID();
+    UUID peerManager = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, owner, LocalDate.parse("2026-04-27"));
+    Employee ownerRow = new Employee(owner, UUID.randomUUID());
+    ownerRow.setManagerId(actualManager);
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    when(employees.findById(owner)).thenReturn(Optional.of(ownerRow));
+
+    assertThatThrownBy(() -> service().listReviews(planId, managerPrincipal(peerManager)))
+        .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
+  void listReviews_admin_returnsList() {
+    // ADMIN bypasses the direct-manager check entirely.
     UUID planId = UUID.randomUUID();
     WeeklyPlan plan = new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
     ManagerReview r =
@@ -170,8 +209,7 @@ class ManagerReviewServiceTest {
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
     when(reviews.findByPlanIdOrderByAcknowledgedAtAsc(planId)).thenReturn(List.of(r));
 
-    assertThat(service().listReviews(planId, managerPrincipal(UUID.randomUUID())))
-        .containsExactly(r);
+    assertThat(service().listReviews(planId, adminPrincipal())).containsExactly(r);
   }
 
   @Test
@@ -224,5 +262,22 @@ class ManagerReviewServiceTest {
                 "roles", List.of("MANAGER")));
     return new AuthenticatedPrincipal(
         employeeId, UUID.randomUUID(), Optional.empty(), Set.of("MANAGER"), ZoneId.of("UTC"), jwt);
+  }
+
+  private static AuthenticatedPrincipal adminPrincipal() {
+    UUID adminId = UUID.randomUUID();
+    Jwt jwt =
+        new Jwt(
+            "t",
+            Instant.now(),
+            Instant.now().plusSeconds(60),
+            Map.of("alg", "RS256"),
+            Map.of(
+                "sub", adminId.toString(),
+                "org_id", UUID.randomUUID().toString(),
+                "timezone", "UTC",
+                "roles", List.of("ADMIN")));
+    return new AuthenticatedPrincipal(
+        adminId, UUID.randomUUID(), Optional.empty(), Set.of("ADMIN"), ZoneId.of("UTC"), jwt);
   }
 }

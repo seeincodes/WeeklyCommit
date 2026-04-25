@@ -9,10 +9,12 @@ import static org.mockito.Mockito.when;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.AuditLog;
+import com.acme.weeklycommit.domain.entity.Employee;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.domain.enums.AuditEntityType;
 import com.acme.weeklycommit.domain.enums.AuditEventType;
 import com.acme.weeklycommit.repo.AuditLogRepository;
+import com.acme.weeklycommit.repo.EmployeeRepository;
 import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,9 +36,10 @@ class AuditServiceTest {
 
   @Mock private WeeklyPlanRepository plans;
   @Mock private AuditLogRepository audits;
+  @Mock private EmployeeRepository employees;
 
   private AuditService service() {
-    return new AuditService(plans, audits);
+    return new AuditService(plans, audits, employees);
   }
 
   @Test
@@ -59,13 +62,18 @@ class AuditServiceTest {
     List<AuditLog> result = service().findForPlan(planId, icPrincipal(employeeId));
 
     assertThat(result).containsExactly(row);
+    // Self-owner short-circuit: no employee lookup needed.
+    verify(employees, never()).findById(org.mockito.ArgumentMatchers.any());
   }
 
   @Test
-  void findForPlan_manager_returnsAuditList() {
+  void findForPlan_directManager_returnsAuditList() {
     UUID planId = UUID.randomUUID();
-    UUID otherEmployee = UUID.randomUUID();
-    WeeklyPlan plan = new WeeklyPlan(planId, otherEmployee, LocalDate.parse("2026-04-27"));
+    UUID owner = UUID.randomUUID();
+    UUID managerId = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, owner, LocalDate.parse("2026-04-27"));
+    Employee ownerRow = new Employee(owner, UUID.randomUUID());
+    ownerRow.setManagerId(managerId);
     AuditLog row =
         new AuditLog(
             UUID.randomUUID(),
@@ -74,17 +82,57 @@ class AuditServiceTest {
             AuditEventType.MANAGER_REVIEW,
             UUID.randomUUID());
     when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    when(employees.findById(owner)).thenReturn(Optional.of(ownerRow));
     when(audits.findByEntityTypeAndEntityIdOrderByOccurredAtDesc(
             AuditEntityType.WEEKLY_PLAN, planId))
         .thenReturn(List.of(row));
 
-    List<AuditLog> result = service().findForPlan(planId, managerPrincipal(UUID.randomUUID()));
+    List<AuditLog> result = service().findForPlan(planId, managerPrincipal(managerId));
 
     assertThat(result).containsExactly(row);
   }
 
   @Test
+  void findForPlan_managerOfDifferentEmployee_throwsAccessDenied() {
+    // Tightened authz: a MANAGER role alone is not enough -- the caller must be the plan
+    // owner's *direct* manager. A manager querying a peer manager's team is rejected.
+    UUID planId = UUID.randomUUID();
+    UUID owner = UUID.randomUUID();
+    UUID actualManager = UUID.randomUUID();
+    UUID peerManager = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, owner, LocalDate.parse("2026-04-27"));
+    Employee ownerRow = new Employee(owner, UUID.randomUUID());
+    ownerRow.setManagerId(actualManager);
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    when(employees.findById(owner)).thenReturn(Optional.of(ownerRow));
+
+    assertThatThrownBy(() -> service().findForPlan(planId, managerPrincipal(peerManager)))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(audits, never())
+        .findByEntityTypeAndEntityIdOrderByOccurredAtDesc(
+            org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  void findForPlan_managerOfPlanWithUnassignedOwner_throwsAccessDenied() {
+    // Edge case: plan owner has no manager (manager_id IS NULL). Only ADMIN can read it;
+    // a random MANAGER cannot claim authority over an unassigned employee's plan.
+    UUID planId = UUID.randomUUID();
+    UUID owner = UUID.randomUUID();
+    WeeklyPlan plan = new WeeklyPlan(planId, owner, LocalDate.parse("2026-04-27"));
+    Employee ownerRow = new Employee(owner, UUID.randomUUID());
+    // managerId not set -> null
+    when(plans.findById(planId)).thenReturn(Optional.of(plan));
+    when(employees.findById(owner)).thenReturn(Optional.of(ownerRow));
+
+    assertThatThrownBy(() -> service().findForPlan(planId, managerPrincipal(UUID.randomUUID())))
+        .isInstanceOf(AccessDeniedException.class);
+  }
+
+  @Test
   void findForPlan_admin_returnsAuditList() {
+    // ADMIN bypasses the direct-manager check entirely (skip-level / ops scope).
     UUID planId = UUID.randomUUID();
     WeeklyPlan plan = new WeeklyPlan(planId, UUID.randomUUID(), LocalDate.parse("2026-04-27"));
     AuditLog row =
@@ -102,6 +150,8 @@ class AuditServiceTest {
     List<AuditLog> result = service().findForPlan(planId, adminPrincipal());
 
     assertThat(result).containsExactly(row);
+    // ADMIN short-circuit: no employee lookup needed.
+    verify(employees, never()).findById(org.mockito.ArgumentMatchers.any());
   }
 
   @Test
@@ -144,7 +194,7 @@ class AuditServiceTest {
     assertThat(service().findForPlan(planId, icPrincipal(employeeId))).isEmpty();
   }
 
-  // --- helpers (mirror ManagerReviewServiceTest) ---
+  // --- helpers ---
 
   private static AuthenticatedPrincipal icPrincipal(UUID employeeId) {
     Jwt jwt =
