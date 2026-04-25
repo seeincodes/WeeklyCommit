@@ -63,7 +63,7 @@ class FlywayMigrationIT {
   @Test
   void allMigrationsApplied() {
     List<String> applied = appliedVersions();
-    assertThat(applied).containsExactly("1", "2", "3", "4", "5", "6", "7");
+    assertThat(applied).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
   }
 
   @Test

@@ -123,6 +123,7 @@ weekly-commit:
     timeout-ms: ${NOTIFICATION_SVC_TIMEOUT_MS:3000}
     service-token: ${NOTIFICATION_SVC_SERVICE_TOKEN:}
   scheduled:
+    enabled: ${SCHEDULED_JOBS_ENABLED:true}
     auto-lock-cron: ${AUTO_LOCK_CRON:0 0 * * * *}
     archival-cron: ${ARCHIVAL_CRON:0 0 2 * * *}
     unreviewed-digest-cron: ${UNREVIEWED_DIGEST_CRON:0 0 9 * * MON}
@@ -133,6 +134,9 @@ weekly-commit:
     retention-days: ${AUDIT_RETENTION_DAYS:730}
   admin:
     replay-enabled: ${ADMIN_REPLAY_ENABLED:true}
+
+shedlock:
+  enabled: ${SHEDLOCK_ENABLED:true}
 
 springdoc:
   api-docs:
