@@ -1,5 +1,6 @@
 package com.acme.weeklycommit.service;
 
+import com.acme.weeklycommit.api.exception.InvalidStateTransitionException;
 import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
@@ -8,7 +9,9 @@ import com.acme.weeklycommit.repo.WeeklyPlanRepository;
 import com.acme.weeklycommit.service.statemachine.WeeklyPlanStateMachine;
 import java.time.Clock;
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Optional;
 import java.util.UUID;
@@ -147,6 +150,50 @@ public class WeeklyPlanService {
                           + weekStart,
                       raced));
     }
+  }
+
+  /**
+   * Update a plan's reflection note. Reflection is reconciliation-mode-only (MEMO §3 invariants):
+   * plan must be LOCKED AND {@code now >= weekStart + 4 days}. DRAFT, pre-window LOCKED, and
+   * RECONCILED all reject with {@link InvalidStateTransitionException} so the client sees the
+   * standard 422 envelope with {@code fromState} in meta.
+   *
+   * <p>Owner-only (even MANAGER cannot write). Not a state transition; no audit row, no
+   * notification.
+   */
+  @Transactional
+  public WeeklyPlan updateReflectionNote(
+      UUID planId, String reflectionNote, AuthenticatedPrincipal caller) {
+    WeeklyPlan plan =
+        plans
+            .findById(planId)
+            .orElseThrow(() -> new ResourceNotFoundException("WeeklyPlan", planId));
+
+    if (!plan.getEmployeeId().equals(caller.employeeId())) {
+      throw new AccessDeniedException(
+          "caller "
+              + caller.employeeId()
+              + " cannot update reflection on plan owned by "
+              + plan.getEmployeeId());
+    }
+
+    if (plan.getState() != PlanState.LOCKED) {
+      throw new InvalidStateTransitionException(
+          plan.getState().name(),
+          "RECONCILIATION_MODE",
+          "reflection note is reconciliation-mode-only (LOCKED plan past day-4)");
+    }
+    Instant opensAt =
+        plan.getWeekStart().plusDays(4).atStartOfDay(ZoneOffset.UTC).toInstant();
+    if (Instant.now(clock).isBefore(opensAt)) {
+      throw new InvalidStateTransitionException(
+          plan.getState().name(),
+          "RECONCILIATION_MODE",
+          "reconciliation window opens at " + opensAt);
+    }
+
+    plan.setReflectionNote(reflectionNote);
+    return plans.save(plan);
   }
 
   /**
