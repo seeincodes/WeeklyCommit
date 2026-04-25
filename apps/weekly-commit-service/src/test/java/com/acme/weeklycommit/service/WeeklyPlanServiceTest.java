@@ -274,6 +274,84 @@ class WeeklyPlanServiceTest {
     verify(stateMachine, never()).transition(any(), any(), any());
   }
 
+  // --- findTeamPlans (GET /plans/team) ---
+
+  @Test
+  void findTeamPlans_caller_isManagerOfTeam_returnsPage() {
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID managerId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = managerPrincipal(managerId);
+    LocalDate weekStart = LocalDate.parse("2026-04-27");
+    org.springframework.data.domain.Pageable pageable =
+        org.springframework.data.domain.PageRequest.of(0, 20);
+    org.springframework.data.domain.Page<WeeklyPlan> expected =
+        new org.springframework.data.domain.PageImpl<>(java.util.List.of());
+    when(plans.findTeamPlans(managerId, weekStart, pageable)).thenReturn(expected);
+
+    org.springframework.data.domain.Page<WeeklyPlan> result =
+        service(clock).findTeamPlans(managerId, weekStart, pageable, caller);
+
+    assertThat(result).isSameAs(expected);
+  }
+
+  @Test
+  void findTeamPlans_caller_isDifferentManager_throwsAccessDenied() {
+    // A manager cannot query a peer manager's team. Scope is own-team-only unless ADMIN.
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID callerManagerId = UUID.randomUUID();
+    UUID otherManagerId = UUID.randomUUID();
+    AuthenticatedPrincipal caller = managerPrincipal(callerManagerId);
+
+    assertThatThrownBy(
+            () ->
+                service(clock)
+                    .findTeamPlans(
+                        otherManagerId,
+                        LocalDate.parse("2026-04-27"),
+                        org.springframework.data.domain.PageRequest.of(0, 20),
+                        caller))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(plans, never()).findTeamPlans(any(), any(), any());
+  }
+
+  @Test
+  void findTeamPlans_caller_isPlainIc_throwsAccessDenied() {
+    // An IC with no MANAGER role cannot query team plans at all.
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID managerId = UUID.randomUUID();
+    AuthenticatedPrincipal ic = principal(UUID.randomUUID(), ZoneId.of("UTC"));
+
+    assertThatThrownBy(
+            () ->
+                service(clock)
+                    .findTeamPlans(
+                        managerId,
+                        LocalDate.parse("2026-04-27"),
+                        org.springframework.data.domain.PageRequest.of(0, 20),
+                        ic))
+        .isInstanceOf(AccessDeniedException.class);
+
+    verify(plans, never()).findTeamPlans(any(), any(), any());
+  }
+
+  @Test
+  void findTeamPlans_admin_canQueryAnyManager() {
+    // ADMIN role can cross manager boundaries (skip-level / ops use case).
+    Clock clock = Clock.fixed(Instant.parse("2026-04-29T10:00:00Z"), ZoneId.of("UTC"));
+    UUID someManagerId = UUID.randomUUID();
+    AuthenticatedPrincipal admin = adminPrincipal();
+    LocalDate weekStart = LocalDate.parse("2026-04-27");
+    org.springframework.data.domain.Pageable pageable =
+        org.springframework.data.domain.PageRequest.of(0, 20);
+    org.springframework.data.domain.Page<WeeklyPlan> expected =
+        new org.springframework.data.domain.PageImpl<>(java.util.List.of());
+    when(plans.findTeamPlans(someManagerId, weekStart, pageable)).thenReturn(expected);
+
+    assertThat(service(clock).findTeamPlans(someManagerId, weekStart, pageable, admin))
+        .isSameAs(expected);
+  }
+
   // --- updateReflectionNote (PATCH /plans/{id}) ---
 
   @Test
@@ -423,6 +501,23 @@ class WeeklyPlanServiceTest {
                 "roles", java.util.List.of("MANAGER")));
     return new AuthenticatedPrincipal(
         employeeId, UUID.randomUUID(), Optional.empty(), Set.of("MANAGER"), ZoneId.of("UTC"), jwt);
+  }
+
+  private static AuthenticatedPrincipal adminPrincipal() {
+    UUID adminId = UUID.randomUUID();
+    Jwt jwt =
+        new Jwt(
+            "token",
+            Instant.now(),
+            Instant.now().plusSeconds(60),
+            Map.of("alg", "RS256"),
+            Map.of(
+                "sub", adminId.toString(),
+                "org_id", UUID.randomUUID().toString(),
+                "timezone", "UTC",
+                "roles", java.util.List.of("ADMIN")));
+    return new AuthenticatedPrincipal(
+        adminId, UUID.randomUUID(), Optional.empty(), Set.of("ADMIN"), ZoneId.of("UTC"), jwt);
   }
 
   private static AuthenticatedPrincipal principal(UUID employeeId, ZoneId tz) {
