@@ -506,6 +506,11 @@ git commit -m "task(10) RED: withConflictRetry enhancer contract"
 ```ts
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+// Fallback when a 409 response omits the `code` field. v1 maps every 409
+// to OptimisticLockException in GlobalExceptionHandler — if a future endpoint
+// adds a different 409 reason this default becomes wrong.
+export const DEFAULT_CONFLICT_CODE = 'CONFLICT_OPTIMISTIC_LOCK';
+
 export interface ConflictToastState {
   visible: boolean;
   code: string | null;
@@ -540,17 +545,17 @@ export const selectConflictToast = (state: { conflictToast: ConflictToastState }
 
 ```ts
 import type { BaseQueryFn, FetchBaseQueryError, FetchArgs } from '@reduxjs/toolkit/query/react';
-import { conflictToastActions } from './conflictToastSlice';
+import { DEFAULT_CONFLICT_CODE, conflictToastActions } from './conflictToastSlice';
 
 export function withConflictRetry(
   inner: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
 ): BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> {
   return async (args, api, extraOptions) => {
     const first = await inner(args, api, extraOptions);
-    if (!first.error || first.error.status !== 409) {
+    if (first.error?.status !== 409) {
       return first;
     }
-    const code = (first.error.data as { code?: string } | undefined)?.code ?? 'CONFLICT_OPTIMISTIC_LOCK';
+    const code = (first.error.data as { code?: string } | undefined)?.code ?? DEFAULT_CONFLICT_CODE;
     api.dispatch(conflictToastActions.show({ code }));
     const second = await inner(args, api, extraOptions);
     return second;

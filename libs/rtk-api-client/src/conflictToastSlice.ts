@@ -1,5 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+// Fallback when a 409 response omits the `code` field. v1 maps every 409
+// to OptimisticLockException in GlobalExceptionHandler — if a future endpoint
+// adds a different 409 reason this default becomes wrong.
+export const DEFAULT_CONFLICT_CODE = 'CONFLICT_OPTIMISTIC_LOCK';
+
 export interface ConflictToastState {
   visible: boolean;
   code: string | null;
