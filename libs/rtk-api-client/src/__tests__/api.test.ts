@@ -273,4 +273,61 @@ describe('api endpoints', () => {
     );
     expect(result.data).toMatchObject({ id: 'c2', carriedForwardFromId: 'c1' });
   });
+
+  it('listReviews → GET /api/v1/plans/{planId}/reviews', async () => {
+    server.use(
+      http.get('http://localhost/api/v1/plans/:planId/reviews', () =>
+        HttpResponse.json({
+          data: [
+            { id: 'r1', planId: 'p1', managerId: 'm1', comment: 'Looks good' },
+          ],
+          meta: {},
+        }),
+      ),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(api.endpoints.listReviews.initiate({ planId: 'p1' }));
+    expect(result.data).toHaveLength(1);
+    expect(result.data?.[0]).toMatchObject({ id: 'r1', planId: 'p1' });
+  });
+
+  it('createReview → POST /api/v1/plans/{planId}/reviews with comment body', async () => {
+    const captured: { body?: unknown; planId?: string } = {};
+    server.use(
+      http.post('http://localhost/api/v1/plans/:planId/reviews', async ({ request, params }) => {
+        captured.body = await request.json();
+        captured.planId = params.planId as string;
+        return HttpResponse.json({
+          data: { id: 'r1', planId: 'p1', managerId: 'm1', comment: 'Acknowledged' },
+          meta: {},
+        });
+      }),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(
+      api.endpoints.createReview.initiate({ planId: 'p1', body: { comment: 'Acknowledged' } }),
+    );
+    expect(captured.planId).toBe('p1');
+    expect(captured.body).toMatchObject({ comment: 'Acknowledged' });
+    expect(result.data).toMatchObject({ id: 'r1' });
+  });
+
+  it('getTeamRollup → GET /api/v1/rollup/team with managerId + weekStart', async () => {
+    const captured: { url?: string } = {};
+    server.use(
+      http.get('http://localhost/api/v1/rollup/team', ({ request }) => {
+        captured.url = request.url;
+        return HttpResponse.json({
+          data: { alignmentPct: 0.92, completionPct: 0.78, members: [] },
+          meta: {},
+        });
+      }),
+    );
+    const store = mkStore();
+    await store.dispatch(
+      api.endpoints.getTeamRollup.initiate({ managerId: 'm1', weekStart: '2026-04-27' }),
+    );
+    expect(captured.url).toContain('managerId=m1');
+    expect(captured.url).toContain('weekStart=2026-04-27');
+  });
 });

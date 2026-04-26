@@ -3,6 +3,9 @@ import { withConflictRetry } from './conflictRetry';
 import { rawBaseQuery } from './baseQuery';
 import type {
   CreateCommitRequest,
+  CreateReviewRequest,
+  ManagerReviewResponse,
+  RollupResponse,
   TransitionRequest,
   UpdateCommitRequest,
   UpdateReflectionRequest,
@@ -147,6 +150,35 @@ export const api = createApi({
       }),
       invalidatesTags: [{ type: 'Commit', id: 'LIST' }],
     }),
+    listReviews: build.query<ManagerReviewResponse[], { planId: string }>({
+      query: ({ planId }) => `/api/v1/plans/${planId}/reviews`,
+      providesTags: (_res, _err, { planId }) => [{ type: 'Review', id: planId }],
+    }),
+    createReview: build.mutation<
+      ManagerReviewResponse,
+      { planId: string; body: CreateReviewRequest }
+    >({
+      query: ({ planId, body }) => ({
+        url: `/api/v1/plans/${planId}/reviews`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_res, _err, { planId }) => [
+        { type: 'Review', id: planId },
+        { type: 'Plan', id: planId },
+        { type: 'Rollup', id: 'LIST' },
+      ],
+    }),
+    getTeamRollup: build.query<
+      RollupResponse,
+      { managerId: string; weekStart: string }
+    >({
+      query: ({ managerId, weekStart }) => ({
+        url: '/api/v1/rollup/team',
+        params: { managerId, weekStart },
+      }),
+      providesTags: [{ type: 'Rollup', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -162,4 +194,7 @@ export const {
   useUpdateCommitMutation,
   useDeleteCommitMutation,
   useCarryForwardMutation,
+  useListReviewsQuery,
+  useCreateReviewMutation,
+  useGetTeamRollupQuery,
 } = api;
