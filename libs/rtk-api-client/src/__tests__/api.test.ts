@@ -330,4 +330,60 @@ describe('api endpoints', () => {
     expect(captured.url).toContain('managerId=m1');
     expect(captured.url).toContain('weekStart=2026-04-27');
   });
+
+  it('getAuditForPlan → GET /api/v1/audit/plans/{id}', async () => {
+    const captured: { id?: string } = {};
+    server.use(
+      http.get('http://localhost/api/v1/audit/plans/:id', ({ params }) => {
+        captured.id = params.id as string;
+        return HttpResponse.json({
+          data: [
+            {
+              id: 'a1',
+              entityType: 'WEEKLY_PLAN',
+              entityId: 'p1',
+              eventType: 'STATE_TRANSITION',
+              actorId: 'e1',
+              fromState: 'DRAFT',
+              toState: 'LOCKED',
+              occurredAt: '2026-04-26T10:00:00Z',
+            },
+          ],
+          meta: {},
+        });
+      }),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(api.endpoints.getAuditForPlan.initiate({ id: 'p1' }));
+    expect(captured.id).toBe('p1');
+    expect(result.data).toHaveLength(1);
+    expect(result.data?.[0]).toMatchObject({ entityId: 'p1', toState: 'LOCKED' });
+  });
+
+  it('listUnassignedEmployees → GET /api/v1/admin/unassigned-employees', async () => {
+    server.use(
+      http.get('http://localhost/api/v1/admin/unassigned-employees', () =>
+        HttpResponse.json({
+          data: [{ id: 'e1', name: 'Sarah Kim' }],
+          meta: {},
+        }),
+      ),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(api.endpoints.listUnassignedEmployees.initiate());
+    expect(result.data).toHaveLength(1);
+  });
+
+  it('replayDltRow → POST /api/v1/admin/notifications/dlt/{id}/replay', async () => {
+    const captured: { id?: string } = {};
+    server.use(
+      http.post('http://localhost/api/v1/admin/notifications/dlt/:id/replay', ({ params }) => {
+        captured.id = params.id as string;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const store = mkStore();
+    await store.dispatch(api.endpoints.replayDltRow.initiate({ id: 'dlt-42' }));
+    expect(captured.id).toBe('dlt-42');
+  });
 });

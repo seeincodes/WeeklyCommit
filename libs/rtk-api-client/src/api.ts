@@ -2,11 +2,13 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { withConflictRetry } from './conflictRetry';
 import { rawBaseQuery } from './baseQuery';
 import type {
+  AuditLogResponse,
   CreateCommitRequest,
   CreateReviewRequest,
   ManagerReviewResponse,
   RollupResponse,
   TransitionRequest,
+  UnassignedEmployeeResponse,
   UpdateCommitRequest,
   UpdateReflectionRequest,
   WeeklyCommitResponse,
@@ -179,6 +181,19 @@ export const api = createApi({
       }),
       providesTags: [{ type: 'Rollup', id: 'LIST' }],
     }),
+    getAuditForPlan: build.query<AuditLogResponse[], { id: string }>({
+      query: ({ id }) => `/api/v1/audit/plans/${id}`,
+      providesTags: (_res, _err, { id }) => [{ type: 'Audit', id }],
+    }),
+    listUnassignedEmployees: build.query<UnassignedEmployeeResponse[], void>({
+      query: () => '/api/v1/admin/unassigned-employees',
+    }),
+    replayDltRow: build.mutation<void, { id: string }>({
+      query: ({ id }) => ({
+        url: `/api/v1/admin/notifications/dlt/${id}/replay`,
+        method: 'POST',
+      }),
+    }),
   }),
 });
 
@@ -197,4 +212,7 @@ export const {
   useListReviewsQuery,
   useCreateReviewMutation,
   useGetTeamRollupQuery,
+  useGetAuditForPlanQuery,
+  useListUnassignedEmployeesQuery,
+  useReplayDltRowMutation,
 } = api;
