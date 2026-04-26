@@ -856,13 +856,10 @@ import type {
   WeeklyPlanResponse,
 } from './types';
 
-interface ViteEnv {
-  VITE_API_BASE_URL?: string;
-}
-interface ViteImportMeta extends ImportMeta {
-  env: ViteEnv;
-}
-const baseUrl = (import.meta as ViteImportMeta).env.VITE_API_BASE_URL ?? 'http://localhost';
+// Narrow inline cast — extending ImportMeta would conflict with the UI app's
+// vite/client typing of ImportMetaEnv (which has BASE_URL/MODE/DEV/PROD/SSR).
+const env = (import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }).env;
+const baseUrl = env?.VITE_API_BASE_URL ?? 'http://localhost';
 
 const baseQuery = withConflictRetry(rawBaseQuery);
 
