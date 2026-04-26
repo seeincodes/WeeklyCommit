@@ -740,9 +740,9 @@ describe('api endpoints', () => {
     // each test installs its own handler
   });
 
-  it('getCurrentForMe → GET /api/v1/me/plans/current', async () => {
+  it('getCurrentForMe → GET /api/v1/plans/me/current', async () => {
     server.use(
-      http.get('http://localhost/api/v1/me/plans/current', () =>
+      http.get('http://localhost/api/v1/plans/me/current', () =>
         HttpResponse.json({
           data: {
             id: 'p1',
@@ -876,7 +876,7 @@ export const api = createApi({
   tagTypes: [...TAGS],
   endpoints: (build) => ({
     getCurrentForMe: build.query<WeeklyPlanResponse, void>({
-      query: () => '/api/v1/me/plans/current',
+      query: () => '/api/v1/plans/me/current',
       providesTags: (result) => (result ? [{ type: 'Plan', id: result.id }] : ['Plan']),
     }),
     createCommit: build.mutation<
@@ -937,9 +937,9 @@ The endpoints to add, with their tag policy:
 |---|---|---|
 | `getPlanByEmployeeAndWeek` | `GET /api/v1/plans?employeeId=&weekStart=` | provides `Plan-{id}` |
 | `createCurrentForMe` | `POST /api/v1/plans` | invalidates `Plan-LIST`, `Rollup-LIST` |
-| `getCurrentForMe` | `GET /api/v1/me/plans/current` | provides `Plan-{id}` (already in Task 9) |
+| `getCurrentForMe` | `GET /api/v1/plans/me/current` | provides `Plan-{id}` (already in Task 9) |
 | `transition` | `POST /api/v1/plans/{planId}/transitions` | invalidates `Plan-{planId}`, `Commit-LIST`, `Audit-{planId}`, `Rollup-LIST` (already in Task 9; add `Rollup-LIST`) |
-| `updateReflection` | `PATCH /api/v1/plans/{planId}/reflection` | invalidates `Plan-{planId}` |
+| `updateReflection` | `PATCH /api/v1/plans/{planId}` | invalidates `Plan-{planId}` |
 | `listCommits` | `GET /api/v1/plans/{planId}/commits` | provides `Commit-LIST`, `Commit-{id}` per row |
 | `createCommit` | `POST /api/v1/plans/{planId}/commits` | invalidates `Plan-{planId}`, `Commit-LIST` (already in Task 9) |
 | `updateCommit` | `PATCH /api/v1/commits/{commitId}` | invalidates `Commit-{commitId}`, `Plan-{planId}` (read planId from response) |
@@ -949,7 +949,7 @@ The endpoints to add, with their tag policy:
 | `createReview` | `POST /api/v1/plans/{planId}/reviews` | invalidates `Review-{planId}`, `Plan-{planId}`, `Rollup-LIST` |
 | `getTeamRollup` | `GET /api/v1/rollup/team?managerId=&weekStart=` | provides `Rollup-LIST` |
 | `getTeam` | `GET /api/v1/plans/team?managerId=&weekStart=` | provides `Plan-LIST` |
-| `getAuditForPlan` | `GET /api/v1/audit/plans/{planId}` | provides `Audit-{planId}` |
+| `getAuditForPlan` | `GET /api/v1/audit/plans/{id}` | provides `Audit-{id}` (path param is `id`, not `planId`) |
 | `listUnassignedEmployees` | `GET /api/v1/admin/unassigned-employees` | provides nothing (admin only, ad-hoc) |
 | `replayDltRow` | `POST /api/v1/admin/notifications/dlt/{id}/replay` | provides nothing |
 
