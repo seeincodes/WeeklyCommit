@@ -176,7 +176,14 @@ VITE_REMOTE_NAME=weekly_commit
 VITE_REMOTE_VERSION=             # git SHA, set in CI
 VITE_SENTRY_DSN=
 VITE_FEATURE_FLAG_KILL_SWITCH=false  # host-app level in prod; local toggle in dev
+GIT_SHA=                          # consumed by vite.config.ts -> __WC_GIT_SHA__ define; CI sets, local falls back to 'dev'
 ```
+
+`GIT_SHA` is intentionally not `VITE_`-prefixed: it's read in node context
+inside `vite.config.ts` and substituted into the bundle via `define`, not
+exposed via `import.meta.env`. `VITE_REMOTE_VERSION` is the runtime mirror
+the host uses to pick a remoteEntry path; both come from the same commit
+SHA in CI.
 
 **Host integration (PA host app consumes)**
 

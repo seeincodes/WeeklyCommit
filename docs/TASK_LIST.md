@@ -98,14 +98,14 @@ References: [MVP4] (auto-lock half), [MVP11], [MVP16]
 ### 9. Frontend: scaffold + shared singletons
 References: [MVP18], [MVP19]
 
-- [ ] `apps/weekly-commit-ui` Vite 5 + React 18 + TypeScript strict
-- [ ] Module Federation plugin (`@originjs/vite-plugin-federation`) configured; `exposes: { './WeeklyCommitModule': ... }`; `shared: { react, react-dom, react-router-dom, @reduxjs/toolkit }` with `eager: false`
+- [x] `apps/weekly-commit-ui` Vite 5 + React 18 + TypeScript strict *(scaffold lives at `apps/weekly-commit-ui/`: `vite.config.ts`, `tsconfig.json` extending root base with `strict`/`noImplicitAny`/`strictNullChecks`/`noUncheckedIndexedAccess` re-affirmed, `index.html`, `src/main.tsx` standalone entry, `src/WeeklyCommitModule.tsx` federated stub. Deps pinned per ADR-0003: react ^18.3.1, react-dom ^18.3.1, react-router-dom ^6.26.2, @reduxjs/toolkit ^2.2.7, vite ^5.4.0, @vitejs/plugin-react ^4.3.0, typescript 5.6.2. `yarn install` not run -- toolchain mismatch (system yarn 1.22 vs packageManager yarn@4.5.0); CI runs the install.)*
+- [x] Module Federation plugin (`@originjs/vite-plugin-federation`) configured; `exposes: { './WeeklyCommitModule': ... }`; `shared: { react, react-dom, react-router-dom, @reduxjs/toolkit }` with `eager: false` *(plugin pinned at ^1.3.5; `name: 'weekly_commit'`, `filename: 'remoteEntry.js'`, port 4184 (strictPort), shared singletons + RTK Query also `eager: false` per ADR-0003. Build config uses `target: 'esnext'`, `modulePreload: false`, `cssCodeSplit: false` so host loads remote CSS in one fetch.)*
 - [ ] Tailwind + Flowbite React; baseline theme integration with host design system (or Headless UI fallback)
 - [ ] ESLint 9 + Prettier 3.3; `prettier --check` and `eslint . --max-warnings=0` in CI
 - [ ] `vitest.config.ts` + coverage-v8; `@testing-library/react` + `@testing-library/jest-dom`
 - [ ] Playwright smoke test suite skeleton
-- [ ] Sentry init + RUM route-enter ping
-- [ ] Version-stamp build: git SHA injected into remoteEntry via Vite define
+- [x] Sentry init + RUM route-enter ping *(`@sentry/react` ^8.30.0 added; init lives in `src/main.tsx` gated on `VITE_SENTRY_DSN` so we don't double-init when the host has already booted Sentry. `release: __WC_GIT_SHA__` ties RUM events to the deployed bundle. `browserTracingIntegration` provides route-enter pings; `tracesSampleRate: 0.1`. Standalone-only entry point -- production-federation Sentry runs in the host context.)*
+- [x] Version-stamp build: git SHA injected into remoteEntry via Vite define *(`vite.config.ts` reads `process.env.GIT_SHA` and emits `__WC_GIT_SHA__` (+ `__WC_BUILD_TIME__`) via `define`; falls back to `'dev'` locally. New env var added to `.env` and `docs/TECH_STACK.md` (build-time only, no `VITE_` prefix because it's consumed in node context, not browser code). Surfaces in the placeholder UI as `data-testid="version"` for the Playwright smoke (sibling subtask).)*
 
 ### 10. Frontend: RTK Query + typed client
 References: [MVP3], [MVP13]

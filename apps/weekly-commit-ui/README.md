@@ -1,8 +1,31 @@
 # @wc/weekly-commit-ui
 
-Vite 5 + React 18 + TypeScript (strict) remote that exposes `./WeeklyCommitModule`
-via `@originjs/vite-plugin-federation`. Consumed by the existing PA host app;
-also runs standalone for smoke tests. See [../../docs/TECH_STACK.md](../../docs/TECH_STACK.md)
-and [../../docs/MEMO.md](../../docs/MEMO.md) for rationale.
+Vite 5 + React 18 federated remote consumed by the PA host. Exposes
+`./WeeklyCommitModule` via `@originjs/vite-plugin-federation` with shared
+singletons for React, React DOM, React Router, and Redux Toolkit (all
+`eager: false`).
 
-Scaffolded in task group 9.
+## Local development
+
+- `yarn workspace @wc/weekly-commit-ui dev` — standalone dev mode on
+  `http://localhost:4184` (uses `index.html` + `src/main.tsx` with a
+  `HashRouter`; this is the Playwright remote-in-isolation path).
+- `yarn workspace @wc/weekly-commit-ui build` — emits `dist/` containing
+  `remoteEntry.js` plus chunked shared deps. CI sets `GIT_SHA=<sha>` so
+  the bundle stamps `__WC_GIT_SHA__` for Sentry release tracking.
+- `yarn workspace @wc/weekly-commit-ui clean` — wipes `dist/` and the
+  Vite cache (`node_modules/.vite`).
+
+## Production federation
+
+The PA host registers this remote as `weekly_commit/WeeklyCommitModule`
+and mounts it inside its own `<BrowserRouter>` + Sentry context. The
+host owns auth, theming, and routing; we contribute the federated bundle
+and re-use the host's React + Redux instances via the singleton config.
+
+## References
+
+- [docs/adr/0003-pm-remote-vite-config-mirror.md](../../docs/adr/0003-pm-remote-vite-config-mirror.md) — Vite + Module Federation config rationale (mirror of PM remote).
+- [docs/adr/0004-flowbite-token-override.md](../../docs/adr/0004-flowbite-token-override.md) — UI library + theming approach (lands in a sibling subtask).
+- [docs/PRD.md](../../docs/PRD.md) `[MVP18]` / `[MVP19]` — scope.
+- [docs/TECH_STACK.md](../../docs/TECH_STACK.md#environment-variables) — env var contract.
