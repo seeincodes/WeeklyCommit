@@ -119,7 +119,7 @@ References: [MVP3], [MVP13]
 ### 11. Frontend: IC surfaces
 References: [MVP1], [MVP2], [MVP4], [MVP5], [MVP6], [MVP7], [MVP8], [MVP21]
 
-- [ ] Routes: `/weekly-commit/current`, `/weekly-commit/history`
+- [x] Routes: `/weekly-commit/current`, `/weekly-commit/history` *(react-router v6 nested `<Route path="weekly-commit">` with `<Route index>` redirecting to `current`. Page shells under `apps/weekly-commit-ui/src/routes/{CurrentWeekPage,HistoryPage}.tsx` -- the state-aware `<WeekEditor />` lands inside `CurrentWeekPage` in subtask 2. Playwright smoke + Vitest routing tests both updated to the new shape; eslint ignore extended to `coverage/` so the v8 lcov-report stops tripping typed rules.)*
 - [ ] `<WeekEditor />`: state-aware (blank state, DRAFT, LOCKED pre-day-4 read-only, LOCKED reconciliation mode, RECONCILED read-only)
 - [ ] `<RCDOPicker />` typeahead with 4-level breadcrumb; stale-cache banner on RCDO outage
 - [ ] `<ChessTier />` vertical spine (Rock/Pebble/Sand)

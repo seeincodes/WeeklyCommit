@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('weekly-commit smoke', () => {
-  test('placeholder route renders with version stamp', async ({ page }) => {
-    await page.goto('/#/weekly-commit');
+  test('current-week route renders with version stamp', async ({ page }) => {
+    await page.goto('/#/weekly-commit/current');
 
-    const root = page.getByTestId('weekly-commit-root');
+    const root = page.getByTestId('current-week-page');
     await expect(root).toBeVisible();
 
     const heading = root.getByRole('heading', { name: /weekly commit/i });
@@ -14,11 +14,15 @@ test.describe('weekly-commit smoke', () => {
     await expect(version).toContainText(/Build:/);
   });
 
-  test('unknown route under /weekly-commit still mounts the module', async ({ page }) => {
-    // The placeholder catches everything under /weekly-commit/*. This test guards against
-    // the federation handshake failing silently for nested routes -- a problem we hit in
-    // PM remote per ADR-0003 context if shared-singleton drift causes hook errors.
-    await page.goto('/#/weekly-commit/some/nested/path');
-    await expect(page.getByTestId('weekly-commit-root')).toBeVisible();
+  test('bare /weekly-commit redirects into the current-week route', async ({ page }) => {
+    // Federation handshake regression guard: nested route navigation must mount the
+    // module without hook errors (ADR-0003 shared-singleton drift would surface here).
+    await page.goto('/#/weekly-commit');
+    await expect(page.getByTestId('current-week-page')).toBeVisible();
+  });
+
+  test('history route mounts', async ({ page }) => {
+    await page.goto('/#/weekly-commit/history');
+    await expect(page.getByTestId('history-page')).toBeVisible();
   });
 });
