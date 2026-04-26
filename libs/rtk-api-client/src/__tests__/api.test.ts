@@ -40,7 +40,7 @@ describe('api endpoints', () => {
   });
 
   it('createCommit → POST /api/v1/plans/{planId}/commits with body', async () => {
-    let captured: { body?: unknown; planId?: string } = {};
+    const captured: { body?: unknown; planId?: string } = {};
     server.use(
       http.post('http://localhost/api/v1/plans/:planId/commits', async ({ request, params }) => {
         captured.body = await request.json();
