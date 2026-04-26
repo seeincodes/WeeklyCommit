@@ -28,16 +28,20 @@ jobs:
         with:
           fetch-depth: 0 # nx affected needs full history
 
+      # Corepack must activate Yarn 4.5.0 BEFORE actions/setup-node runs:
+      # setup-node's `cache: yarn` invokes `yarn` to discover the lockfile, and
+      # the runner's preinstalled Yarn 1.22.22 fails the `packageManager` gate
+      # in package.json. Enabling corepack first shims `yarn` to 4.5.0 globally.
+      - name: Enable Corepack + pin Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@4.5.0 --activate
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: yarn
-
-      - name: Enable Corepack + pin Yarn
-        run: |
-          corepack enable
-          corepack prepare yarn@4.5.0 --activate
 
       - name: Install
         run: yarn install --immutable

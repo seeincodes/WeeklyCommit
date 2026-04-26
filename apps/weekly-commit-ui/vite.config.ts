@@ -80,6 +80,9 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],
+    // Keep vitest from picking up Playwright specs (which live under tests/playwright/
+    // and use the @playwright/test runner, not vitest).
+    exclude: ['node_modules', 'dist', 'tests/playwright/**'],
     coverage: {
       // v8 provider is the tech-stack lock (CLAUDE.md). Istanbul is not
       // an option for this project.

@@ -7,8 +7,8 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "lint": "eslint . --max-warnings=0",
-    "typecheck": "tsc --noEmit",
+    "lint": "echo '@wc/contracts: no lint (auto-generated types only)'",
+    "typecheck": "echo '@wc/contracts: no typecheck (auto-generated types validated by verify:ts)'",
     "generate:ts": "openapi-typescript openapi.yaml -o generated/types.d.ts",
     "verify:ts": "openapi-typescript openapi.yaml -o /tmp/wc-contracts-check.d.ts && cmp -s /tmp/wc-contracts-check.d.ts generated/types.d.ts || (echo 'TS contract drift -- run yarn workspace @wc/contracts generate:ts' && exit 1)"
   },

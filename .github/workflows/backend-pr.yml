@@ -39,11 +39,12 @@ jobs:
       - name: Unit tests
         run: ./mvnw -B test
 
-      - name: Integration tests (Testcontainers)
-        run: ./mvnw -B verify -DskipUnitTests=true
-
-      - name: Coverage gate (JaCoCo >= 80%)
-        run: ./mvnw -B -Djacoco.check.halt=true jacoco:report jacoco:check
+      - name: Integration tests + coverage gate (JaCoCo >= 80%)
+        # `verify` runs the IT suite + the JaCoCo `report` and `check` executions
+        # (both bound to the verify phase in pom.xml). The `jacoco.check.halt=true`
+        # property flips the bound `check` execution from warn-only to fail-build,
+        # which is the CI enforcement of [MVP12] / TESTING_STRATEGY.md.
+        run: ./mvnw -B -Djacoco.check.halt=true verify -DskipUnitTests=true
 
       - name: Upload JaCoCo report
         if: always()

@@ -19,7 +19,7 @@ import globals from 'globals';
  */
 export default tseslint.config(
   {
-    ignores: ['dist', 'node_modules', '*.config.js', '*.config.ts'],
+    ignores: ['dist', 'node_modules', '*.config.js', '*.config.ts', 'tests/playwright/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

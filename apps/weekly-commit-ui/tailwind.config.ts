@@ -16,7 +16,7 @@ export default {
   content: [
     './index.html',
     './src/**/*.{ts,tsx}',
-    flowbite.content(),  // pulls in flowbite-react's class names so JIT doesn't purge them
+    flowbite.content(), // pulls in flowbite-react's class names so JIT doesn't purge them
   ],
   theme: {
     extend: {

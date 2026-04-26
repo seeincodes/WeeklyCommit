@@ -68,7 +68,11 @@
         "accepted": 1,
         "rejected": 0,
         "items": [
-          { "idempotencyKey": "wc-digest-mgr_042-2026-W17", "status": "QUEUED", "notificationId": "ntf_digest_mgr_042_W17" }
+          {
+            "idempotencyKey": "wc-digest-mgr_042-2026-W17",
+            "status": "QUEUED",
+            "notificationId": "ntf_digest_mgr_042_W17"
+          }
         ]
       },
       "httpStatus": 202
@@ -77,11 +81,27 @@
 
   "error responses": {
     "_description": "Triggers Resilience4j paths. See RcdoClient/NotificationClient design in task group 7.",
-    "400": { "error": { "code": "VALIDATION_FAILED", "message": "templateId unknown", "field": "templateId" } },
+    "400": {
+      "error": {
+        "code": "VALIDATION_FAILED",
+        "message": "templateId unknown",
+        "field": "templateId"
+      }
+    },
     "401": { "error": { "code": "UNAUTHORIZED", "message": "Missing or invalid service token" } },
-    "409": { "error": { "code": "DUPLICATE_IDEMPOTENCY_KEY", "message": "Already accepted; returning prior acceptance", "priorNotificationId": "ntf_2026-04-27T17-42-00Z-8f3a" } },
-    "429": { "error": { "code": "RATE_LIMITED", "message": "Retry after", "retryAfterSeconds": 10 } },
-    "503": { "error": { "code": "UPSTREAM_UNAVAILABLE", "message": "Downstream mail provider unreachable" } }
+    "409": {
+      "error": {
+        "code": "DUPLICATE_IDEMPOTENCY_KEY",
+        "message": "Already accepted; returning prior acceptance",
+        "priorNotificationId": "ntf_2026-04-27T17-42-00Z-8f3a"
+      }
+    },
+    "429": {
+      "error": { "code": "RATE_LIMITED", "message": "Retry after", "retryAfterSeconds": 10 }
+    },
+    "503": {
+      "error": { "code": "UPSTREAM_UNAVAILABLE", "message": "Downstream mail provider unreachable" }
+    }
   },
 
   "template catalog (v1)": {

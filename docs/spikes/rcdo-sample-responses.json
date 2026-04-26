@@ -13,10 +13,13 @@
           "label": "Alignment tooling GA",
           "active": true,
           "breadcrumb": {
-            "rallyCry":          { "id": "rc_01", "label": "Unblock product-led growth" },
+            "rallyCry": { "id": "rc_01", "label": "Unblock product-led growth" },
             "definingObjective": { "id": "do_04", "label": "Product-led GTM" },
-            "coreOutcome":       { "id": "co_09", "label": "Tooling readiness" },
-            "supportingOutcome": { "id": "so_c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44", "label": "Alignment tooling GA" }
+            "coreOutcome": { "id": "co_09", "label": "Tooling readiness" },
+            "supportingOutcome": {
+              "id": "so_c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44",
+              "label": "Alignment tooling GA"
+            }
           },
           "ownerEmployeeId": "emp_a7c8d1",
           "updatedAt": "2026-04-18T14:22:17Z"
@@ -39,10 +42,13 @@
         "label": "Alignment tooling GA",
         "active": true,
         "breadcrumb": {
-          "rallyCry":          { "id": "rc_01", "label": "Unblock product-led growth" },
+          "rallyCry": { "id": "rc_01", "label": "Unblock product-led growth" },
           "definingObjective": { "id": "do_04", "label": "Product-led GTM" },
-          "coreOutcome":       { "id": "co_09", "label": "Tooling readiness" },
-          "supportingOutcome": { "id": "so_c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44", "label": "Alignment tooling GA" }
+          "coreOutcome": { "id": "co_09", "label": "Tooling readiness" },
+          "supportingOutcome": {
+            "id": "so_c4a1e7b2-9f28-4f3c-8a61-1e5f3c9d2b44",
+            "label": "Alignment tooling GA"
+          }
         },
         "ownerEmployeeId": "emp_a7c8d1",
         "deactivatedAt": null,
@@ -70,7 +76,9 @@
   "error responses": {
     "_description": "Shapes the RCDO service returns on failure, per spike stub. If real service differs, update RcdoClient error mapping.",
     "401": { "error": { "code": "UNAUTHORIZED", "message": "Missing or invalid service token" } },
-    "429": { "error": { "code": "RATE_LIMITED", "message": "Retry after", "retryAfterSeconds": 30 } },
+    "429": {
+      "error": { "code": "RATE_LIMITED", "message": "Retry after", "retryAfterSeconds": 30 }
+    },
     "503": { "error": { "code": "UPSTREAM_UNAVAILABLE", "message": "Try again" } }
   }
 }
