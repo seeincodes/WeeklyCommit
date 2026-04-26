@@ -178,4 +178,99 @@ describe('api endpoints', () => {
     expect(captured.url).toContain('managerId=m1');
     expect(captured.url).toContain('weekStart=2026-04-27');
   });
+
+  it('listCommits → GET /api/v1/plans/{planId}/commits', async () => {
+    server.use(
+      http.get('http://localhost/api/v1/plans/:planId/commits', () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'c1',
+              planId: 'p1',
+              title: 'Refactor auth',
+              supportingOutcomeId: 'so-24',
+              chessTier: 'ROCK',
+              displayOrder: 0,
+              actualStatus: 'PENDING',
+            },
+          ],
+          meta: {},
+        }),
+      ),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(api.endpoints.listCommits.initiate({ planId: 'p1' }));
+    expect(result.data).toHaveLength(1);
+    expect(result.data?.[0]).toMatchObject({ id: 'c1', chessTier: 'ROCK' });
+  });
+
+  it('updateCommit → PATCH /api/v1/commits/{commitId} with partial body', async () => {
+    const captured: { body?: unknown; commitId?: string } = {};
+    server.use(
+      http.patch('http://localhost/api/v1/commits/:commitId', async ({ request, params }) => {
+        captured.body = await request.json();
+        captured.commitId = params.commitId as string;
+        return HttpResponse.json({
+          data: {
+            id: 'c1',
+            planId: 'p1',
+            title: 'Refactor auth (revised)',
+            supportingOutcomeId: 'so-24',
+            chessTier: 'ROCK',
+            displayOrder: 0,
+            actualStatus: 'PENDING',
+          },
+          meta: {},
+        });
+      }),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(
+      api.endpoints.updateCommit.initiate({
+        commitId: 'c1',
+        body: { title: 'Refactor auth (revised)' },
+      }),
+    );
+    expect(captured.commitId).toBe('c1');
+    expect(captured.body).toMatchObject({ title: 'Refactor auth (revised)' });
+    expect(result.data).toMatchObject({ id: 'c1', title: 'Refactor auth (revised)' });
+  });
+
+  it('deleteCommit → DELETE /api/v1/commits/{commitId}', async () => {
+    const captured: { commitId?: string } = {};
+    server.use(
+      http.delete('http://localhost/api/v1/commits/:commitId', ({ params }) => {
+        captured.commitId = params.commitId as string;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const store = mkStore();
+    await store.dispatch(api.endpoints.deleteCommit.initiate({ commitId: 'c1' }));
+    expect(captured.commitId).toBe('c1');
+  });
+
+  it('carryForward → POST /api/v1/commits/{commitId}/carry-forward', async () => {
+    server.use(
+      http.post('http://localhost/api/v1/commits/:commitId/carry-forward', () =>
+        HttpResponse.json({
+          data: {
+            id: 'c2',
+            planId: 'p2',
+            title: 'Refactor auth (carried)',
+            supportingOutcomeId: 'so-24',
+            chessTier: 'ROCK',
+            displayOrder: 0,
+            actualStatus: 'PENDING',
+            carriedForwardFromId: 'c1',
+          },
+          meta: {},
+        }),
+      ),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(
+      api.endpoints.carryForward.initiate({ commitId: 'c1' }),
+    );
+    expect(result.data).toMatchObject({ id: 'c2', carriedForwardFromId: 'c1' });
+  });
 });

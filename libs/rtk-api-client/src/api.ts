@@ -4,6 +4,7 @@ import { rawBaseQuery } from './baseQuery';
 import type {
   CreateCommitRequest,
   TransitionRequest,
+  UpdateCommitRequest,
   UpdateReflectionRequest,
   WeeklyCommitResponse,
   WeeklyPlanResponse,
@@ -102,6 +103,50 @@ export const api = createApi({
       }),
       providesTags: [{ type: 'Plan', id: 'LIST' }],
     }),
+    listCommits: build.query<WeeklyCommitResponse[], { planId: string }>({
+      query: ({ planId }) => `/api/v1/plans/${planId}/commits`,
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((c) => ({ type: 'Commit' as const, id: c.id })),
+              { type: 'Commit', id: 'LIST' },
+            ]
+          : [{ type: 'Commit', id: 'LIST' }],
+    }),
+    updateCommit: build.mutation<
+      WeeklyCommitResponse,
+      { commitId: string; body: UpdateCommitRequest }
+    >({
+      query: ({ commitId, body }) => ({
+        url: `/api/v1/commits/${commitId}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (result, _err, { commitId }) =>
+        result
+          ? [
+              { type: 'Commit', id: commitId },
+              { type: 'Plan', id: result.planId },
+            ]
+          : [{ type: 'Commit', id: commitId }],
+    }),
+    deleteCommit: build.mutation<void, { commitId: string }>({
+      query: ({ commitId }) => ({
+        url: `/api/v1/commits/${commitId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [
+        { type: 'Commit', id: 'LIST' },
+        { type: 'Plan', id: 'LIST' },
+      ],
+    }),
+    carryForward: build.mutation<WeeklyCommitResponse, { commitId: string }>({
+      query: ({ commitId }) => ({
+        url: `/api/v1/commits/${commitId}/carry-forward`,
+        method: 'POST',
+      }),
+      invalidatesTags: [{ type: 'Commit', id: 'LIST' }],
+    }),
   }),
 });
 
@@ -113,4 +158,8 @@ export const {
   useCreateCurrentForMeMutation,
   useUpdateReflectionMutation,
   useGetTeamQuery,
+  useListCommitsQuery,
+  useUpdateCommitMutation,
+  useDeleteCommitMutation,
+  useCarryForwardMutation,
 } = api;
