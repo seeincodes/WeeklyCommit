@@ -23,7 +23,7 @@ describe('withConflictRetry', () => {
         calls += 1;
         if (calls === 1) {
           return HttpResponse.json(
-            { error: { code: 'OPTIMISTIC_LOCK', message: 'stale' }, meta: {} },
+            { error: { code: 'CONFLICT_OPTIMISTIC_LOCK', message: 'stale' }, meta: {} },
             { status: 409 },
           );
         }
@@ -44,7 +44,7 @@ describe('withConflictRetry', () => {
     server.use(
       http.post('http://localhost/api/v1/plans/p1/transitions', () => {
         return HttpResponse.json(
-          { error: { code: 'OPTIMISTIC_LOCK', message: 'stale' }, meta: {} },
+          { error: { code: 'CONFLICT_OPTIMISTIC_LOCK', message: 'stale' }, meta: {} },
           { status: 409 },
         );
       }),
@@ -60,7 +60,7 @@ describe('withConflictRetry', () => {
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'conflictToast/show',
-        payload: { code: 'OPTIMISTIC_LOCK' },
+        payload: { code: 'CONFLICT_OPTIMISTIC_LOCK' },
       }),
     );
   });

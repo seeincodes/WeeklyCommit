@@ -412,7 +412,7 @@ describe('withConflictRetry', () => {
         calls += 1;
         if (calls === 1) {
           return HttpResponse.json(
-            { error: { code: 'OPTIMISTIC_LOCK', message: 'stale' }, meta: {} },
+            { error: { code: 'CONFLICT_OPTIMISTIC_LOCK', message: 'stale' }, meta: {} },
             { status: 409 },
           );
         }
@@ -433,7 +433,7 @@ describe('withConflictRetry', () => {
     server.use(
       http.post('http://localhost/api/v1/plans/p1/transitions', () => {
         return HttpResponse.json(
-          { error: { code: 'OPTIMISTIC_LOCK', message: 'stale' }, meta: {} },
+          { error: { code: 'CONFLICT_OPTIMISTIC_LOCK', message: 'stale' }, meta: {} },
           { status: 409 },
         );
       }),
@@ -449,7 +449,7 @@ describe('withConflictRetry', () => {
     expect(dispatch).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'conflictToast/show',
-        payload: { code: 'OPTIMISTIC_LOCK' },
+        payload: { code: 'CONFLICT_OPTIMISTIC_LOCK' },
       }),
     );
   });
@@ -550,7 +550,7 @@ export function withConflictRetry(
     if (!first.error || first.error.status !== 409) {
       return first;
     }
-    const code = (first.error.data as { code?: string } | undefined)?.code ?? 'OPTIMISTIC_LOCK';
+    const code = (first.error.data as { code?: string } | undefined)?.code ?? 'CONFLICT_OPTIMISTIC_LOCK';
     api.dispatch(conflictToastActions.show({ code }));
     const second = await inner(args, api, extraOptions);
     return second;
@@ -597,14 +597,14 @@ describe('conflictToastSlice', () => {
   it('show() sets visible=true and stores the code', () => {
     const state = conflictToastSlice.reducer(
       { visible: false, code: null },
-      conflictToastActions.show({ code: 'OPTIMISTIC_LOCK' }),
+      conflictToastActions.show({ code: 'CONFLICT_OPTIMISTIC_LOCK' }),
     );
-    expect(state).toEqual({ visible: true, code: 'OPTIMISTIC_LOCK' });
+    expect(state).toEqual({ visible: true, code: 'CONFLICT_OPTIMISTIC_LOCK' });
   });
 
   it('hide() clears the code', () => {
     const state = conflictToastSlice.reducer(
-      { visible: true, code: 'OPTIMISTIC_LOCK' },
+      { visible: true, code: 'CONFLICT_OPTIMISTIC_LOCK' },
       conflictToastActions.hide(),
     );
     expect(state).toEqual({ visible: false, code: null });
@@ -1629,7 +1629,7 @@ Typed RTK Query hooks for the Weekly Commit backend. All 17 endpoints from `libs
 
 Optimistic-lock conflicts (HTTP 409 from `OptimisticLockException` per [GlobalExceptionHandler](../../apps/weekly-commit-service/src/main/java/com/acme/weeklycommit/api/exception/GlobalExceptionHandler.java)) trigger:
 1. `withConflictRetry` retries the request once.
-2. `conflictToastSlice` sets `visible=true, code='OPTIMISTIC_LOCK'`.
+2. `conflictToastSlice` sets `visible=true, code='CONFLICT_OPTIMISTIC_LOCK'`.
 3. Group 11 `<ConflictToast />` listens to `selectConflictToast` and surfaces a toast.
 
 ## Adding a new endpoint
