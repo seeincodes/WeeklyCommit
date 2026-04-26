@@ -5,5 +5,9 @@ coverage/
 .nx/
 .yarn/
 libs/contracts/generated/
+# openapi.yaml is the springdoc-emitted source of truth; OpenApiSpecGenerationIT
+# fails the build if the committed file diverges from runtime emission. Don't
+# reformat — let the springdoc plugin own its shape.
+libs/contracts/openapi.yaml
 apps/weekly-commit-service/target/
 *.md

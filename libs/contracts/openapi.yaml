@@ -6,370 +6,370 @@ info:
     verify -Pgen-openapi` whenever endpoints change.
   version: 0.1.0
 servers:
-  - url: /api/v1
-    description: Default server (relative)
+- url: /api/v1
+  description: Default server (relative)
 security:
-  - BearerAuth: []
+- BearerAuth: []
 paths:
   /api/v1/plans:
     get:
       tags:
-        - plans-controller
+      - plans-controller
       operationId: getPlanByEmployeeAndWeek
       parameters:
-        - name: employeeId
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: weekStart
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
+      - name: employeeId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: weekStart
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeWeeklyPlanResponse'
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyPlanResponse"
     post:
       tags:
-        - plans-controller
+      - plans-controller
       operationId: createCurrentForMe
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeWeeklyPlanResponse'
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyPlanResponse"
   /api/v1/plans/{planId}/transitions:
     post:
       tags:
-        - plans-controller
+      - plans-controller
       operationId: transition
       parameters:
-        - name: planId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransitionRequest'
+              $ref: "#/components/schemas/TransitionRequest"
         required: true
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeWeeklyPlanResponse'
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyPlanResponse"
   /api/v1/plans/{planId}/reviews:
     get:
       tags:
-        - reviews-controller
+      - reviews-controller
       operationId: listReviews
       parameters:
-        - name: planId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeListManagerReviewResponse'
+                $ref: "#/components/schemas/ApiEnvelopeListManagerReviewResponse"
     post:
       tags:
-        - reviews-controller
+      - reviews-controller
       operationId: createReview
       parameters:
-        - name: planId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateReviewRequest'
+              $ref: "#/components/schemas/CreateReviewRequest"
         required: true
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeManagerReviewResponse'
+                $ref: "#/components/schemas/ApiEnvelopeManagerReviewResponse"
   /api/v1/plans/{planId}/commits:
     get:
       tags:
-        - commits-controller
+      - commits-controller
       operationId: listCommits
       parameters:
-        - name: planId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeListWeeklyCommitResponse'
+                $ref: "#/components/schemas/ApiEnvelopeListWeeklyCommitResponse"
     post:
       tags:
-        - commits-controller
+      - commits-controller
       operationId: createCommit
       parameters:
-        - name: planId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateCommitRequest'
+              $ref: "#/components/schemas/CreateCommitRequest"
         required: true
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeWeeklyCommitResponse'
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyCommitResponse"
   /api/v1/commits/{commitId}/carry-forward:
     post:
       tags:
-        - commits-controller
+      - commits-controller
       operationId: carryForward
       parameters:
-        - name: commitId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: commitId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeWeeklyCommitResponse'
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyCommitResponse"
   /api/v1/admin/notifications/dlt/{id}/replay:
     post:
       tags:
-        - admin-controller
+      - admin-controller
       operationId: replayDltRow
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
-        '202':
+        "202":
           description: Accepted
   /api/v1/plans/{planId}:
     patch:
       tags:
-        - plans-controller
+      - plans-controller
       operationId: updateReflection
       parameters:
-        - name: planId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateReflectionRequest'
+              $ref: "#/components/schemas/UpdateReflectionRequest"
         required: true
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeWeeklyPlanResponse'
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyPlanResponse"
   /api/v1/commits/{commitId}:
     delete:
       tags:
-        - commits-controller
+      - commits-controller
       operationId: deleteCommit
       parameters:
-        - name: commitId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: commitId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
-        '200':
+        "200":
           description: OK
     patch:
       tags:
-        - commits-controller
+      - commits-controller
       operationId: updateCommit
       parameters:
-        - name: commitId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: commitId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateCommitRequest'
+              $ref: "#/components/schemas/UpdateCommitRequest"
         required: true
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeWeeklyCommitResponse'
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyCommitResponse"
   /api/v1/rollup/team:
     get:
       tags:
-        - rollup-controller
+      - rollup-controller
       operationId: getTeamRollup
       parameters:
-        - name: managerId
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: weekStart
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
+      - name: managerId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: weekStart
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeRollupResponse'
+                $ref: "#/components/schemas/ApiEnvelopeRollupResponse"
   /api/v1/plans/team:
     get:
       tags:
-        - plans-controller
+      - plans-controller
       operationId: getTeam
       parameters:
-        - name: managerId
-          in: query
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: weekStart
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int32
-            default: 0
-        - name: size
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int32
-            default: 20
+      - name: managerId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: weekStart
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeListWeeklyPlanResponse'
+                $ref: "#/components/schemas/ApiEnvelopeListWeeklyPlanResponse"
   /api/v1/plans/me/current:
     get:
       tags:
-        - plans-controller
+      - plans-controller
       operationId: getCurrentForMe
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeWeeklyPlanResponse'
+                $ref: "#/components/schemas/ApiEnvelopeWeeklyPlanResponse"
   /api/v1/audit/plans/{id}:
     get:
       tags:
-        - audit-controller
+      - audit-controller
       operationId: getAuditForPlan
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeListAuditLogResponse'
+                $ref: "#/components/schemas/ApiEnvelopeListAuditLogResponse"
   /api/v1/admin/unassigned-employees:
     get:
       tags:
-        - admin-controller
+      - admin-controller
       operationId: listUnassignedEmployees
       responses:
-        '200':
+        "200":
           description: OK
           content:
             '*/*':
               schema:
-                $ref: '#/components/schemas/ApiEnvelopeListUnassignedEmployeeResponse'
+                $ref: "#/components/schemas/ApiEnvelopeListUnassignedEmployeeResponse"
 components:
   schemas:
     ApiEnvelopeWeeklyPlanResponse:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/WeeklyPlanResponse'
+          $ref: "#/components/schemas/WeeklyPlanResponse"
         meta:
           type: object
           additionalProperties:
@@ -389,10 +389,10 @@ components:
         state:
           type: string
           enum:
-            - DRAFT
-            - LOCKED
-            - RECONCILED
-            - ARCHIVED
+          - DRAFT
+          - LOCKED
+          - RECONCILED
+          - ARCHIVED
         lockedAt:
           type: string
           format: date-time
@@ -409,16 +409,16 @@ components:
           format: int64
     TransitionRequest:
       required:
-        - to
+      - to
       type: object
       properties:
         to:
           type: string
           enum:
-            - DRAFT
-            - LOCKED
-            - RECONCILED
-            - ARCHIVED
+          - DRAFT
+          - LOCKED
+          - RECONCILED
+          - ARCHIVED
     CreateReviewRequest:
       type: object
       properties:
@@ -430,7 +430,7 @@ components:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/ManagerReviewResponse'
+          $ref: "#/components/schemas/ManagerReviewResponse"
         meta:
           type: object
           additionalProperties:
@@ -454,9 +454,9 @@ components:
           format: date-time
     CreateCommitRequest:
       required:
-        - chessTier
-        - supportingOutcomeId
-        - title
+      - chessTier
+      - supportingOutcomeId
+      - title
       type: object
       properties:
         title:
@@ -473,9 +473,9 @@ components:
         chessTier:
           type: string
           enum:
-            - ROCK
-            - PEBBLE
-            - SAND
+          - ROCK
+          - PEBBLE
+          - SAND
         categoryTags:
           type: array
           items:
@@ -497,7 +497,7 @@ components:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/WeeklyCommitResponse'
+          $ref: "#/components/schemas/WeeklyCommitResponse"
         meta:
           type: object
           additionalProperties:
@@ -529,9 +529,9 @@ components:
         chessTier:
           type: string
           enum:
-            - ROCK
-            - PEBBLE
-            - SAND
+          - ROCK
+          - PEBBLE
+          - SAND
         categoryTags:
           type: array
           items:
@@ -552,14 +552,14 @@ components:
         actualStatus:
           type: string
           enum:
-            - PENDING
-            - DONE
-            - PARTIAL
-            - MISSED
+          - PENDING
+          - DONE
+          - PARTIAL
+          - MISSED
         actualNote:
           type: string
         derived:
-          $ref: '#/components/schemas/Derived'
+          $ref: "#/components/schemas/Derived"
     UpdateReflectionRequest:
       type: object
       properties:
@@ -584,9 +584,9 @@ components:
         chessTier:
           type: string
           enum:
-            - ROCK
-            - PEBBLE
-            - SAND
+          - ROCK
+          - PEBBLE
+          - SAND
         categoryTags:
           type: array
           items:
@@ -607,10 +607,10 @@ components:
         actualStatus:
           type: string
           enum:
-            - PENDING
-            - DONE
-            - PARTIAL
-            - MISSED
+          - PENDING
+          - DONE
+          - PARTIAL
+          - MISSED
         actualNote:
           maxLength: 5000
           minLength: 0
@@ -619,7 +619,7 @@ components:
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/RollupResponse'
+          $ref: "#/components/schemas/RollupResponse"
         meta:
           type: object
           additionalProperties:
@@ -635,12 +635,12 @@ components:
         planState:
           type: string
           enum:
-            - DRAFT
-            - LOCKED
-            - RECONCILED
-            - ARCHIVED
+          - DRAFT
+          - LOCKED
+          - RECONCILED
+          - ARCHIVED
         topRock:
-          $ref: '#/components/schemas/TopRockSummary'
+          $ref: "#/components/schemas/TopRockSummary"
         tierCounts:
           type: object
           additionalProperties:
@@ -673,7 +673,7 @@ components:
         members:
           type: array
           items:
-            $ref: '#/components/schemas/MemberCard'
+            $ref: "#/components/schemas/MemberCard"
     TopRockSummary:
       type: object
       properties:
@@ -688,7 +688,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/ManagerReviewResponse'
+            $ref: "#/components/schemas/ManagerReviewResponse"
         meta:
           type: object
           additionalProperties:
@@ -699,7 +699,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/WeeklyCommitResponse'
+            $ref: "#/components/schemas/WeeklyCommitResponse"
         meta:
           type: object
           additionalProperties:
@@ -710,7 +710,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/WeeklyPlanResponse'
+            $ref: "#/components/schemas/WeeklyPlanResponse"
         meta:
           type: object
           additionalProperties:
@@ -721,7 +721,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/AuditLogResponse'
+            $ref: "#/components/schemas/AuditLogResponse"
         meta:
           type: object
           additionalProperties:
@@ -735,16 +735,16 @@ components:
         entityType:
           type: string
           enum:
-            - WEEKLY_PLAN
-            - MANAGER_REVIEW
+          - WEEKLY_PLAN
+          - MANAGER_REVIEW
         entityId:
           type: string
           format: uuid
         eventType:
           type: string
           enum:
-            - STATE_TRANSITION
-            - MANAGER_REVIEW
+          - STATE_TRANSITION
+          - MANAGER_REVIEW
         actorId:
           type: string
           format: uuid
@@ -753,7 +753,7 @@ components:
         toState:
           type: string
         metadata:
-          $ref: '#/components/schemas/JsonNode'
+          $ref: "#/components/schemas/JsonNode"
         occurredAt:
           type: string
           format: date-time
@@ -765,7 +765,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/UnassignedEmployeeResponse'
+            $ref: "#/components/schemas/UnassignedEmployeeResponse"
         meta:
           type: object
           additionalProperties:
