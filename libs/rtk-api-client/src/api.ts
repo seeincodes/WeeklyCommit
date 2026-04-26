@@ -35,10 +35,17 @@ const baseQueryWithBaseUrl: typeof baseQuery = (args, api, extra) => {
 export const TAGS = ['Plan', 'Commit', 'Review', 'Rollup', 'Audit', 'RCDO'] as const;
 export type Tag = (typeof TAGS)[number];
 
-export const api = createApi({
+const apiConfig = {
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+  keepUnusedDataFor: 60,
+};
+
+const baseApi = createApi({
   reducerPath: 'wcApi',
   baseQuery: baseQueryWithBaseUrl,
   tagTypes: [...TAGS],
+  ...apiConfig,
   endpoints: (build) => ({
     getCurrentForMe: build.query<WeeklyPlanResponse, void>({
       query: () => '/api/v1/plans/me/current',
@@ -107,6 +114,7 @@ export const api = createApi({
         params: { managerId, weekStart },
       }),
       providesTags: [{ type: 'Plan', id: 'LIST' }],
+      keepUnusedDataFor: 60,
     }),
     listCommits: build.query<WeeklyCommitResponse[], { planId: string }>({
       query: ({ planId }) => `/api/v1/plans/${planId}/commits`,
@@ -180,6 +188,7 @@ export const api = createApi({
         params: { managerId, weekStart },
       }),
       providesTags: [{ type: 'Rollup', id: 'LIST' }],
+      keepUnusedDataFor: 60,
     }),
     getAuditForPlan: build.query<AuditLogResponse[], { id: string }>({
       query: ({ id }) => `/api/v1/audit/plans/${id}`,
@@ -195,6 +204,12 @@ export const api = createApi({
       }),
     }),
   }),
+});
+
+export const api = Object.assign(baseApi, {
+  refetchOnFocus: apiConfig.refetchOnFocus,
+  refetchOnReconnect: apiConfig.refetchOnReconnect,
+  keepUnusedDataFor: apiConfig.keepUnusedDataFor,
 });
 
 export const {

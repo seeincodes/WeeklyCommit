@@ -386,4 +386,8 @@ describe('api endpoints', () => {
     await store.dispatch(api.endpoints.replayDltRow.initiate({ id: 'dlt-42' }));
     expect(captured.id).toBe('dlt-42');
   });
+
+  it('api slice has refetchOnFocus enabled (for Rollup tag freshness)', () => {
+    expect(api.refetchOnFocus).toBe(true);
+  });
 });
