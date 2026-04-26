@@ -9,8 +9,15 @@ const inner = fetchBaseQuery({
   },
 });
 
-interface EnvelopeSuccess<T> { data: T; meta?: Record<string, unknown> }
-interface EnvelopeError { error: { code: string; message: string; details?: unknown }; meta?: Record<string, unknown> }
+interface EnvelopeSuccess<T> {
+  data: T;
+  meta?: Record<string, unknown>;
+}
+
+interface EnvelopeError {
+  error: { code: string; message: string; details?: unknown };
+  meta?: Record<string, unknown>;
+}
 
 export const rawBaseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (
   args,
