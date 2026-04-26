@@ -1,5 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
+import { Provider } from 'react-redux';
 import { Card } from 'flowbite-react';
+import { store } from './store';
 
 /**
  * Top-level federated component exposed to the PA host as
@@ -7,14 +9,21 @@ import { Card } from 'flowbite-react';
  * inside its own <BrowserRouter> -- we use relative <Routes> so the
  * host's router context resolves the paths.
  *
+ * Owns its own Redux store so the PA host's Redux tree (if any) doesn't
+ * collide with this remote's. v1 places the Provider here rather than
+ * higher up so both standalone-dev and federated paths inherit it without
+ * duplication.
+ *
  * Real routes (current/history/team/admin) ship in groups 11-12. v1
  * placeholder just confirms the federation handshake works.
  */
 export function WeeklyCommitModule() {
   return (
-    <Routes>
-      <Route path="weekly-commit/*" element={<Placeholder />} />
-    </Routes>
+    <Provider store={store}>
+      <Routes>
+        <Route path="weekly-commit/*" element={<Placeholder />} />
+      </Routes>
+    </Provider>
   );
 }
 
