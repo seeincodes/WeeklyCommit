@@ -110,11 +110,11 @@ References: [MVP18], [MVP19]
 ### 10. Frontend: RTK Query + typed client
 References: [MVP3], [MVP13]
 
-- [ ] `libs/rtk-api-client` typed hooks generated from `libs/contracts` OpenAPI types
-- [ ] Tags: `Plan`, `Commit`, `Review`, `Rollup`, `Audit`, `RCDO`
-- [ ] `keepUnusedDataFor` per tag: Rollup 60s + refetchOnFocus, RCDO 600s
-- [ ] Global 409 middleware → `<ConflictToast />` + refetch affected tags
-- [ ] Local Redux slice: draft form state, optimistic reorder
+- [x] `libs/rtk-api-client` typed hooks generated from `libs/contracts` OpenAPI types *(hand-written endpoints typed via `operations[opId]` indexing — codegen reconsidered when endpoint count exceeds ~40. All 17 OpenAPI endpoints wired with per-endpoint tag invalidation. 29 vitest tests covering envelope unwrap, 409 retry, slice reducers, and endpoint contracts via MSW.)*
+- [x] Tags: `Plan`, `Commit`, `Review`, `Rollup`, `Audit`, `RCDO` *(RCDO tag declared but unused — first endpoint lands in group 11 with `<RCDOPicker />`)*
+- [x] `keepUnusedDataFor` per tag: Rollup 60s + refetchOnFocus, RCDO 600s *(api-level default 60s + refetchOnFocus + refetchOnReconnect via API_CONFIG; explicit `keepUnusedDataFor: 60` on `getTeam` and `getTeamRollup` for documentation; RCDO 600s override added with the first RCDO endpoint in group 11.)*
+- [x] Global 409 middleware → `<ConflictToast />` + refetch affected tags *(implemented as a baseQuery enhancer (`withConflictRetry`) rather than middleware so the retry sees a clean response and the conflictToastSlice fires before the lifecycle resolves. Server emits `CONFLICT_OPTIMISTIC_LOCK` per `GlobalExceptionHandler.java`. The `<ConflictToast />` component itself ships in group 11.)*
+- [x] Local Redux slice: draft form state, optimistic reorder *(`apps/weekly-commit-ui/src/store/draftFormSlice.ts` — editingCommitId, dirty, optimisticOrder with start/cancel/markDirty/reorder/commit/rollback transitions. Wired into the configured store at `apps/weekly-commit-ui/src/store/index.ts` along with the api slice + conflictToast.)*
 
 ### 11. Frontend: IC surfaces
 References: [MVP1], [MVP2], [MVP4], [MVP5], [MVP6], [MVP7], [MVP8], [MVP21]
