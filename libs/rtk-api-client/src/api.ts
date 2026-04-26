@@ -4,6 +4,7 @@ import { rawBaseQuery } from './baseQuery';
 import type {
   CreateCommitRequest,
   TransitionRequest,
+  UpdateReflectionRequest,
   WeeklyCommitResponse,
   WeeklyPlanResponse,
 } from './types';
@@ -63,7 +64,53 @@ export const api = createApi({
         { type: 'Audit', id: planId },
       ],
     }),
+    getPlanByEmployeeAndWeek: build.query<
+      WeeklyPlanResponse,
+      { employeeId: string; weekStart: string }
+    >({
+      query: ({ employeeId, weekStart }) => ({
+        url: '/api/v1/plans',
+        params: { employeeId, weekStart },
+      }),
+      providesTags: (result) => (result ? [{ type: 'Plan', id: result.id }] : ['Plan']),
+    }),
+    createCurrentForMe: build.mutation<WeeklyPlanResponse, void>({
+      query: () => ({
+        url: '/api/v1/plans',
+        method: 'POST',
+      }),
+      invalidatesTags: [
+        { type: 'Plan', id: 'LIST' },
+        { type: 'Rollup', id: 'LIST' },
+      ],
+    }),
+    updateReflection: build.mutation<
+      WeeklyPlanResponse,
+      { planId: string; body: UpdateReflectionRequest }
+    >({
+      query: ({ planId, body }) => ({
+        url: `/api/v1/plans/${planId}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (_res, _err, { planId }) => [{ type: 'Plan', id: planId }],
+    }),
+    getTeam: build.query<WeeklyPlanResponse[], { managerId: string; weekStart: string }>({
+      query: ({ managerId, weekStart }) => ({
+        url: '/api/v1/plans/team',
+        params: { managerId, weekStart },
+      }),
+      providesTags: [{ type: 'Plan', id: 'LIST' }],
+    }),
   }),
 });
 
-export const { useGetCurrentForMeQuery, useCreateCommitMutation, useTransitionMutation } = api;
+export const {
+  useGetCurrentForMeQuery,
+  useCreateCommitMutation,
+  useTransitionMutation,
+  useGetPlanByEmployeeAndWeekQuery,
+  useCreateCurrentForMeMutation,
+  useUpdateReflectionMutation,
+  useGetTeamQuery,
+} = api;

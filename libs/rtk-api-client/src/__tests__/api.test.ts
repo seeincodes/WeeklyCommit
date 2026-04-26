@@ -98,4 +98,84 @@ describe('api endpoints', () => {
     // After mutation, the Plan tag should be in the invalidation set.
     // We assert this by examining the action that fired during the mutation.
   });
+
+  it('getPlanByEmployeeAndWeek → GET /api/v1/plans with query params', async () => {
+    const captured: { url?: string } = {};
+    server.use(
+      http.get('http://localhost/api/v1/plans', ({ request }) => {
+        captured.url = request.url;
+        return HttpResponse.json({
+          data: { id: 'p1', employeeId: 'e1', weekStart: '2026-04-27', state: 'DRAFT', version: 0 },
+          meta: {},
+        });
+      }),
+    );
+    const store = mkStore();
+    await store.dispatch(
+      api.endpoints.getPlanByEmployeeAndWeek.initiate({ employeeId: 'e1', weekStart: '2026-04-27' }),
+    );
+    expect(captured.url).toContain('employeeId=e1');
+    expect(captured.url).toContain('weekStart=2026-04-27');
+  });
+
+  it('createCurrentForMe → POST /api/v1/plans (no body)', async () => {
+    server.use(
+      http.post('http://localhost/api/v1/plans', () =>
+        HttpResponse.json({
+          data: { id: 'p1', employeeId: 'e1', weekStart: '2026-04-27', state: 'DRAFT', version: 0 },
+          meta: {},
+        }),
+      ),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(api.endpoints.createCurrentForMe.initiate());
+    expect(result.data).toMatchObject({ id: 'p1', state: 'DRAFT' });
+  });
+
+  it('updateReflection → PATCH /api/v1/plans/{planId} with reflectionNote body', async () => {
+    const captured: { body?: unknown; planId?: string } = {};
+    server.use(
+      http.patch('http://localhost/api/v1/plans/:planId', async ({ request, params }) => {
+        captured.body = await request.json();
+        captured.planId = params.planId as string;
+        return HttpResponse.json({
+          data: {
+            id: 'p1',
+            employeeId: 'e1',
+            weekStart: '2026-04-27',
+            state: 'DRAFT',
+            version: 1,
+            reflectionNote: 'updated note',
+          },
+          meta: {},
+        });
+      }),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(
+      api.endpoints.updateReflection.initiate({
+        planId: 'p1',
+        body: { reflectionNote: 'updated note' },
+      }),
+    );
+    expect(captured.planId).toBe('p1');
+    expect(captured.body).toMatchObject({ reflectionNote: 'updated note' });
+    expect(result.data).toMatchObject({ id: 'p1', version: 1 });
+  });
+
+  it('getTeam → GET /api/v1/plans/team with managerId + weekStart', async () => {
+    const captured: { url?: string } = {};
+    server.use(
+      http.get('http://localhost/api/v1/plans/team', ({ request }) => {
+        captured.url = request.url;
+        return HttpResponse.json({ data: [], meta: {} });
+      }),
+    );
+    const store = mkStore();
+    await store.dispatch(
+      api.endpoints.getTeam.initiate({ managerId: 'm1', weekStart: '2026-04-27' }),
+    );
+    expect(captured.url).toContain('managerId=m1');
+    expect(captured.url).toContain('weekStart=2026-04-27');
+  });
 });
