@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { configureStore } from '@reduxjs/toolkit';
 import { server } from './setup';
-import { api } from '../api';
+import { API_CONFIG, api } from '../api';
 import { conflictToastSlice } from '../conflictToastSlice';
 
 const mkStore = () =>
@@ -387,7 +387,9 @@ describe('api endpoints', () => {
     expect(captured.id).toBe('dlt-42');
   });
 
-  it('api slice has refetchOnFocus enabled (for Rollup tag freshness)', () => {
-    expect(api.refetchOnFocus).toBe(true);
+  it('api config enables refetchOnFocus and 60s default cache (PRD MVP9 freshness)', () => {
+    expect(API_CONFIG.refetchOnFocus).toBe(true);
+    expect(API_CONFIG.refetchOnReconnect).toBe(true);
+    expect(API_CONFIG.keepUnusedDataFor).toBe(60);
   });
 });

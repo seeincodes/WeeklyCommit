@@ -35,17 +35,20 @@ const baseQueryWithBaseUrl: typeof baseQuery = (args, api, extra) => {
 export const TAGS = ['Plan', 'Commit', 'Review', 'Rollup', 'Audit', 'RCDO'] as const;
 export type Tag = (typeof TAGS)[number];
 
-const apiConfig = {
+// Surfaced for test assertion; spread into createApi below. RTK does not
+// re-expose api-level config on the returned slice, so we keep a named
+// reference to verify the policy at unit-test time.
+export const API_CONFIG = {
   refetchOnFocus: true,
   refetchOnReconnect: true,
   keepUnusedDataFor: 60,
-};
+} as const;
 
-const baseApi = createApi({
+export const api = createApi({
   reducerPath: 'wcApi',
   baseQuery: baseQueryWithBaseUrl,
   tagTypes: [...TAGS],
-  ...apiConfig,
+  ...API_CONFIG,
   endpoints: (build) => ({
     getCurrentForMe: build.query<WeeklyPlanResponse, void>({
       query: () => '/api/v1/plans/me/current',
@@ -204,12 +207,6 @@ const baseApi = createApi({
       }),
     }),
   }),
-});
-
-export const api = Object.assign(baseApi, {
-  refetchOnFocus: apiConfig.refetchOnFocus,
-  refetchOnReconnect: apiConfig.refetchOnReconnect,
-  keepUnusedDataFor: apiConfig.keepUnusedDataFor,
 });
 
 export const {
