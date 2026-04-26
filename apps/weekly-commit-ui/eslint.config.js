@@ -1,0 +1,54 @@
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import globals from 'globals';
+
+/**
+ * ESLint 9 flat config for the weekly-commit remote.
+ *
+ * Hard ignores first, then unconditional base rules, then a file-scoped block for src/.
+ * Config files (`*.config.{js,ts}`) are explicitly ignored because they don't belong to
+ * the typed-parser TS project the recommendedTypeChecked rules require.
+ *
+ * Tech-stack lock per CLAUDE.md: ESLint 9 + typescript-eslint + eslint-plugin-react
+ * + eslint-plugin-react-hooks. Prettier integration runs as a sibling tool (root
+ * .prettierrc.json), not as an ESLint plugin -- avoids the perennial prettier/eslint
+ * formatting conflict by keeping the responsibilities orthogonal.
+ */
+export default tseslint.config(
+  {
+    ignores: ['dist', 'node_modules', '*.config.js', '*.config.ts'],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: globals.browser,
+      parserOptions: {
+        project: ['./tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    settings: {
+      react: { version: '18.3' },
+    },
+    plugins: {
+      react,
+      'react-hooks': reactHooks,
+      'react-refresh': reactRefresh,
+    },
+    rules: {
+      ...react.configs.recommended.rules,
+      ...react.configs['jsx-runtime'].rules,
+      ...reactHooks.configs.recommended.rules,
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // Allow underscored unused args (e.g. event handlers we don't yet wire).
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+);
