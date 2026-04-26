@@ -856,7 +856,13 @@ import type {
   WeeklyPlanResponse,
 } from './types';
 
-const baseUrl = (typeof process !== 'undefined' && process.env?.VITE_API_BASE_URL) || 'http://localhost';
+interface ViteEnv {
+  VITE_API_BASE_URL?: string;
+}
+interface ViteImportMeta extends ImportMeta {
+  env: ViteEnv;
+}
+const baseUrl = (import.meta as ViteImportMeta).env.VITE_API_BASE_URL ?? 'http://localhost';
 
 const baseQuery = withConflictRetry(rawBaseQuery);
 
