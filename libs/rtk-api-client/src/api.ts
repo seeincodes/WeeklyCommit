@@ -15,13 +15,13 @@ import type {
   WeeklyPlanResponse,
 } from './types';
 
-interface ViteEnv {
-  VITE_API_BASE_URL?: string;
-}
-interface ViteImportMeta extends ImportMeta {
-  env: ViteEnv;
-}
-const baseUrl: string = (import.meta as ViteImportMeta).env.VITE_API_BASE_URL ?? 'http://localhost';
+// `import.meta.env` is provided by Vite (and surfaced to vitest via the same
+// transform). Read VITE_API_BASE_URL via a narrow inline cast so this lib
+// doesn't have to add `vite/client` to its tsconfig types — and so it doesn't
+// re-declare `ImportMetaEnv` in a way that would conflict with the consuming
+// app's vite/client typing when typechecked across the workspace.
+const env = (import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }).env;
+const baseUrl: string = env?.VITE_API_BASE_URL ?? 'http://localhost';
 
 const baseQuery = withConflictRetry(rawBaseQuery);
 
