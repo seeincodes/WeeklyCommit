@@ -561,7 +561,7 @@ export function withConflictRetry(
 - [ ] **Step 3: Run the test**
 
 Run: `yarn workspace @wc/rtk-api-client test conflictRetry`
-Expected: 3 passing.
+Expected: 4 passing (Task 4 added a 4th case for double-409 return value during review).
 
 - [ ] **Step 4: Commit (GREEN)**
 

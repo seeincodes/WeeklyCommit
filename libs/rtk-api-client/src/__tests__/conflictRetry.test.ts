@@ -65,6 +65,27 @@ describe('withConflictRetry', () => {
     );
   });
 
+  it('returns the second 409 result if the retry also conflicts', async () => {
+    let calls = 0;
+    server.use(
+      http.post('http://localhost/api/v1/plans/p1/transitions', () => {
+        calls += 1;
+        return HttpResponse.json(
+          { error: { code: 'CONFLICT_OPTIMISTIC_LOCK', message: 'still stale' }, meta: {} },
+          { status: 409 },
+        );
+      }),
+    );
+    const wrapped = withConflictRetry(rawBaseQuery);
+    const result = await wrapped(
+      { url: 'http://localhost/api/v1/plans/p1/transitions', method: 'POST', body: { to: 'LOCKED' } },
+      mkApi(),
+      {},
+    );
+    expect(calls).toBe(2);
+    expect(result.error).toMatchObject({ status: 409, data: { code: 'CONFLICT_OPTIMISTIC_LOCK' } });
+  });
+
   it('passes through non-409 errors without retry or dispatch', async () => {
     let calls = 0;
     server.use(
