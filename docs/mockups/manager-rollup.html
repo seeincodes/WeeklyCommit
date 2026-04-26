@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8" />
+<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+<title>Weekly Commit — Manager Rollup (v1 PRD-aligned)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary-fixed": "#dae1ff",
+          "primary": "#b3c5ff",
+          "primary-container": "#0066ff",
+          "outline-variant": "#424656",
+          "error": "#ffb4ab",
+          "tertiary": "#b7c8e1",
+          "on-background": "#d8e3fb",
+          "surface-container-low": "#111c2d",
+          "background": "#081425",
+          "surface": "#081425",
+          "outline": "#8c90a1",
+          "surface-container": "#152031",
+          "surface-variant": "#2a3548",
+          "on-surface": "#d8e3fb",
+          "on-surface-variant": "#c2c6d8",
+          "surface-container-lowest": "#040e1f",
+        },
+        borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
+        spacing: { "container-max": "1440px", gutter: "24px", "density-comfortable": "16px", margin: "32px" },
+        fontFamily: { "label-md": ["Inter"], "mono-data": ["monospace"], "body-lg": ["Inter"], "headline-md": ["Inter"], "headline-xl": ["Inter"], "headline-lg": ["Inter"], "body-md": ["Inter"] },
+        fontSize: {
+          "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" }],
+          "mono-data": ["13px", { lineHeight: "18px", fontWeight: "400" }],
+          "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+          "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+          "headline-xl": ["36px", { lineHeight: "44px", letterSpacing: "-0.02em", fontWeight: "700" }],
+          "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+          "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  .glass-card {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  }
+  .inner-glow { box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1); }
+  .material-symbols-outlined { font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
+  .state-marker {
+    border: 1px dashed rgba(179, 197, 255, 0.3);
+    border-radius: 0.5rem;
+    padding: 8px 12px;
+    background: rgba(179, 197, 255, 0.04);
+  }
+  .flag-chip { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .flag-stuck { background: rgba(255, 180, 171, 0.1); border: 1px solid rgba(255, 180, 171, 0.35); color: #ffb4ab; }
+  .flag-unreviewed { background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.35); color: #fbbf24; }
+  .flag-no-rock { background: rgba(140, 144, 161, 0.1); border: 1px solid rgba(140, 144, 161, 0.4); color: #c2c6d8; }
+  .flag-no-reflection { background: rgba(183, 200, 225, 0.06); border: 1px solid rgba(183, 200, 225, 0.3); color: #b7c8e1; }
+</style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen">
+
+<!-- DESIGN-INTENT HEADER -->
+<div class="bg-primary-container/10 border-b border-primary-container/30 px-8 py-4 text-sm">
+  <div class="max-w-container-max mx-auto flex items-start gap-4">
+    <span class="material-symbols-outlined text-primary mt-0.5">design_services</span>
+    <div class="flex-1">
+      <p class="font-bold text-primary uppercase tracking-widest text-[11px] mb-1">Reference mockup — Manager rollup + IC deep-dive (v1 PRD-aligned)</p>
+      <p class="text-on-surface-variant">Two surfaces shown: <span class="text-white font-semibold">Team rollup</span> (flagged-first member cards) and <span class="text-white font-semibold">IC drawer</span> (overlay; preserves rollup context). Routes: <span class="font-mono-data">/weekly-commit/team</span> · <span class="font-mono-data">/weekly-commit/team/:employeeId</span>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TopAppBar -->
+<header class="sticky top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-slate-950/70 backdrop-blur-md border-b border-white/5">
+  <div class="flex items-center gap-8">
+    <span class="text-base font-semibold tracking-tight text-white">Performance Assessment <span class="text-slate-500 font-normal">/</span> <span class="text-primary">Weekly Commit</span></span>
+    <nav class="hidden md:flex gap-6 text-sm">
+      <a class="text-slate-400 hover:text-white" href="#">Current week</a>
+      <a class="text-slate-400 hover:text-white" href="#">History</a>
+      <a class="text-blue-400 font-semibold" href="#">My team</a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-4">
+    <span class="material-symbols-outlined text-slate-400 p-2 rounded-full hover:bg-white/5 cursor-pointer">notifications</span>
+    <img alt="Manager avatar" class="w-8 h-8 rounded-full border border-white/10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLW_wguMCdDPh1euHXRLDzZUzuZ6EeGdrrxQiEFs-qVJnRdvpy4u9i7nLxKEAVtELnt8Ul0gKm0C3ikNMozHI1Fn10FRyKvrLNvK5zeGexCpvLgx-hicink0d5y5yggEEVoeWkIu9Hceu_cQyUlL9Tb7Zjhs4XvZMvVILIIdxon0OAcQYr1TE6wjEwDPcYes7dJFi6SGMDLIvTezFascJKrWyVO3KkvBU5tofvn5Vhs25dgkYW1kiFHNzEMH07f6T7ti5dnVugcES5" />
+  </div>
+</header>
+
+<main class="px-8 py-margin space-y-margin">
+
+  <!-- ============================================================ -->
+  <!-- SURFACE 1: Team rollup                                       -->
+  <!-- PRD: MVP9 — alignment %, completion %, tier distribution,    -->
+  <!-- per-member cards, flagged-first ordering                     -->
+  <!-- ============================================================ -->
+  <section class="max-w-container-max mx-auto space-y-6">
+    <div class="state-marker mb-2 inline-flex items-center gap-2">
+      <span class="text-[10px] font-bold tracking-widest text-primary uppercase">Surface 1</span>
+      <span class="text-xs text-on-surface-variant">/weekly-commit/team — manager-only (RBAC: roles ⊇ MANAGER)</span>
+    </div>
+
+    <!-- Header strip -->
+    <div class="flex justify-between items-end">
+      <div class="space-y-1">
+        <div class="flex items-center gap-3 text-sm">
+          <span class="material-symbols-outlined text-primary text-base">groups</span>
+          <span class="font-label-md text-on-surface-variant uppercase tracking-widest">Team rollup</span>
+        </div>
+        <h1 class="font-headline-xl text-headline-xl text-white">My team this week</h1>
+        <p class="text-on-surface-variant text-sm">Week of Apr 27 – May 3 · 9 direct reports</p>
+      </div>
+      <div class="flex gap-3">
+        <select class="px-4 py-2 bg-surface-container border border-outline-variant text-on-surface rounded-lg text-sm focus:outline-none">
+          <option>Week of Apr 27 – May 3</option>
+          <option>Week of Apr 20 – Apr 26</option>
+          <option>Week of Apr 13 – Apr 19</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Headline aggregates: alignment, completion, tier shape, action queue -->
+    <div class="grid grid-cols-12 gap-6">
+
+      <!-- Alignment % -->
+      <div class="col-span-12 md:col-span-3 glass-card rounded-xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Alignment</span>
+          <span class="material-symbols-outlined text-primary text-base">conversion_path</span>
+        </div>
+        <div class="text-4xl font-bold text-white tracking-tight">94%</div>
+        <p class="text-xs text-slate-500 mt-1 font-mono-data">commits with linked Supporting Outcome</p>
+        <div class="w-full bg-slate-800 h-1 rounded-full overflow-hidden mt-4">
+          <div class="bg-primary-container h-full" style="width: 94%"></div>
+        </div>
+      </div>
+
+      <!-- Completion % -->
+      <div class="col-span-12 md:col-span-3 glass-card rounded-xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Completion</span>
+          <span class="material-symbols-outlined text-emerald-400 text-base">task_alt</span>
+        </div>
+        <div class="text-4xl font-bold text-white tracking-tight">71%</div>
+        <p class="text-xs text-slate-500 mt-1 font-mono-data">DONE / (DONE + PARTIAL + MISSED)</p>
+        <div class="flex gap-1 mt-4">
+          <div class="h-1 bg-emerald-400 rounded-full" style="flex: 71"></div>
+          <div class="h-1 bg-amber-400 rounded-full" style="flex: 18"></div>
+          <div class="h-1 bg-error rounded-full" style="flex: 11"></div>
+        </div>
+      </div>
+
+      <!-- Tier distribution (Rock/Pebble/Sand — the REAL taxonomy, not R/C/D) -->
+      <div class="col-span-12 md:col-span-3 glass-card rounded-xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tier shape</span>
+          <span class="material-symbols-outlined text-tertiary text-base">stacks</span>
+        </div>
+        <div class="flex items-end gap-3 h-16">
+          <div class="flex-1 flex flex-col items-center gap-1">
+            <div class="bg-primary-container/60 border-t border-primary-container w-full rounded-t" style="height: 100%"></div>
+            <span class="text-[10px] text-primary font-mono-data">12 Rock</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1">
+            <div class="bg-tertiary/40 border-t border-tertiary w-full rounded-t" style="height: 70%"></div>
+            <span class="text-[10px] text-tertiary font-mono-data">18 Pebble</span>
+          </div>
+          <div class="flex-1 flex flex-col items-center gap-1">
+            <div class="bg-slate-700 border-t border-slate-600 w-full rounded-t" style="height: 45%"></div>
+            <span class="text-[10px] text-slate-400 font-mono-data">9 Sand</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action queue (the manager's job: review + flagged ICs) -->
+      <div class="col-span-12 md:col-span-3 glass-card rounded-xl p-6 border-amber-400/20">
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Needs you</span>
+          <span class="material-symbols-outlined text-amber-300 text-base" style="font-variation-settings: 'FILL' 1;">priority_high</span>
+        </div>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-on-surface-variant">Unreviewed &gt; 72h</span><span class="text-amber-300 font-mono-data font-bold">2</span></div>
+          <div class="flex justify-between"><span class="text-on-surface-variant">Stuck commits</span><span class="text-error font-mono-data font-bold">1</span></div>
+          <div class="flex justify-between"><span class="text-on-surface-variant">No Top Rock</span><span class="text-slate-300 font-mono-data font-bold">1</span></div>
+          <div class="flex justify-between"><span class="text-on-surface-variant">Missing reflection</span><span class="text-tertiary font-mono-data font-bold">2</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Member cards — flagged first -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-headline-lg text-headline-lg text-white">Direct reports</h2>
+        <div class="flex items-center gap-2 text-xs text-slate-500">
+          <span class="material-symbols-outlined text-base">flag</span>
+          <span>Flagged ICs surfaced first</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+        <!-- Card 1: Stuck flag + unreviewed -->
+        <a href="#ic-drawer" class="glass-card rounded-xl p-6 hover:border-primary-container/50 transition-all border-error/20 ring-1 ring-error/10 cursor-pointer">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <img alt="" class="w-10 h-10 rounded-full border border-white/10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD45hrvmG__047vWplurMAujtsEVQlJmOBKeocu02hlODyeufiCBx1voy96BHAdSuRq4IFixvdds27R1AcYT48pDPV6kDNs8HYc5pxDH6moSyE5K6TfEX0iE2-DBmHSLiTjDlIe3JgMKpVztBn2MfZiXeaG15vtdTqnwVsds5lrluGtI0OT3f8m1fgndetYAZ2YMGfDh8PzHQy7K2dfrLxLERWqp7PGU0wP9P8jNsbWMCFwab9KXwVGYk5GTLbBRbtKDJnBN04cI-ZE" />
+              <div>
+                <p class="text-white font-semibold text-sm">Sarah Kim</p>
+                <p class="text-[11px] text-slate-500">Senior Engineer · RECONCILED</p>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-slate-600">chevron_right</span>
+          </div>
+
+          <!-- Flag chips -->
+          <div class="flex flex-wrap gap-1.5 mb-4">
+            <span class="flag-chip flag-stuck">Stuck · 3×</span>
+            <span class="flag-chip flag-unreviewed">Unreviewed 78h</span>
+          </div>
+
+          <!-- Top Rock -->
+          <div class="bg-amber-400/5 border border-amber-400/20 rounded-lg p-3 mb-3">
+            <div class="text-[9px] font-bold uppercase tracking-widest text-amber-300 mb-1">★ Top Rock</div>
+            <p class="text-sm text-white">Refactor auth microservice — SAML / OIDC parity</p>
+          </div>
+
+          <!-- Tier shape -->
+          <div class="flex gap-3 text-[11px] font-mono-data text-slate-400 mb-3">
+            <span><span class="text-primary">●</span> 2 Rock</span>
+            <span><span class="text-tertiary">●</span> 1 Pebble</span>
+            <span><span class="text-slate-500">●</span> 1 Sand</span>
+          </div>
+
+          <!-- Reflection preview ~80 chars -->
+          <p class="text-xs text-slate-400 italic line-clamp-2">"Auth shipped — biggest unblock of the quarter. Lost the EMEA spike to incident work…"</p>
+        </a>
+
+        <!-- Card 2: No Top Rock flag -->
+        <a href="#" class="glass-card rounded-xl p-6 hover:border-primary-container/50 transition-all border-slate-500/15 cursor-pointer">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <img alt="" class="w-10 h-10 rounded-full border border-white/10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRWEyF2k1pR3ZSJsc1HDsgG_8PH_ev4MHq2SJ-XL_ydb0xPhxc_J18CGXHHO9508qcrxXRVgAImx7QveGaJwNYooSU24hGHoFSJmGM8rPsg6R8FeXapruyQXFswrNp_a36Xu_t9ihtRQziIbfsPE8aMkXJgemJ-GAuiECnMbYFNSaonvgidTSS7ZpBFBsEEGuEESP-_CV-JUUq4KZFmvE13aocVXbhxlkbwWVZjkojHez5uXZN5420n_X_F5qwYkGSdyuP73vxCsla" />
+              <div>
+                <p class="text-white font-semibold text-sm">James Doe</p>
+                <p class="text-[11px] text-slate-500">Engineer · LOCKED (reconcile open)</p>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-slate-600">chevron_right</span>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5 mb-4">
+            <span class="flag-chip flag-no-rock">No Top Rock</span>
+            <span class="flag-chip flag-no-reflection">No reflection yet</span>
+          </div>
+
+          <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-3 mb-3 text-center">
+            <p class="text-xs text-slate-500 italic">No Rock-tier commit on this plan.</p>
+          </div>
+
+          <div class="flex gap-3 text-[11px] font-mono-data text-slate-400 mb-3">
+            <span><span class="text-primary">●</span> 0 Rock</span>
+            <span><span class="text-tertiary">●</span> 3 Pebble</span>
+            <span><span class="text-slate-500">●</span> 2 Sand</span>
+          </div>
+
+          <p class="text-xs text-slate-600 italic">Reflection not yet written.</p>
+        </a>
+
+        <!-- Card 3: Unreviewed only -->
+        <a href="#" class="glass-card rounded-xl p-6 hover:border-primary-container/50 transition-all border-amber-400/20 cursor-pointer">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <img alt="" class="w-10 h-10 rounded-full border border-white/10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABWO4d1ditlgS7pF03SqW_75_kj6kRqGilcXJ1HUac8_CHwKk0-8DaLgppGP6Pr2ltM76VAYDDhq3JiM-R2Ihr6Hmbul9ROIIZVhGy_ynVGAlyA2xsB1ex5k_sq2tRpP7gP3d8nTTVv3-qT7gcRRwyDnDrC-Swp33uEYqoLG-RXuEqjiW_KqzoThRoViU_7ikE4d0e2cPxNpUulMOeNZj0gJpJ20J5jp04w-SpJJV3QcuGcavk0ltilJrEI3pcBiAof9NHQLyM3kUI" />
+              <div>
+                <p class="text-white font-semibold text-sm">Maya Tanaka</p>
+                <p class="text-[11px] text-slate-500">Staff Engineer · RECONCILED</p>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-slate-600">chevron_right</span>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5 mb-4">
+            <span class="flag-chip flag-unreviewed">Unreviewed 73h</span>
+          </div>
+
+          <div class="bg-amber-400/5 border border-amber-400/20 rounded-lg p-3 mb-3">
+            <div class="text-[9px] font-bold uppercase tracking-widest text-amber-300 mb-1">★ Top Rock</div>
+            <p class="text-sm text-white">Land RCDO contract spike — captured response shape</p>
+          </div>
+
+          <div class="flex gap-3 text-[11px] font-mono-data text-slate-400 mb-3">
+            <span><span class="text-primary">●</span> 1 Rock</span>
+            <span><span class="text-tertiary">●</span> 2 Pebble</span>
+            <span><span class="text-slate-500">●</span> 1 Sand</span>
+          </div>
+
+          <p class="text-xs text-slate-400 italic line-clamp-2">"Spike landed; ADR-0001 needs validation against the real RCDO service before we ship group 7."</p>
+        </a>
+
+        <!-- Card 4: Healthy -->
+        <a href="#" class="glass-card rounded-xl p-6 hover:border-primary-container/50 transition-all cursor-pointer">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <img alt="" class="w-10 h-10 rounded-full border border-white/10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAX3mFClQCZ3pObOEwro4ADgko6eXLp5pyK9_NfWZNJVVCFxH8xbvxnDEyYMchddfQcfQU8L55R7IJmxyCLTmgm7llBZZU6Dl_P-MZR4lH8QcyHlauUht8Fu8ErSbcO-9k8p-3OQ8SrBzATtJYIUh386w0gbF1-kKmvscdzA7VgYLBxu-XTCYdq7UHq61KVJl0Mo25MApBg0_t2fJh4YYbChNagoNDG5mUhS6e-oxnBPJl7r1y4QPFJmKsIdEMib5Sn67hCBPpy-rv1" />
+              <div>
+                <p class="text-white font-semibold text-sm">Marco Rossi</p>
+                <p class="text-[11px] text-slate-500">Engineer · RECONCILED · reviewed</p>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-slate-600">chevron_right</span>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5 mb-4">
+            <span class="flag-chip" style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); color: #34d399;">All clear</span>
+          </div>
+
+          <div class="bg-amber-400/5 border border-amber-400/20 rounded-lg p-3 mb-3">
+            <div class="text-[9px] font-bold uppercase tracking-widest text-amber-300 mb-1">★ Top Rock</div>
+            <p class="text-sm text-white">Ship EMEA onboarding A/B variant B</p>
+          </div>
+
+          <div class="flex gap-3 text-[11px] font-mono-data text-slate-400 mb-3">
+            <span><span class="text-primary">●</span> 1 Rock</span>
+            <span><span class="text-tertiary">●</span> 2 Pebble</span>
+            <span><span class="text-slate-500">●</span> 0 Sand</span>
+          </div>
+
+          <p class="text-xs text-slate-400 italic line-clamp-2">"A/B test moved variant B to 50% traffic; metrics looking clean. Pairing with @sarah_k unblocked spike."</p>
+        </a>
+
+        <!-- Card 5: DRAFT (week not locked yet) -->
+        <a href="#" class="glass-card rounded-xl p-6 hover:border-primary-container/50 transition-all opacity-80 cursor-pointer">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <img alt="" class="w-10 h-10 rounded-full border border-white/10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaIVeA0fpymmirg9lZ6_N1bUXrIoI6XRi1mNzd5XgS0LUkfLN_H0-eianQdys0fLAskdb_5ynsk33PzhL4e6p2Df21g-vJbcyVE3ZWzw4OjQ06D-1hKqD9dHtYlcpEnDuDiFqjgRHn1oD0tirO1zeSr2vzTJMkBywKLF0UyGv_Nui7RhemXT_lMlYd81GPcnhs2wHLWtWWsMvwVnqC2wP9YvR0KKOJsI0dyO11ltbi8OdJoA9UsZpjGiQnM8w8gKV83jH7cQz5xH7l" />
+              <div>
+                <p class="text-white font-semibold text-sm">Priya Patel</p>
+                <p class="text-[11px] text-slate-500">Engineer · DRAFT — locks Friday</p>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-slate-600">chevron_right</span>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5 mb-4">
+            <span class="flag-chip" style="background: rgba(179, 197, 255, 0.06); border: 1px solid rgba(179, 197, 255, 0.3); color: #b3c5ff;">In progress</span>
+          </div>
+
+          <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-3 mb-3 text-center">
+            <p class="text-xs text-slate-500 italic">Plan still in DRAFT — top Rock not finalized.</p>
+          </div>
+
+          <div class="flex gap-3 text-[11px] font-mono-data text-slate-400">
+            <span><span class="text-primary">●</span> 1 Rock</span>
+            <span><span class="text-tertiary">●</span> 2 Pebble</span>
+            <span><span class="text-slate-500">●</span> 1 Sand</span>
+          </div>
+        </a>
+
+        <!-- Card 6: No plan yet -->
+        <a href="#" class="glass-card rounded-xl p-6 hover:border-primary-container/50 transition-all opacity-60 cursor-pointer">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 font-bold">DG</div>
+              <div>
+                <p class="text-white font-semibold text-sm">David Garcia</p>
+                <p class="text-[11px] text-slate-500">Engineer · No plan this week</p>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-slate-600">chevron_right</span>
+          </div>
+          <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-3 text-center">
+            <p class="text-xs text-slate-500">No WeeklyPlan created. Will surface in admin unassigned report if persistent.</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- byOutcome aggregation -->
+    <!-- NOTE: PRD MVP9 includes byOutcome aggregator. Per TASK_LIST group 6, -->
+    <!-- byOutcome is deferred until group 7's RcdoClient lands. Render with  -->
+    <!-- a "data pending" empty state until the RCDO metadata is hydrate-able.-->
+    <div class="glass-card rounded-xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-headline-md text-headline-md text-white">By Supporting Outcome</h3>
+        <span class="text-[10px] text-slate-500 uppercase tracking-widest">commits linked across the team</span>
+      </div>
+      <div class="space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="flex-1">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-on-surface">SAML + OIDC parity <span class="text-[10px] text-slate-500 font-mono-data">SO_24</span></span>
+              <span class="text-slate-400 font-mono-data">3 commits · 2 ICs</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden"><div class="bg-primary-container h-full" style="width: 33%"></div></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex-1">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-on-surface">Dev velocity <span class="text-[10px] text-slate-500 font-mono-data">SO_31</span></span>
+              <span class="text-slate-400 font-mono-data">2 commits · 2 ICs</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden"><div class="bg-tertiary h-full" style="width: 22%"></div></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex-1">
+            <div class="flex justify-between text-sm mb-1">
+              <span class="text-on-surface">EMEA expansion readiness <span class="text-[10px] text-slate-500 font-mono-data">SO_47</span></span>
+              <span class="text-slate-400 font-mono-data">2 commits · 2 ICs</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden"><div class="bg-tertiary h-full" style="width: 22%"></div></div>
+          </div>
+        </div>
+      </div>
+      <p class="text-[10px] text-slate-600 mt-4 font-mono-data">Pending: full RCDO ancestry hydration arrives with group-7 RcdoClient.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- SURFACE 2: IC Drawer (deep-dive overlay)                     -->
+  <!-- PRD: MVP10 — full week, full reflection, commit history with -->
+  <!-- streak chains, single plan-level comment field, ack action   -->
+  <!-- ============================================================ -->
+  <section id="ic-drawer" class="max-w-container-max mx-auto pt-8">
+    <div class="state-marker mb-4 inline-flex items-center gap-2">
+      <span class="text-[10px] font-bold tracking-widest text-primary uppercase">Surface 2</span>
+      <span class="text-xs text-on-surface-variant">/weekly-commit/team/sarah_k — IC drawer overlay (preserves rollup context behind)</span>
+    </div>
+
+    <!-- Drawer container (right-side, ~720px wide in production) -->
+    <div class="glass-card rounded-xl overflow-hidden">
+
+      <!-- Drawer header -->
+      <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-slate-900/40">
+        <div class="flex items-center gap-3">
+          <button class="material-symbols-outlined text-slate-400 hover:text-white">arrow_back</button>
+          <img alt="" class="w-8 h-8 rounded-full border border-white/10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD45hrvmG__047vWplurMAujtsEVQlJmOBKeocu02hlODyeufiCBx1voy96BHAdSuRq4IFixvdds27R1AcYT48pDPV6kDNs8HYc5pxDH6moSyE5K6TfEX0iE2-DBmHSLiTjDlIe3JgMKpVztBn2MfZiXeaG15vtdTqnwVsds5lrluGtI0OT3f8m1fgndetYAZ2YMGfDh8PzHQy7K2dfrLxLERWqp7PGU0wP9P8jNsbWMCFwab9KXwVGYk5GTLbBRbtKDJnBN04cI-ZE" />
+          <div>
+            <p class="text-white font-semibold text-sm">Sarah Kim</p>
+            <p class="text-[11px] text-slate-500">Senior Engineer · Week of Apr 27 – May 3</p>
+          </div>
+        </div>
+        <button class="material-symbols-outlined text-slate-500 hover:text-white">close</button>
+      </div>
+
+      <div class="grid grid-cols-12">
+
+        <!-- Left: full plan -->
+        <div class="col-span-12 lg:col-span-8 p-6 space-y-6 border-r border-white/5">
+
+          <!-- State + flags -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-2 py-1 bg-emerald-500/10 text-emerald-300 text-[10px] font-bold uppercase rounded-sm border border-emerald-500/30 tracking-widest">RECONCILED</span>
+            <span class="text-xs text-slate-500">Submitted 2026-05-03 18:12 UTC · 78h ago</span>
+            <span class="flag-chip flag-stuck ml-auto">Stuck · 3×</span>
+            <span class="flag-chip flag-unreviewed">Unreviewed 78h</span>
+          </div>
+
+          <!-- Top Rock callout -->
+          <div class="bg-amber-400/5 border border-amber-400/30 rounded-lg p-4">
+            <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-2">
+              <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">grade</span>
+              Top Rock
+            </div>
+            <p class="text-white text-base">Refactor auth microservice — SAML / OIDC parity</p>
+          </div>
+
+          <!-- Full reflection (no truncation in drawer) -->
+          <div>
+            <h4 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Reflection (full)</h4>
+            <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-4 text-sm text-on-surface-variant italic leading-relaxed">
+              "Auth shipped — biggest unblock of the quarter. Lost the EMEA spike to incident work; need to renegotiate whether that's still mine next week vs. handing it to @sarah_k. Pipeline work needs a focus block, not stolen hours."
+            </div>
+          </div>
+
+          <!-- Commits with reconciliation outcomes + carry-forward streak chains -->
+          <div>
+            <h4 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Commits (4)</h4>
+            <div class="space-y-2">
+
+              <!-- Commit + 3-week streak chain -->
+              <div class="border border-slate-800 rounded-lg overflow-hidden">
+                <div class="p-4 flex items-start justify-between gap-4">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-1">
+                      <span class="px-1.5 py-0.5 bg-amber-400/10 text-amber-300 text-[10px] font-bold uppercase rounded-sm border border-amber-400/40">★ Top Rock</span>
+                      <span class="px-1.5 py-0.5 bg-primary-container/15 border border-primary-container/45 text-primary text-[10px] font-bold uppercase rounded-sm tracking-wider">Rock</span>
+                      <span class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-300 text-[10px] font-bold uppercase rounded-sm border border-emerald-500/30">Done</span>
+                    </div>
+                    <p class="text-white text-sm">Refactor auth microservice — SAML / OIDC parity</p>
+                    <p class="text-xs text-slate-500 mt-1">Linked: <span class="text-slate-300">SAML + OIDC parity</span> · planned 12h</p>
+                    <p class="text-xs text-slate-400 mt-2 italic">Actual: "Shipped on Thursday — SAML + OIDC parity validated against the test IDP harness."</p>
+                  </div>
+                </div>
+                <!-- Streak chain visualization -->
+                <div class="px-4 pb-3 pt-1 bg-slate-950/50 border-t border-slate-800">
+                  <div class="flex items-center gap-2 text-[10px]">
+                    <span class="text-slate-600 uppercase tracking-widest font-bold">Carry chain</span>
+                    <span class="px-2 py-0.5 bg-slate-800 text-slate-400 rounded font-mono-data">Apr 13 · MISSED</span>
+                    <span class="material-symbols-outlined text-[14px] text-slate-700">arrow_forward</span>
+                    <span class="px-2 py-0.5 bg-slate-800 text-slate-400 rounded font-mono-data">Apr 20 · PARTIAL</span>
+                    <span class="material-symbols-outlined text-[14px] text-slate-700">arrow_forward</span>
+                    <span class="px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 rounded font-mono-data font-bold">Apr 27 · DONE ★</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Other commits collapsed -->
+              <div class="border border-slate-800 rounded-lg p-3 flex items-center gap-3">
+                <span class="px-1.5 py-0.5 bg-primary-container/15 border border-primary-container/45 text-primary text-[10px] font-bold uppercase rounded-sm tracking-wider">Rock</span>
+                <span class="px-1.5 py-0.5 bg-amber-500/10 text-amber-300 text-[10px] font-bold uppercase rounded-sm border border-amber-500/30">Partial</span>
+                <p class="flex-1 text-sm text-slate-300 truncate">CI/CD pipeline — cut staging build time 20%</p>
+                <span class="text-[10px] text-amber-400 font-mono-data">carried 2× · would stick</span>
+              </div>
+              <div class="border border-slate-800 rounded-lg p-3 flex items-center gap-3">
+                <span class="px-1.5 py-0.5 bg-tertiary/20 border border-tertiary/45 text-tertiary text-[10px] font-bold uppercase rounded-sm tracking-wider">Pebble</span>
+                <span class="px-1.5 py-0.5 bg-error/15 border border-error/35 text-error text-[10px] font-bold uppercase rounded-sm">Missed</span>
+                <p class="flex-1 text-sm text-slate-300 truncate">Pair with @m_rossi on EMEA onboarding spike</p>
+              </div>
+              <div class="border border-slate-800 rounded-lg p-3 flex items-center gap-3">
+                <span class="px-1.5 py-0.5 bg-slate-700/30 border border-slate-600/40 text-slate-400 text-[10px] font-bold uppercase rounded-sm tracking-wider">Sand</span>
+                <span class="px-1.5 py-0.5 bg-emerald-500/10 text-emerald-300 text-[10px] font-bold uppercase rounded-sm border border-emerald-500/30">Done</span>
+                <p class="flex-1 text-sm text-slate-300 truncate">Triage P3 backlog — 1 hour daily</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: manager review pane -->
+        <aside class="col-span-12 lg:col-span-4 p-6 space-y-6 bg-slate-950/30">
+          <div>
+            <h4 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Plan-level comment</h4>
+            <p class="text-xs text-slate-500 mb-3">One comment per plan. Saved on submit and visible to the IC.</p>
+            <textarea class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg p-3 text-sm text-on-surface placeholder:text-slate-600 focus:outline-none focus:border-primary-container/60 resize-none" rows="6" placeholder="What's the right thing to surface to Sarah here?">Auth shipping is huge — well done. The pipeline work needs to come off your plate or get a real focus block. Let's pair on that Tuesday and I'll absorb the EMEA spike for next week.</textarea>
+          </div>
+
+          <div class="space-y-3">
+            <button class="w-full px-4 py-3 bg-primary-container text-white rounded-lg font-semibold text-sm hover:bg-blue-500 inner-glow">
+              <span class="material-symbols-outlined text-base align-middle mr-2">check_circle</span>
+              Acknowledge &amp; post comment
+            </button>
+            <p class="text-[10px] text-slate-600 text-center font-mono-data">sets managerReviewedAt · clears unreviewed-72h flag</p>
+          </div>
+
+          <!-- Audit trail link (PRD MVP17) -->
+          <div class="border-t border-slate-800 pt-4">
+            <a class="flex items-center gap-2 text-xs text-slate-500 hover:text-primary" href="#">
+              <span class="material-symbols-outlined text-base">history</span>
+              View audit log for this plan
+            </a>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="border-t border-white/5 mt-margin px-8 py-6 text-xs text-slate-600 flex justify-between max-w-container-max mx-auto">
+  <span>Reference mockup · v1 PRD-aligned · MANAGER role required</span>
+  <span class="font-mono-data">GET /rollup/team · GET /plans/{id} · POST /plans/{id}/reviews</span>
+</footer>
+</body>
+</html>

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8" />
+<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+<title>Weekly Commit — IC Planning (v1 PRD-aligned)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary-fixed": "#dae1ff",
+          "primary": "#b3c5ff",
+          "primary-container": "#0066ff",
+          "on-error-container": "#ffdad6",
+          "surface-container-high": "#1f2a3c",
+          "error-container": "#93000a",
+          "outline-variant": "#424656",
+          "on-secondary-container": "#adb4ce",
+          "error": "#ffb4ab",
+          "tertiary": "#b7c8e1",
+          "on-background": "#d8e3fb",
+          "surface-container-low": "#111c2d",
+          "background": "#081425",
+          "surface": "#081425",
+          "on-tertiary-container": "#f6f8ff",
+          "outline": "#8c90a1",
+          "surface-container": "#152031",
+          "surface-variant": "#2a3548",
+          "on-primary-container": "#f8f7ff",
+          "on-secondary": "#283044",
+          "surface-container-lowest": "#040e1f",
+          "on-tertiary": "#213145",
+          "secondary-container": "#3f465c",
+          "on-surface": "#d8e3fb",
+          "on-surface-variant": "#c2c6d8",
+        },
+        borderRadius: {
+          DEFAULT: "0.125rem",
+          lg: "0.25rem",
+          xl: "0.5rem",
+          full: "0.75rem",
+        },
+        spacing: {
+          "container-max": "1440px",
+          gutter: "24px",
+          "density-compact": "8px",
+          unit: "4px",
+          "density-comfortable": "16px",
+          margin: "32px",
+        },
+        fontFamily: {
+          "label-md": ["Inter"],
+          "mono-data": ["monospace"],
+          "body-lg": ["Inter"],
+          "headline-md": ["Inter"],
+          "headline-xl": ["Inter"],
+          "headline-lg": ["Inter"],
+          "body-md": ["Inter"],
+        },
+        fontSize: {
+          "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "500" }],
+          "mono-data": ["13px", { lineHeight: "18px", fontWeight: "400" }],
+          "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+          "headline-md": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+          "headline-xl": ["36px", { lineHeight: "44px", letterSpacing: "-0.02em", fontWeight: "700" }],
+          "headline-lg": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+          "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  .glass-card {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  }
+  .inner-glow {
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  }
+  .zebra-row:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+  .material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  }
+  .state-marker {
+    border: 1px dashed rgba(179, 197, 255, 0.3);
+    border-radius: 0.5rem;
+    padding: 8px 12px;
+    background: rgba(179, 197, 255, 0.04);
+  }
+  .tier-rock {
+    background: rgba(0, 102, 255, 0.15);
+    border: 1px solid rgba(0, 102, 255, 0.45);
+    color: #b3c5ff;
+  }
+  .tier-pebble {
+    background: rgba(183, 200, 225, 0.1);
+    border: 1px solid rgba(183, 200, 225, 0.35);
+    color: #b7c8e1;
+  }
+  .tier-sand {
+    background: rgba(140, 144, 161, 0.08);
+    border: 1px solid rgba(140, 144, 161, 0.3);
+    color: #8c90a1;
+  }
+</style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen">
+<!-- DESIGN-INTENT HEADER (not part of the production UI; a reading aid for reviewers) -->
+<div class="bg-primary-container/10 border-b border-primary-container/30 px-8 py-4 text-sm">
+  <div class="max-w-container-max mx-auto flex items-start gap-4">
+    <span class="material-symbols-outlined text-primary mt-0.5">design_services</span>
+    <div class="flex-1">
+      <p class="font-bold text-primary uppercase tracking-widest text-[11px] mb-1">Reference mockup — Weekly Commit IC view (v1 PRD-aligned)</p>
+      <p class="text-on-surface-variant">Five state variants below: <span class="text-white font-semibold">Blank</span> · <span class="text-white font-semibold">DRAFT</span> · <span class="text-white font-semibold">LOCKED (pre-day-4 read-only)</span> · <span class="text-white font-semibold">LOCKED (reconciliation mode)</span> · <span class="text-white font-semibold">RECONCILED</span>. Production renders one at a time per the WeeklyPlanStateMachine.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TopAppBar (host shell — neutral, no STRATOS branding; the host owns brand) -->
+<header class="sticky top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-slate-950/70 backdrop-blur-md border-b border-white/5">
+  <div class="flex items-center gap-8">
+    <span class="text-base font-semibold tracking-tight text-white">Performance Assessment <span class="text-slate-500 font-normal">/</span> <span class="text-primary">Weekly Commit</span></span>
+    <nav class="hidden md:flex gap-6 text-sm">
+      <a class="text-blue-400 font-semibold" href="#">Current week</a>
+      <a class="text-slate-400 hover:text-white" href="#">History</a>
+      <a class="text-slate-400 hover:text-white" href="#">My team</a>
+    </nav>
+  </div>
+  <div class="flex items-center gap-4">
+    <span class="material-symbols-outlined text-slate-400 p-2 rounded-full hover:bg-white/5 cursor-pointer">notifications</span>
+    <img alt="User avatar" class="w-8 h-8 rounded-full border border-white/10" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBLW_wguMCdDPh1euHXRLDzZUzuZ6EeGdrrxQiEFs-qVJnRdvpy4u9i7nLxKEAVtELnt8Ul0gKm0C3ikNMozHI1Fn10FRyKvrLNvK5zeGexCpvLgx-hicink0d5y5yggEEVoeWkIu9Hceu_cQyUlL9Tb7Zjhs4XvZMvVILIIdxon0OAcQYr1TE6wjEwDPcYes7dJFi6SGMDLIvTezFascJKrWyVO3KkvBU5tofvn5Vhs25dgkYW1kiFHNzEMH07f6T7ti5dnVugcES5" />
+  </div>
+</header>
+
+<main class="px-8 py-margin space-y-margin">
+
+  <!-- ============================================================ -->
+  <!-- STATE 1: BLANK (no plan exists; explicit POST /plans CTA)    -->
+  <!-- PRD: MVP1, MEMO decision #10                                 -->
+  <!-- ============================================================ -->
+  <section class="max-w-container-max mx-auto">
+    <div class="state-marker mb-4 inline-flex items-center gap-2">
+      <span class="text-[10px] font-bold tracking-widest text-primary uppercase">State 1</span>
+      <span class="text-xs text-on-surface-variant">Blank — no plan exists for this week</span>
+    </div>
+    <div class="glass-card rounded-xl p-12 text-center max-w-2xl mx-auto">
+      <div class="w-16 h-16 mx-auto bg-primary-container/10 rounded-xl flex items-center justify-center mb-6 border border-primary-container/30">
+        <span class="material-symbols-outlined text-primary text-3xl">edit_calendar</span>
+      </div>
+      <h2 class="font-headline-lg text-headline-lg text-white mb-2">Start your week</h2>
+      <p class="text-on-surface-variant mb-1">Week of Mon Apr 27 – Sun May 3, 2026</p>
+      <p class="text-slate-500 text-sm mb-8 max-w-md mx-auto">Plan 3–7 commits and link each to one Supporting Outcome. Lock by Friday end-of-day; reconcile from the following Friday.</p>
+      <button class="px-6 py-3 bg-primary-container text-white rounded-lg font-semibold hover:bg-blue-500 transition-all inner-glow active:scale-95">
+        Create plan
+      </button>
+      <p class="text-[11px] text-slate-600 mt-4 font-mono-data">POST /plans · idempotent on (employeeId, weekStart)</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- STATE 2: DRAFT (editable; lock CTA available)                -->
+  <!-- PRD: MVP2, MVP4, MVP21                                       -->
+  <!-- ============================================================ -->
+  <section class="max-w-container-max mx-auto">
+    <div class="state-marker mb-4 inline-flex items-center gap-2">
+      <span class="text-[10px] font-bold tracking-widest text-primary uppercase">State 2</span>
+      <span class="text-xs text-on-surface-variant">DRAFT — editable, lock by Friday EOD</span>
+    </div>
+
+    <!-- Header strip: state badge + week + lock CTA -->
+    <div class="flex justify-between items-end mb-8">
+      <div class="space-y-1">
+        <div class="flex items-center gap-3">
+          <span class="px-2 py-1 bg-amber-500/10 text-amber-400 text-[10px] font-bold uppercase rounded-sm border border-amber-500/30 tracking-widest">DRAFT</span>
+          <span class="text-on-surface-variant text-sm">Lock by <span class="text-white font-semibold">Fri May 1, 5:00 PM PT</span> · auto-lock at midnight</span>
+        </div>
+        <h1 class="font-headline-xl text-headline-xl text-white">Week of Apr 27 – May 3</h1>
+      </div>
+      <div class="flex gap-3">
+        <button class="px-4 py-2 bg-surface-container border border-outline-variant text-on-surface rounded-lg font-label-md text-label-md hover:bg-surface-container-high">View previous week</button>
+        <button class="px-4 py-2 bg-primary-container text-white rounded-lg font-semibold text-sm hover:bg-blue-500 transition-all inner-glow">
+          Lock this week
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-12 gap-6">
+
+      <!-- LEFT: RCDO breadcrumb of the SELECTED commit (4 nodes — not 3) -->
+      <aside class="col-span-12 lg:col-span-4 space-y-6">
+        <div class="glass-card rounded-xl p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-headline-md text-headline-md text-white">Why this matters</h3>
+            <span class="material-symbols-outlined text-slate-500 text-sm">help</span>
+          </div>
+          <p class="text-xs text-slate-500 mb-6">Strategic ancestry of the selected commit.</p>
+
+          <div class="flex flex-col gap-6 relative">
+            <div class="absolute left-4 top-2 bottom-2 w-px bg-slate-800"></div>
+
+            <!-- Rally Cry -->
+            <div class="flex gap-4 relative">
+              <div class="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center z-10">
+                <div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+              </div>
+              <div class="flex-1 pt-1">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Rally Cry</p>
+                <p class="text-on-surface text-sm">Become the trusted AI workspace</p>
+              </div>
+            </div>
+
+            <!-- Defining Objective -->
+            <div class="flex gap-4 relative">
+              <div class="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center z-10">
+                <div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+              </div>
+              <div class="flex-1 pt-1">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Defining Objective</p>
+                <p class="text-on-surface text-sm">Ship enterprise-ready auth by Q3</p>
+              </div>
+            </div>
+
+            <!-- Core Outcome -->
+            <div class="flex gap-4 relative">
+              <div class="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center z-10">
+                <div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div>
+              </div>
+              <div class="flex-1 pt-1">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Core Outcome</p>
+                <p class="text-on-surface text-sm">SSO + SCIM provisioning live for top 20 customers</p>
+              </div>
+            </div>
+
+            <!-- Supporting Outcome (the one this commit links to) -->
+            <div class="flex gap-4 relative">
+              <div class="w-8 h-8 rounded-full bg-primary-container border-4 border-slate-950 flex items-center justify-center z-10 shadow-[0_0_15px_rgba(0,102,255,0.4)]">
+                <span class="material-symbols-outlined text-white text-[14px]" style="font-variation-settings: 'FILL' 1;">adjust</span>
+              </div>
+              <div class="flex-1 pt-1">
+                <p class="text-[10px] font-bold text-primary uppercase tracking-widest mb-0.5">Supporting Outcome (linked)</p>
+                <p class="text-white text-sm font-semibold">Auth microservice handles SAML + OIDC parity</p>
+                <p class="text-[10px] text-slate-500 mt-1 font-mono-data">id: outcome_24 · 2 of your teammates also linked here</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reflection card (DRAFT: editable, lives on the plan, ≤500 chars) -->
+        <div class="glass-card rounded-xl p-6">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-headline-md text-headline-md text-white">Reflection note</h3>
+            <span class="text-[10px] text-slate-500 font-mono-data"><span class="text-on-surface-variant">142</span> / 500</span>
+          </div>
+          <p class="text-xs text-slate-500 mb-3">Optional. What's the qualitative signal for this week? Plain text.</p>
+          <textarea class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg p-3 text-sm text-on-surface placeholder:text-slate-600 focus:outline-none focus:border-primary-container/60 resize-none" rows="5" placeholder="Optional — write at any time during DRAFT or after locking">Carrying the auth refactor for the third week — root cause is a contract drift with the IDP. Need a sync with @sarah_k by Tue.</textarea>
+        </div>
+      </aside>
+
+      <!-- RIGHT: Commit list (DRAFT — full CRUD, chess-tier control, drag reorder) -->
+      <div class="col-span-12 lg:col-span-8">
+        <section class="glass-card rounded-xl overflow-hidden">
+          <div class="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
+            <div>
+              <h3 class="font-headline-md text-headline-md text-white">Commits this week</h3>
+              <p class="text-slate-500 text-sm">3–7 recommended · 1 commit must be a Top Rock</p>
+            </div>
+            <div class="flex items-center gap-4 text-xs">
+              <div class="flex flex-col items-end">
+                <span class="text-slate-500">Estimated effort</span>
+                <span class="text-primary font-mono-data font-bold">28 hrs</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="divide-y divide-white/5">
+
+            <!-- Commit 1: Rock + Top Rock -->
+            <div class="p-6 zebra-row group transition-all hover:bg-primary-container/5">
+              <div class="flex items-start gap-4">
+                <span class="material-symbols-outlined text-slate-700 group-hover:text-slate-400 cursor-grab mt-1">drag_indicator</span>
+                <div class="flex-1 space-y-3">
+                  <div class="flex justify-between items-start gap-4">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2 mb-1">
+                        <h4 class="text-white font-body-lg text-body-lg">Refactor auth microservice — SAML / OIDC parity</h4>
+                        <span class="px-1.5 py-0.5 bg-amber-400/10 text-amber-300 text-[10px] font-bold uppercase rounded-sm border border-amber-400/40">★ Top Rock</span>
+                      </div>
+                      <p class="text-slate-500 text-body-md">Land the merged identity provider abstraction so SSO + SCIM ship together.</p>
+                    </div>
+                    <button class="material-symbols-outlined text-slate-600 hover:text-white text-base">more_vert</button>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-2">
+                    <!-- Chess tier control (REQUIRED FIELD per MVP2) -->
+                    <div class="inline-flex rounded-lg overflow-hidden border border-outline-variant/40">
+                      <button class="px-3 py-1.5 tier-rock text-[10px] font-bold uppercase tracking-wider">Rock</button>
+                      <button class="px-3 py-1.5 bg-surface-container text-slate-500 text-[10px] font-bold uppercase tracking-wider hover:text-white">Pebble</button>
+                      <button class="px-3 py-1.5 bg-surface-container text-slate-500 text-[10px] font-bold uppercase tracking-wider hover:text-white">Sand</button>
+                    </div>
+
+                    <!-- Linked Supporting Outcome chip -->
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-900 rounded border border-slate-800 text-slate-300">
+                      <span class="material-symbols-outlined text-[14px]">link</span>
+                      <span class="text-xs">SAML + OIDC parity</span>
+                      <span class="text-slate-600">·</span>
+                      <span class="text-[10px] text-slate-500 font-mono-data">SO_24</span>
+                    </div>
+
+                    <!-- Estimated hours -->
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-900 rounded border border-slate-800 text-slate-400">
+                      <span class="material-symbols-outlined text-[14px]">timer</span>
+                      <input type="text" value="12h" class="font-mono-data text-xs w-8 bg-transparent border-0 p-0 focus:ring-0 text-white" />
+                    </div>
+
+                    <!-- Free-form category tags -->
+                    <div class="flex items-center gap-1 px-2 py-1 text-slate-500 text-xs">
+                      <span class="material-symbols-outlined text-[14px]">label</span>
+                      <span class="px-1.5 py-0.5 bg-white/5 rounded text-[10px]">backend</span>
+                      <span class="px-1.5 py-0.5 bg-white/5 rounded text-[10px]">security</span>
+                      <button class="text-slate-600 hover:text-white text-[10px]">+</button>
+                    </div>
+
+                    <!-- Carry-streak badge: streak=3 → STUCK FLAG (PRD MVP7) -->
+                    <div class="ml-auto flex items-center gap-1 px-2 py-1 bg-error/10 rounded border border-error/30 text-error">
+                      <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">flag</span>
+                      <span class="text-[10px] font-bold uppercase tracking-wider">Stuck · carried 3×</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Commit 2: Rock (not Top), normal carry-streak=2 (badge only) -->
+            <div class="p-6 zebra-row group hover:bg-primary-container/5">
+              <div class="flex items-start gap-4">
+                <span class="material-symbols-outlined text-slate-700 group-hover:text-slate-400 cursor-grab mt-1">drag_indicator</span>
+                <div class="flex-1 space-y-3">
+                  <div class="flex justify-between items-start gap-4">
+                    <div class="flex-1">
+                      <h4 class="text-white font-body-lg text-body-lg mb-1">CI/CD pipeline — cut staging build time 20%</h4>
+                      <p class="text-slate-500 text-body-md">Profile the Maven layer cache and parallelize integration suites.</p>
+                    </div>
+                    <button class="material-symbols-outlined text-slate-600 hover:text-white text-base">more_vert</button>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <div class="inline-flex rounded-lg overflow-hidden border border-outline-variant/40">
+                      <button class="px-3 py-1.5 tier-rock text-[10px] font-bold uppercase tracking-wider">Rock</button>
+                      <button class="px-3 py-1.5 bg-surface-container text-slate-500 text-[10px] font-bold uppercase tracking-wider hover:text-white">Pebble</button>
+                      <button class="px-3 py-1.5 bg-surface-container text-slate-500 text-[10px] font-bold uppercase tracking-wider hover:text-white">Sand</button>
+                    </div>
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-900 rounded border border-slate-800 text-slate-300">
+                      <span class="material-symbols-outlined text-[14px]">link</span>
+                      <span class="text-xs">Dev velocity</span>
+                      <span class="text-slate-600">·</span>
+                      <span class="text-[10px] text-slate-500 font-mono-data">SO_31</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-900 rounded border border-slate-800 text-slate-400">
+                      <span class="material-symbols-outlined text-[14px]">timer</span>
+                      <span class="font-mono-data text-xs">8h</span>
+                    </div>
+                    <div class="ml-auto flex items-center gap-1 px-2 py-1 bg-amber-500/10 rounded border border-amber-500/30 text-amber-300">
+                      <span class="material-symbols-outlined text-[14px]">trending_flat</span>
+                      <span class="text-[10px] font-bold uppercase tracking-wider">Carried 2×</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Commit 3: Pebble -->
+            <div class="p-6 zebra-row group hover:bg-primary-container/5">
+              <div class="flex items-start gap-4">
+                <span class="material-symbols-outlined text-slate-700 group-hover:text-slate-400 cursor-grab mt-1">drag_indicator</span>
+                <div class="flex-1 space-y-3">
+                  <div class="flex justify-between items-start gap-4">
+                    <div class="flex-1">
+                      <h4 class="text-white font-body-lg text-body-lg mb-1">Pair with @m_rossi on EMEA onboarding spike</h4>
+                      <p class="text-slate-500 text-body-md">2-hour blocks Tue + Thu; produce ADR by Fri.</p>
+                    </div>
+                    <button class="material-symbols-outlined text-slate-600 hover:text-white text-base">more_vert</button>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <div class="inline-flex rounded-lg overflow-hidden border border-outline-variant/40">
+                      <button class="px-3 py-1.5 bg-surface-container text-slate-500 text-[10px] font-bold uppercase tracking-wider hover:text-white">Rock</button>
+                      <button class="px-3 py-1.5 tier-pebble text-[10px] font-bold uppercase tracking-wider">Pebble</button>
+                      <button class="px-3 py-1.5 bg-surface-container text-slate-500 text-[10px] font-bold uppercase tracking-wider hover:text-white">Sand</button>
+                    </div>
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-900 rounded border border-slate-800 text-slate-300">
+                      <span class="material-symbols-outlined text-[14px]">link</span>
+                      <span class="text-xs">EMEA expansion readiness</span>
+                      <span class="text-slate-600">·</span>
+                      <span class="text-[10px] text-slate-500 font-mono-data">SO_47</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-900 rounded border border-slate-800 text-slate-400">
+                      <span class="material-symbols-outlined text-[14px]">timer</span>
+                      <span class="font-mono-data text-xs">4h</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Commit 4: Sand -->
+            <div class="p-6 zebra-row group hover:bg-primary-container/5">
+              <div class="flex items-start gap-4">
+                <span class="material-symbols-outlined text-slate-700 group-hover:text-slate-400 cursor-grab mt-1">drag_indicator</span>
+                <div class="flex-1 space-y-3">
+                  <div class="flex justify-between items-start gap-4">
+                    <div class="flex-1">
+                      <h4 class="text-white font-body-lg text-body-lg mb-1">Triage P3 backlog — 1 hour daily</h4>
+                      <p class="text-slate-500 text-body-md">Keep the queue under 40 open issues.</p>
+                    </div>
+                    <button class="material-symbols-outlined text-slate-600 hover:text-white text-base">more_vert</button>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <div class="inline-flex rounded-lg overflow-hidden border border-outline-variant/40">
+                      <button class="px-3 py-1.5 bg-surface-container text-slate-500 text-[10px] font-bold uppercase tracking-wider hover:text-white">Rock</button>
+                      <button class="px-3 py-1.5 bg-surface-container text-slate-500 text-[10px] font-bold uppercase tracking-wider hover:text-white">Pebble</button>
+                      <button class="px-3 py-1.5 tier-sand text-[10px] font-bold uppercase tracking-wider">Sand</button>
+                    </div>
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-900 rounded border border-slate-800 text-slate-300">
+                      <span class="material-symbols-outlined text-[14px]">link</span>
+                      <span class="text-xs">Reliability bar</span>
+                      <span class="text-slate-600">·</span>
+                      <span class="text-[10px] text-slate-500 font-mono-data">SO_12</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 px-2 py-1 bg-slate-900 rounded border border-slate-800 text-slate-400">
+                      <span class="material-symbols-outlined text-[14px]">timer</span>
+                      <span class="font-mono-data text-xs">4h</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add commitment CTA -->
+          <div class="p-4 bg-slate-900/40">
+            <button class="w-full py-4 border-2 border-dashed border-slate-800 rounded-lg text-slate-500 hover:border-primary-container/50 hover:text-primary transition-all flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined">add_circle</span>
+              <span class="font-label-md text-label-md font-bold uppercase tracking-wider">Add commit</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- STATE 3: LOCKED — pre day-4, READ-ONLY                       -->
+  <!-- PRD: MVP4 — commits immutable except reconciliation fields   -->
+  <!-- ============================================================ -->
+  <section class="max-w-container-max mx-auto">
+    <div class="state-marker mb-4 inline-flex items-center gap-2">
+      <span class="text-[10px] font-bold tracking-widest text-primary uppercase">State 3</span>
+      <span class="text-xs text-on-surface-variant">LOCKED · pre-day-4 · read-only — reconciliation opens Friday</span>
+    </div>
+    <div class="glass-card rounded-xl p-6">
+      <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-3">
+          <span class="px-2 py-1 bg-primary-container/15 text-primary text-[10px] font-bold uppercase rounded-sm border border-primary-container/40 tracking-widest">LOCKED</span>
+          <span class="text-on-surface-variant text-sm">Reconciliation opens <span class="text-white font-semibold">Fri May 1, 12:00 AM PT</span></span>
+        </div>
+        <span class="text-xs text-slate-500 font-mono-data">locked at 2026-04-26 17:00 UTC by IC</span>
+      </div>
+      <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-4 text-sm text-slate-400">
+        Commits are immutable until Friday. Reflection note remains editable. If something changed, talk to your manager — there's no DRAFT-back transition by design.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- STATE 4: LOCKED — RECONCILIATION MODE (post-day-4)           -->
+  <!-- PRD: MVP5, MVP6 — DONE/PARTIAL/MISSED + actualNote +         -->
+  <!-- carry-forward (per-row + carry-all)                          -->
+  <!-- ============================================================ -->
+  <section class="max-w-container-max mx-auto">
+    <div class="state-marker mb-4 inline-flex items-center gap-2">
+      <span class="text-[10px] font-bold tracking-widest text-primary uppercase">State 4</span>
+      <span class="text-xs text-on-surface-variant">LOCKED · reconciliation mode — mark actuals, write reflection, submit</span>
+    </div>
+
+    <div class="flex justify-between items-end mb-6">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="px-2 py-1 bg-primary-container/15 text-primary text-[10px] font-bold uppercase rounded-sm border border-primary-container/40 tracking-widest">LOCKED · RECONCILE</span>
+          <span class="text-on-surface-variant text-sm">Submit by <span class="text-white font-semibold">Sun May 3, 11:59 PM PT</span></span>
+        </div>
+        <h2 class="font-headline-lg text-headline-lg text-white mt-1">How did the week go?</h2>
+      </div>
+      <div class="flex gap-3">
+        <button class="px-4 py-2 bg-surface-container border border-outline-variant text-on-surface rounded-lg text-sm hover:bg-surface-container-high">Save progress</button>
+        <button class="px-4 py-2 bg-primary-container text-white rounded-lg font-semibold text-sm hover:bg-blue-500 inner-glow">Submit reconciliation</button>
+      </div>
+    </div>
+
+    <div class="glass-card rounded-xl overflow-hidden">
+
+      <div class="px-6 py-3 border-b border-white/5 bg-slate-900/40 flex justify-between items-center text-xs">
+        <span class="text-slate-500 uppercase font-bold tracking-widest">4 commits · 1 carried forward already</span>
+        <button class="px-3 py-1.5 bg-surface-container border border-outline-variant rounded text-on-surface text-[11px] font-semibold hover:bg-surface-container-high">
+          <span class="material-symbols-outlined text-[14px] align-middle mr-1">forward</span>
+          Carry all missed / partial → next week
+        </button>
+      </div>
+
+      <div class="divide-y divide-white/5">
+
+        <!-- Reconcile row 1: DONE -->
+        <div class="p-6">
+          <div class="flex items-start gap-4">
+            <div class="flex-1 space-y-3">
+              <div class="flex justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="px-1.5 py-0.5 bg-amber-400/10 text-amber-300 text-[10px] font-bold uppercase rounded-sm border border-amber-400/40">★ Top Rock</span>
+                    <span class="px-1.5 py-0.5 tier-rock text-[10px] font-bold uppercase rounded-sm tracking-wider">Rock</span>
+                    <h4 class="text-white font-body-lg text-body-lg">Refactor auth microservice — SAML / OIDC parity</h4>
+                  </div>
+                  <p class="text-slate-500 text-sm">Linked to <span class="text-slate-300">SAML + OIDC parity</span> · planned 12h</p>
+                </div>
+              </div>
+
+              <!-- Tri-state: DONE / PARTIAL / MISSED -->
+              <div class="inline-flex rounded-lg overflow-hidden border border-outline-variant/40">
+                <button class="px-4 py-2 bg-emerald-500/15 text-emerald-300 border-r border-outline-variant/40 text-xs font-bold uppercase tracking-wider">Done</button>
+                <button class="px-4 py-2 bg-surface-container text-slate-500 border-r border-outline-variant/40 text-xs font-bold uppercase tracking-wider hover:text-white">Partial</button>
+                <button class="px-4 py-2 bg-surface-container text-slate-500 text-xs font-bold uppercase tracking-wider hover:text-white">Missed</button>
+              </div>
+
+              <textarea class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg p-3 text-sm text-on-surface placeholder:text-slate-600 focus:outline-none focus:border-primary-container/60 resize-none" rows="2" placeholder="Optional — what actually happened?">Shipped on Thursday — SAML + OIDC parity validated against the test IDP harness.</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reconcile row 2: PARTIAL with carry-forward action -->
+        <div class="p-6 bg-amber-500/[0.02]">
+          <div class="flex items-start gap-4">
+            <div class="flex-1 space-y-3">
+              <div class="flex justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="px-1.5 py-0.5 tier-rock text-[10px] font-bold uppercase rounded-sm tracking-wider">Rock</span>
+                    <h4 class="text-white font-body-lg text-body-lg">CI/CD pipeline — cut staging build time 20%</h4>
+                  </div>
+                  <p class="text-slate-500 text-sm">Linked to <span class="text-slate-300">Dev velocity</span> · planned 8h</p>
+                </div>
+              </div>
+              <div class="inline-flex rounded-lg overflow-hidden border border-outline-variant/40">
+                <button class="px-4 py-2 bg-surface-container text-slate-500 border-r border-outline-variant/40 text-xs font-bold uppercase tracking-wider hover:text-white">Done</button>
+                <button class="px-4 py-2 bg-amber-500/15 text-amber-300 border-r border-outline-variant/40 text-xs font-bold uppercase tracking-wider">Partial</button>
+                <button class="px-4 py-2 bg-surface-container text-slate-500 text-xs font-bold uppercase tracking-wider hover:text-white">Missed</button>
+              </div>
+              <textarea class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg p-3 text-sm text-on-surface focus:outline-none focus:border-primary-container/60 resize-none" rows="2">Profiled the build but didn't land the parallelization PR — review feedback open.</textarea>
+
+              <!-- Per-row carry-forward (PRD MVP6) -->
+              <div class="flex items-center justify-between bg-slate-900/40 border border-slate-800 rounded-lg p-3">
+                <div class="text-xs text-slate-400">
+                  <span class="material-symbols-outlined text-[14px] align-middle text-amber-400 mr-1">flag</span>
+                  Already carried 2× — carrying again would set the <span class="text-error font-semibold">stuck flag</span>.
+                </div>
+                <button class="px-3 py-1.5 bg-primary-container/10 border border-primary-container/40 text-primary rounded text-[11px] font-semibold hover:bg-primary-container/20">
+                  Carry forward → next week
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reconcile row 3: MISSED with carry-forward action -->
+        <div class="p-6">
+          <div class="flex items-start gap-4">
+            <div class="flex-1 space-y-3">
+              <div class="flex justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="px-1.5 py-0.5 tier-pebble text-[10px] font-bold uppercase rounded-sm tracking-wider">Pebble</span>
+                    <h4 class="text-white font-body-lg text-body-lg">Pair with @m_rossi on EMEA onboarding spike</h4>
+                  </div>
+                  <p class="text-slate-500 text-sm">Linked to <span class="text-slate-300">EMEA expansion readiness</span> · planned 4h</p>
+                </div>
+              </div>
+              <div class="inline-flex rounded-lg overflow-hidden border border-outline-variant/40">
+                <button class="px-4 py-2 bg-surface-container text-slate-500 border-r border-outline-variant/40 text-xs font-bold uppercase tracking-wider hover:text-white">Done</button>
+                <button class="px-4 py-2 bg-surface-container text-slate-500 border-r border-outline-variant/40 text-xs font-bold uppercase tracking-wider hover:text-white">Partial</button>
+                <button class="px-4 py-2 bg-error/15 text-error text-xs font-bold uppercase tracking-wider">Missed</button>
+              </div>
+              <textarea class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg p-3 text-sm text-on-surface focus:outline-none focus:border-primary-container/60 resize-none" rows="2">Got pulled into incident response Tue–Wed.</textarea>
+              <div class="flex items-center justify-end">
+                <button class="px-3 py-1.5 bg-primary-container/10 border border-primary-container/40 text-primary rounded text-[11px] font-semibold hover:bg-primary-container/20">
+                  Carry forward → next week
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reflection note in reconciliation -->
+        <div class="p-6 bg-slate-900/30">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-headline-md text-headline-md text-white">Reflection on the week</h4>
+            <span class="text-[10px] text-slate-500 font-mono-data"><span class="text-on-surface-variant">217</span> / 500</span>
+          </div>
+          <textarea class="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-lg p-3 text-sm text-on-surface focus:outline-none focus:border-primary-container/60 resize-none" rows="3">Auth shipped — biggest unblock of the quarter. Lost the EMEA spike to incident work; need to renegotiate whether that's still mine next week vs. handing it to @sarah_k. Pipeline work needs a focus block, not stolen hours.</textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- STATE 5: RECONCILED — read-only summary                      -->
+  <!-- ============================================================ -->
+  <section class="max-w-container-max mx-auto">
+    <div class="state-marker mb-4 inline-flex items-center gap-2">
+      <span class="text-[10px] font-bold tracking-widest text-primary uppercase">State 5</span>
+      <span class="text-xs text-on-surface-variant">RECONCILED — read-only · awaiting manager review</span>
+    </div>
+    <div class="glass-card rounded-xl p-6">
+      <div class="flex justify-between items-start mb-4">
+        <div class="flex items-center gap-3">
+          <span class="px-2 py-1 bg-emerald-500/10 text-emerald-300 text-[10px] font-bold uppercase rounded-sm border border-emerald-500/30 tracking-widest">RECONCILED</span>
+          <span class="text-on-surface-variant text-sm">Submitted Sun May 3 · awaiting review · auto-archives in 90d</span>
+        </div>
+        <div class="text-xs text-slate-500 font-mono-data text-right">
+          <div>completion: 1 done · 1 partial · 1 missed · 1 carried in</div>
+          <div>tier shape: 2 Rock · 1 Pebble · 1 Sand · ★ Top Rock present</div>
+        </div>
+      </div>
+      <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-4 text-sm text-slate-400">
+        This week is closed. Manager review will land here as a single comment when posted. To carry items forward, head to next week.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- GLOBAL: Conflict toast slot (PRD MVP13)                       -->
+  <!-- ============================================================ -->
+  <section class="max-w-container-max mx-auto">
+    <div class="state-marker mb-4 inline-flex items-center gap-2">
+      <span class="text-[10px] font-bold tracking-widest text-primary uppercase">Global affordance</span>
+      <span class="text-xs text-on-surface-variant">Conflict toast — surfaces on HTTP 409 from @Version optimistic lock</span>
+    </div>
+    <div class="max-w-md">
+      <div class="bg-amber-500/10 border border-amber-500/40 rounded-lg p-4 flex items-start gap-3">
+        <span class="material-symbols-outlined text-amber-300 mt-0.5">sync_problem</span>
+        <div class="flex-1">
+          <p class="text-white font-semibold text-sm">Your week was changed elsewhere</p>
+          <p class="text-slate-400 text-xs mt-1">We refreshed your view to avoid overwriting the other change. Re-apply your edit if you still want it.</p>
+        </div>
+        <button class="text-slate-500 hover:text-white">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="border-t border-white/5 mt-margin px-8 py-6 text-xs text-slate-600 flex justify-between max-w-container-max mx-auto">
+  <span>Reference mockup · v1 PRD-aligned · render one state at a time in production</span>
+  <span class="font-mono-data">routes: /weekly-commit/current · /weekly-commit/history</span>
+</footer>
+</body>
+</html>
