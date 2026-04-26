@@ -23,6 +23,18 @@ and mounts it inside its own `<BrowserRouter>` + Sentry context. The
 host owns auth, theming, and routing; we contribute the federated bundle
 and re-use the host's React + Redux instances via the singleton config.
 
+## Smoke tests (Playwright)
+
+```bash
+# One-time browser install (after yarn install)
+yarn workspace @wc/weekly-commit-ui exec playwright install chromium
+
+# Run the standalone-isolation smoke
+yarn workspace @wc/weekly-commit-ui test:playwright
+```
+
+The smoke boots the Vite dev server on :4184 and asserts the federated module mounts. Federated-inside-host coverage is the Cypress + Cucumber suite (separate scope).
+
 ## References
 
 - [docs/adr/0003-pm-remote-vite-config-mirror.md](../../docs/adr/0003-pm-remote-vite-config-mirror.md) — Vite + Module Federation config rationale (mirror of PM remote).
