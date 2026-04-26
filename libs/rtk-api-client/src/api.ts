@@ -21,7 +21,11 @@ import type {
 // re-declare `ImportMetaEnv` in a way that would conflict with the consuming
 // app's vite/client typing when typechecked across the workspace.
 const env = (import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }).env;
-const baseUrl: string = env?.VITE_API_BASE_URL ?? 'http://localhost';
+// `||` (not `??`) is intentional: Vitest can surface VITE_API_BASE_URL as an
+// empty string rather than undefined when running through nx, and `??` would
+// preserve that empty string and break MSW URL parsing. Treat empty as unset.
+// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+const baseUrl: string = env?.VITE_API_BASE_URL || 'http://localhost';
 
 const baseQuery = withConflictRetry(rawBaseQuery);
 

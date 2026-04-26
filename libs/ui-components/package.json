@@ -8,7 +8,7 @@
   "types": "src/index.ts",
   "scripts": {
     "lint": "echo '@wc/ui-components: no lint (placeholder lib; component lint lands when components do)'",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "echo '@wc/ui-components: no typecheck (placeholder; tsconfig lands when components do)'",
+    "test": "echo '@wc/ui-components: no tests (placeholder; tests land when components do)'"
   }
 }
