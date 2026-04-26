@@ -18,14 +18,13 @@ describe('rawBaseQuery', () => {
   it('unwraps the {data, meta} envelope on 2xx', async () => {
     server.use(
       http.get('http://localhost/api/v1/example', () =>
-        HttpResponse.json({ data: { id: 'abc', value: 42 }, meta: { now: '2026-04-25T00:00:00Z' } }),
+        HttpResponse.json({
+          data: { id: 'abc', value: 42 },
+          meta: { now: '2026-04-25T00:00:00Z' },
+        }),
       ),
     );
-    const result = await rawBaseQuery(
-      { url: 'http://localhost/api/v1/example' },
-      mkApi(),
-      {},
-    );
+    const result = await rawBaseQuery({ url: 'http://localhost/api/v1/example' }, mkApi(), {});
     expect(result).toEqual({ data: { id: 'abc', value: 42 } });
   });
 
@@ -48,11 +47,7 @@ describe('rawBaseQuery', () => {
 
   it('passes through network errors without trying to read the envelope', async () => {
     server.use(http.get('http://localhost/api/v1/example', () => HttpResponse.error()));
-    const result = await rawBaseQuery(
-      { url: 'http://localhost/api/v1/example' },
-      mkApi(),
-      {},
-    );
+    const result = await rawBaseQuery({ url: 'http://localhost/api/v1/example' }, mkApi(), {});
     expect(result.error).toBeDefined();
     expect((result.error as { status?: unknown }).status).toBe('FETCH_ERROR');
   });

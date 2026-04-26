@@ -182,10 +182,7 @@ export const api = createApi({
         { type: 'Rollup', id: 'LIST' },
       ],
     }),
-    getTeamRollup: build.query<
-      RollupResponse,
-      { managerId: string; weekStart: string }
-    >({
+    getTeamRollup: build.query<RollupResponse, { managerId: string; weekStart: string }>({
       query: ({ managerId, weekStart }) => ({
         url: '/api/v1/rollup/team',
         params: { managerId, weekStart },

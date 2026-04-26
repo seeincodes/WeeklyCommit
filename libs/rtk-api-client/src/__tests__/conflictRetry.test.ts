@@ -32,7 +32,11 @@ describe('withConflictRetry', () => {
     );
     const wrapped = withConflictRetry(rawBaseQuery);
     const result = await wrapped(
-      { url: 'http://localhost/api/v1/plans/p1/transitions', method: 'POST', body: { to: 'LOCKED' } },
+      {
+        url: 'http://localhost/api/v1/plans/p1/transitions',
+        method: 'POST',
+        body: { to: 'LOCKED' },
+      },
       mkApi(),
       {},
     );
@@ -53,7 +57,11 @@ describe('withConflictRetry', () => {
     const dispatch = vi.fn();
     const wrapped = withConflictRetry(rawBaseQuery);
     await wrapped(
-      { url: 'http://localhost/api/v1/plans/p1/transitions', method: 'POST', body: { to: 'LOCKED' } },
+      {
+        url: 'http://localhost/api/v1/plans/p1/transitions',
+        method: 'POST',
+        body: { to: 'LOCKED' },
+      },
       mkApi(dispatch),
       {},
     );
@@ -78,7 +86,11 @@ describe('withConflictRetry', () => {
     );
     const wrapped = withConflictRetry(rawBaseQuery);
     const result = await wrapped(
-      { url: 'http://localhost/api/v1/plans/p1/transitions', method: 'POST', body: { to: 'LOCKED' } },
+      {
+        url: 'http://localhost/api/v1/plans/p1/transitions',
+        method: 'POST',
+        body: { to: 'LOCKED' },
+      },
       mkApi(),
       {},
     );
@@ -100,7 +112,11 @@ describe('withConflictRetry', () => {
     const dispatch = vi.fn();
     const wrapped = withConflictRetry(rawBaseQuery);
     const result = await wrapped(
-      { url: 'http://localhost/api/v1/plans/p1/transitions', method: 'POST', body: { to: 'LOCKED' } },
+      {
+        url: 'http://localhost/api/v1/plans/p1/transitions',
+        method: 'POST',
+        body: { to: 'LOCKED' },
+      },
       mkApi(dispatch),
       {},
     );

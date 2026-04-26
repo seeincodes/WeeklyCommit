@@ -112,7 +112,10 @@ describe('api endpoints', () => {
     );
     const store = mkStore();
     await store.dispatch(
-      api.endpoints.getPlanByEmployeeAndWeek.initiate({ employeeId: 'e1', weekStart: '2026-04-27' }),
+      api.endpoints.getPlanByEmployeeAndWeek.initiate({
+        employeeId: 'e1',
+        weekStart: '2026-04-27',
+      }),
     );
     expect(captured.url).toContain('employeeId=e1');
     expect(captured.url).toContain('weekStart=2026-04-27');
@@ -268,9 +271,7 @@ describe('api endpoints', () => {
       ),
     );
     const store = mkStore();
-    const result = await store.dispatch(
-      api.endpoints.carryForward.initiate({ commitId: 'c1' }),
-    );
+    const result = await store.dispatch(api.endpoints.carryForward.initiate({ commitId: 'c1' }));
     expect(result.data).toMatchObject({ id: 'c2', carriedForwardFromId: 'c1' });
   });
 
@@ -278,9 +279,7 @@ describe('api endpoints', () => {
     server.use(
       http.get('http://localhost/api/v1/plans/:planId/reviews', () =>
         HttpResponse.json({
-          data: [
-            { id: 'r1', planId: 'p1', managerId: 'm1', comment: 'Looks good' },
-          ],
+          data: [{ id: 'r1', planId: 'p1', managerId: 'm1', comment: 'Looks good' }],
           meta: {},
         }),
       ),

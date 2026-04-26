@@ -11,11 +11,11 @@ import federation from '@originjs/vite-plugin-federation';
 // Shared singletons — MUST match host versions exactly, eager: false per MEMO.
 // Actual values to confirm against the host's package.json + federation manifest.
 const SHARED = {
-  react:                   { singleton: true, eager: false, requiredVersion: '^18.3.0' },
-  'react-dom':             { singleton: true, eager: false, requiredVersion: '^18.3.0' },
-  'react-router-dom':      { singleton: true, eager: false, requiredVersion: '^6.26.0' },
-  '@reduxjs/toolkit':      { singleton: true, eager: false, requiredVersion: '^2.2.0' },
-  '@reduxjs/toolkit/query':{ singleton: true, eager: false, requiredVersion: '^2.2.0' },
+  react: { singleton: true, eager: false, requiredVersion: '^18.3.0' },
+  'react-dom': { singleton: true, eager: false, requiredVersion: '^18.3.0' },
+  'react-router-dom': { singleton: true, eager: false, requiredVersion: '^6.26.0' },
+  '@reduxjs/toolkit': { singleton: true, eager: false, requiredVersion: '^2.2.0' },
+  '@reduxjs/toolkit/query': { singleton: true, eager: false, requiredVersion: '^2.2.0' },
 } as const;
 
 export default defineConfig({
