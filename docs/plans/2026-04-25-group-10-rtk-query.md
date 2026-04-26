@@ -121,7 +121,7 @@ Note: `react` and `react-redux` are runtime deps because the generated RTK Query
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "../..",
     "composite": false,
     "noEmit": true,
     "jsx": "react-jsx",
