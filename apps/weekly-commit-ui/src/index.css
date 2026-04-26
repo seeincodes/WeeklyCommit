@@ -1,0 +1,8 @@
+/* Tailwind layers. Per CLAUDE.md tech-stack lock, this is the ONLY CSS file in the
+   weekly-commit-ui module -- no CSS modules, no Emotion, no styled-components.
+   Custom design tokens come from the host's Tailwind preset (see tailwind.config.ts /
+   ADR-0004), not from rules added here. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

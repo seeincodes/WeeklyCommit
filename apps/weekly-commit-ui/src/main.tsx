@@ -9,10 +9,12 @@
 // the host has already booted Sentry. In standalone mode the env var is
 // typically unset and Sentry stays inert.
 
+import './index.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
+import { Flowbite } from 'flowbite-react';
 import { WeeklyCommitModule } from './WeeklyCommitModule';
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
@@ -30,8 +32,10 @@ const rootEl = document.getElementById('root');
 if (!rootEl) throw new Error('#root not found');
 createRoot(rootEl).render(
   <StrictMode>
-    <HashRouter>
-      <WeeklyCommitModule />
-    </HashRouter>
+    <Flowbite>
+      <HashRouter>
+        <WeeklyCommitModule />
+      </HashRouter>
+    </Flowbite>
   </StrictMode>,
 );
