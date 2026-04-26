@@ -121,7 +121,7 @@ References: [MVP1], [MVP2], [MVP4], [MVP5], [MVP6], [MVP7], [MVP8], [MVP21]
 
 - [x] Routes: `/weekly-commit/current`, `/weekly-commit/history` *(react-router v6 nested `<Route path="weekly-commit">` with `<Route index>` redirecting to `current`. Page shells under `apps/weekly-commit-ui/src/routes/{CurrentWeekPage,HistoryPage}.tsx` -- the state-aware `<WeekEditor />` lands inside `CurrentWeekPage` in subtask 2. Playwright smoke + Vitest routing tests both updated to the new shape; eslint ignore extended to `coverage/` so the v8 lcov-report stops tripping typed rules.)*
 - [x] `<WeekEditor />`: state-aware (blank state, DRAFT, LOCKED pre-day-4 read-only, LOCKED reconciliation mode, RECONCILED read-only) *(`apps/weekly-commit-ui/src/components/WeekEditor.tsx` -- owns the `useGetCurrentForMeQuery` fetch, routes to one of five modes (`BlankState`, `DraftMode`, `LockedReadOnly`, `ReconcileMode`, `ReconciledSummary`) plus loading + error fallbacks. Mode children are stubs with `data-testid` markers; subtasks 3-9 land their real surfaces in place. The reconcile-eligibility check is inline UTC math (`weekStart + 4d`) with a `TODO(subtask-10)` flag to swap in the IANA-aware helper. `now: Date` injected as a prop so tests can pin the clock and so the TZ helper has a single replacement site. 7 vitest cases cover loading / 404→blank / DRAFT / LOCKED-pre-day-4 / LOCKED-reconcile / RECONCILED / non-404 error -- all paths exercise the mock'd `useGetCurrentForMeQuery` against a real Redux store so middleware drift would surface.)*
-- [ ] `<RCDOPicker />` typeahead with 4-level breadcrumb; stale-cache banner on RCDO outage
+- [x] `<RCDOPicker />` typeahead with 4-level breadcrumb; stale-cache banner on RCDO outage *(Presentational typeahead in `apps/weekly-commit-ui/src/components/RCDOPicker.tsx`. Local case-insensitive substring filter against an `outcomes` prop -- the data hook stays in the parent so the picker is trivially unit-testable. ARIA combobox + listbox + option semantics for keyboard users; Enter/Space selects. Breadcrumb separator is " › " (single right-pointing angle quotation mark) per ADR-0001 + `RollupResponse.java`. `isStale` prop renders the cached-data banner described in MEMO Known Failure Modes. RCDO types live in `libs/rtk-api-client/src/rcdo.ts` (re-exported from the lib's index) so the future RTK Query endpoint slots in alongside without churn. **TODO(group-11-rcdo-integration)**: the v1 picker reads from a stub source today -- the parent will swap to the real RTK Query hook once subtask 11a lands the backend pass-through endpoint. 7 vitest cases cover input + filter + breadcrumb + selection + empty + banner show/hide.)*
 - [ ] `<ChessTier />` vertical spine (Rock/Pebble/Sand)
 - [ ] `<ReconcileTable />` keyboard-first; DONE/PARTIAL/MISSED selection; per-commit `actualNote`
 - [ ] `<ReflectionField />` ≤500 chars, plain text, char counter
@@ -129,6 +129,19 @@ References: [MVP1], [MVP2], [MVP4], [MVP5], [MVP6], [MVP7], [MVP8], [MVP21]
 - [ ] `<CarryStreakBadge />` streak ≥2 badge, ≥3 stuck flag styling
 - [ ] `<StateBadge />` + next-action hint
 - [ ] TZ handling: DB/UTC ↔ employee IANA via `Intl.DateTimeFormat`
+
+### 11a. Backend: RCDO pass-through endpoints (follow-up from group 11 subtask 3)
+References: [MVP3], unblocks `<RCDOPicker />` real wire-up
+
+Surfaced while building `<RCDOPicker />` in group 11 -- the UI cannot call the upstream RCDO service directly (CORS + service-token issue), and MEMO #6 describes the backend as the broker. The picker is shipped against a typed stub source; this subtask wires the real path.
+
+- [ ] Spring controller `GET /api/v1/rcdo/supporting-outcomes?orgId=&active=true` proxying to existing `RcdoClient.listSupportingOutcomes(...)`
+- [ ] Spring controller `GET /api/v1/rcdo/supporting-outcomes/{id}?hydrate=full` proxying to existing `RcdoClient.getById(...)`; 404 on `SUPPORTING_OUTCOME_NOT_FOUND` per ADR-0001
+- [ ] Pass-through DTO matches the `SupportingOutcome` shape in `libs/rtk-api-client/src/rcdo.ts` (BUT remove the trailing rcdo. lib's mock-source once the RTK endpoint is real)
+- [ ] OpenAPI spec extended with both endpoints; `libs/contracts/openapi.yaml` + TS regen
+- [ ] RTK Query endpoints `useGetSupportingOutcomesQuery` + `useGetSupportingOutcomeByIdQuery` with `keepUnusedDataFor: 600` per the `RCDO` tag
+- [ ] `<RCDOPicker />` parent (the WeekEditor draft mode) swaps the stub source for the RTK hook; remove `TODO(group-11-rcdo-integration)` markers
+- [ ] WireMock contract test asserts the controller's response shape matches the stub fixture in `docs/spikes/rcdo-sample-responses.json`
 
 ### 12. Frontend: Manager surfaces
 References: [MVP9], [MVP10]

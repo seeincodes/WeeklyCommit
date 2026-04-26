@@ -45,3 +45,5 @@ export type {
   TransitionRequest,
   UpdateReflectionRequest,
 } from './types';
+
+export type { RcdoLevel, RcdoBreadcrumb, SupportingOutcome } from './rcdo';
