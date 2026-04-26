@@ -88,12 +88,12 @@ References: [MVP3], [MVP14], [MVP15]
 ### 8. Backend: scheduled jobs + Shedlock
 References: [MVP4] (auto-lock half), [MVP11], [MVP16]
 
-- [ ] Shedlock JDBC provider wired to `shedlock` table
-- [ ] `AutoLockJob` hourly cron; integration test with two simulated pods
-- [ ] `ArchivalJob` nightly cron; `reconciledAt < now - 90d` selection
-- [ ] `UnreviewedDigestJob` Monday 09:00 UTC; skip-level grouping; notification-svc digest send
+- [x] Shedlock JDBC provider wired to `shedlock` table *(SchedulingConfig with @EnableSchedulerLock(defaultLockAtMostFor=PT10M); JdbcTemplateLockProvider.usingDbTime() so lock TTL compares against the DB clock, immune to per-pod JVM-clock skew. shedlock table created in V6 migration.)*
+- [x] `AutoLockJob` hourly cron; integration test with two simulated pods *(@Scheduled + @SchedulerLock(name=AutoLockJob, lockAtMostFor=PT5M, lockAtLeastFor=PT30S); cutoff math `now - cutoffHours -> Monday on/before`; per-plan failure caught so a single optimistic-lock conflict doesn't abort the batch. ShedlockTwoPodsIT uses two JdbcTemplateLockProvider instances against the same DB to prove serialization.)*
+- [x] `ArchivalJob` nightly cron; `reconciledAt < now - 90d` selection *(02:00 UTC; transitions RECONCILED -> ARCHIVED via the state machine; threshold = clock.instant().minus(90, DAYS); per-plan failure isolation matches AutoLockJob.)*
+- [x] `UnreviewedDigestJob` Monday 09:00 UTC; skip-level grouping; notification-svc digest send *(grouping logic: plan -> owner -> direct manager -> skip-level manager via EmployeeRepository; null managers go to "unmanaged"/"no-skip-level" buckets logged WARN. Returns DigestRunSummary record. **Dispatch deferred** -- a TODO(group-11) marker explains why NotificationSender is intentionally not extended in this scope.)*
 - [x] All threshold comparisons use application `Instant`, verified by lint rule (`NOW\(\)` grep in migration + code scan) *(scripts/lint-now-thresholds.sh: greps src/main/java + db/migration for `\bNOW\b`/`\bCURRENT_TIMESTAMP\b`, allowlists `DEFAULT now(...)` column defaults, SQL/Java comments, Java time-API `.now(`, and `"now"` map keys; baseline audit found 0 forbidden uses (3 legitimate column defaults in V4/V5/V7). Wired into `mvnw test` via NowThresholdLintTest so CI catches drift automatically.)*
-- [ ] Job success/failure counters → Micrometer → CloudWatch
+- [x] Job success/failure counters → Micrometer → CloudWatch *(JobMetrics @Component wraps each job's run() with Timer.Sample + Counter; emits `weekly_commit.scheduled.job.runs_total{job,outcome}` and `weekly_commit.scheduled.job.duration_seconds{job,outcome}`. Outcome label fires per-job-level throw, not per-batch-item failure. Picked up by the CloudWatch registry from group 7; alarm wiring deliberately deferred -- this commit is observability-only.)*
 
 ### 9. Frontend: scaffold + shared singletons
 References: [MVP18], [MVP19]
