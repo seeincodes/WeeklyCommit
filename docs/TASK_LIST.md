@@ -221,14 +221,32 @@ References: Performance Targets section of [PRD.md](PRD.md#performance-targets)
 - [ ] Bundle-size analysis on remote; tree-shake Flowbite imports
 - [ ] CloudFront hit-ratio monitoring; cache rules verified
 
-### 19. UX polish
-References: "Polish & UX" in [PRD.md](PRD.md#final-submission-features)
+### 19. UX polish + visual redesign
+References: "Polish & UX" in [PRD.md](PRD.md#final-submission-features); see [MEMO #11](MEMO.md#11-group-19-expanded-from-polish-into-a-visual-design-pass-2026-04-27) for why this group expanded into a full visual-design pass.
+
+**Visual redesign (`task/19-ui-redesign` branch, 2026-04-27):**
+
+- [x] Foundation: semantic tokens (`brand`, `rock`, `pebble`, `sand`, `warn`, `danger`, `ok`), 4-step type scale, soft elevation shadows in [tailwind.config.ts](../apps/weekly-commit-ui/tailwind.config.ts)
+- [x] Inline icon set (`src/components/icons/`) — chess glyphs + action icons, < 3 KB, no new dep
+- [x] Unified `<AppShell>` with product header / nav / footer build stamp across CurrentWeek, History, Team, TeamMember
+- [x] `<WeekContextBadge>` in route header slots so the user always knows which week they're looking at
+- [x] Chess-tier spine: tier-distinct accent rails, glyphs, count chips, dashed empty-tier placeholders
+- [x] DraftMode header card + branded Lock CTA; commit rows gain leading tier glyph; **placeholder "Edit" no-op removed** (was a lying button)
+- [x] CommitCreateForm repalette to new tokens
+- [x] StateBadge: leading colour-coded dot + larger pill + ring
+- [x] Team rollup dashboard: alignment + completion as big metric cards with progress meters; tier mix as horizontal stacked bar; unreviewed/stuck CountCards that go quiet on a clean week
+- [x] MemberCard: leading severity rail (danger / warn / slate), tinted tier chips, glyph-prefixed flag chips, trailing chevron + group-hover lift
+- [x] BlankState: illustrative tier-glyph cluster + primary brand CTA + `fade-in-up` motion-safe animation
+- [x] LockedReadOnly + ReconciledSummary + ReconcileMode + IcDrawer: token pass for cross-pane consistency; IcDrawer gains backdrop blur + slide-in animation
+
+**Original group-19 polish items (still TODO — absorbed structurally but copy + micro-interactions remain):**
 
 - [ ] `<ConflictToast />` copy pass with auto-refetch explanation
-- [ ] Empty-state illustrations (blank week, empty team)
-- [ ] Carry-streak badge transition animation (≥2 → ≥3)
-- [ ] Reflection note 480+ char warning color
-- [ ] Flag tooltips with the concrete reason ("Unreviewed for 72h since reconcile")
+- [ ] Carry-streak badge transition animation (≥2 → ≥3) — `stuckPulse` keyframe is wired in tailwind.config but not yet triggered on the threshold-cross
+- [ ] Reflection note 480+ char warning color (visual cue when approaching 500-char limit)
+- [ ] Flag tooltips with the concrete reason ("Unreviewed for 72h since reconcile") — chips render text + glyph today; hover-tooltip with the *why* is still TODO
+- [ ] HistoryPage real list (currently a placeholder; the `eyebrow + title + dashed-empty-state` shell is in place, the data layer lands in group 11)
+- [ ] No-direct-reports illustration on `/team` (parallel to BlankState's tier-glyph cluster)
 
 ## Phase 3: Final
 

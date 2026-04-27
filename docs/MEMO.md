@@ -68,6 +68,27 @@ When the IC navigates to `/weekly-commit/current` and no plan exists, the fronte
 
 **Why not auto-create:** a plan created by navigation is a plan the IC didn't consciously start. The product exists to make weekly planning intentional; silently creating a plan because a route was visited undermines that. `POST /plans` is idempotent on `(employeeId, weekStart)` so there's no race condition from double-tapping the button.
 
+### 11. Group 19 expanded from "polish" into a visual-design pass (2026-04-27)
+
+What [TASK_LIST.md group 19](TASK_LIST.md#19-ux-polish) originally scoped — ConflictToast copy, empty-state illustrations, carry-streak transition animation, reflection-note 480+ char warning, flag tooltips — was a "polish list," not a design system. After dogfooding the IC and Manager surfaces against real seeded data, the verdict was that the surfaces were *functionally* complete but visually generic ("lackluster"): every page was a flat `<Card>` floating on `bg-gray-50`, the chess-tier metaphor was labelled but not visualised, state-meaning was encoded in arbitrary pastel pills, CTAs were undifferentiated, the team rollup had no visual hierarchy.
+
+We expanded group 19 into a real visual redesign across the IC + Manager surfaces, while keeping the original 5 polish items in scope (empty-state illustrations and flag-glyph chips were absorbed into the wider design pass).
+
+**What changed in this pass:**
+
+  - **Tokens.** Added semantic colour tokens (`brand`, `rock`, `pebble`, `sand`, `warn`, `danger`, `ok`), a 4-step type scale (`display`, `title`, `body`, `meta`), and three soft elevation shadows under `theme.extend` in [tailwind.config.ts](../apps/weekly-commit-ui/tailwind.config.ts). Product-specific names (rock vs primary) chosen so host-preset overrides (ADR-0004) don't accidentally clobber them.
+  - **App shell.** Single shared `<AppShell>` replaces the per-route `<div className="p-6 bg-gray-50 min-h-screen"><Card>` pattern. Header bar with product mark + nav (Current / History / Team), eyebrow + page title, header slot for state badges and the new `<WeekContextBadge>`, and a footer that absorbs the build stamp (previously rendered in the page body).
+  - **Inline icon set.** Authored as plain SVG components (`src/components/icons/`) instead of pulling in lucide-react / @heroicons. Total set < 3 KB, no new top-level dep, sidesteps task 18.3's bundle-size question for icons.
+  - **Chess-tier spine, MemberCard, TeamRollup.** Tier-distinct colour rails + chess-piece glyphs; team rollup gains alignment/completion progress meters and a stacked tier-mix bar; member cards gain a severity rail and severity-coloured flag chips.
+  - **DraftMode + CommitCreateForm + StateBadge.** Header card pairs StateBadge with the Lock CTA. The placeholder "Edit" button on each draft row was *removed* — it was a no-op that re-saved the unchanged title. Real inline-edit lands as its own feature, not a polish item; deferring is honest, shipping a lying button is not.
+  - **Mode panes (Locked, Reconciled, Reconcile, IcDrawer, BlankState).** Token-pass for visual consistency; BlankState gains a tier-glyph illustrative cluster + a primary brand CTA.
+
+**What didn't change:** the original 5 polish items in group 19's task list still need explicit follow-through (ConflictToast copy refresh, carry-streak transition animation, reflection 480+ char warning, flag tooltip *copy*, the explicit empty-state illustration files for History + Team-no-reports). They got absorbed at the structural level but the line-by-line copy / micro-interaction polish is still TODO. Group 19 in [TASK_LIST.md](TASK_LIST.md) was rewritten to reflect the new shape; the redesign sub-items are checked, the remaining polish sub-items remain unchecked for a follow-up branch.
+
+**Why bundle as one expansion rather than 5 separate small changes:** the design tokens, app shell, chess-spine, member-card, and DraftMode all reference each other — splitting them into 5 PRs would have produced 4 PRs of "doesn't make sense without #5." The single-branch / sequenced-commit pattern (foundation → shell → chess → DraftMode → rollup → empty states + mode polish) lets a reviewer land them in dependency order or roll back any single layer cleanly.
+
+**Tech-stack lock honoured throughout:** Tailwind + Flowbite only (no new CSS files / Emotion / styled-components), no new top-level deps, every animation gated `motion-safe:`, every visual-only change preserved every `data-testid` and accessible-name contract referenced by the existing test suites (172/172 vitest pass).
+
 ## Processing Strategy
 
 The system has three pipelines — user-driven, scheduled, and rollup — all reading from the same Postgres.
