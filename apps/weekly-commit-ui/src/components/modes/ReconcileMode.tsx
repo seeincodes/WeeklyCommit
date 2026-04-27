@@ -8,6 +8,7 @@ import {
 } from '@wc/rtk-api-client';
 import { isCarryEligible } from '../../lib/carryEligibility';
 import { CarryAllButton, CarryForwardRow } from '../CarryForwardRow';
+import { CheckCircleIcon } from '../icons';
 import { ReconcileTable } from '../ReconcileTable';
 import { ReflectionField } from '../ReflectionField';
 import { StateBadge } from '../StateBadge';
@@ -68,11 +69,19 @@ export function ReconcileMode({ planId, reflectionNote = '' }: ReconcileModeProp
   }, [reflection, reflectionNote, planId, updateReflection]);
 
   if (isLoading) {
-    return <div data-testid="reconcile-loading">Loading…</div>;
+    return (
+      <div data-testid="reconcile-loading" className="text-slate-500">
+        Loading…
+      </div>
+    );
   }
   if (error || !commits) {
     return (
-      <div data-testid="reconcile-error" role="alert">
+      <div
+        data-testid="reconcile-error"
+        role="alert"
+        className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger-ink"
+      >
         Couldn’t load commits.
       </div>
     );
@@ -90,20 +99,25 @@ export function ReconcileMode({ planId, reflectionNote = '' }: ReconcileModeProp
   };
 
   return (
-    <div data-testid="week-editor-reconcile" className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+    <div data-testid="week-editor-reconcile" className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-soft-sm sm:flex-row sm:items-center sm:justify-between">
         <StateBadge state="LOCKED" isReconcileEligible={true} />
         <button
           type="button"
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="bg-emerald-600 text-white rounded px-4 py-2 disabled:bg-gray-300"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-ok px-4 py-2 text-sm font-semibold text-white shadow-soft-sm transition-colors hover:bg-ok-ink focus:outline-none focus:ring-2 focus:ring-ok/40 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
         >
+          <CheckCircleIcon className="h-4 w-4" />
           {isSubmitting ? 'Submitting…' : 'Submit reconciliation'}
         </button>
       </div>
       {submitError && (
-        <div data-testid="reconcile-submit-error" role="alert" className="text-red-700 text-sm">
+        <div
+          data-testid="reconcile-submit-error"
+          role="alert"
+          className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger-ink"
+        >
           Couldn’t submit. Try again.
         </div>
       )}
