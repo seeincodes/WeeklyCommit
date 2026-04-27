@@ -48,13 +48,19 @@ services:
       - '8081:8081'
     volumes:
       - ./wiremock:/home/wiremock:ro
+    # Override the wiremock image's BAKED-IN healthcheck, which targets
+    # `curl -f http://localhost:8080/__admin/health` -- wrong for us on two
+    # counts: (1) we run wiremock on --port 8081 (8080 is the backend);
+    # (2) wiremock 3.9.1 has no /__admin/health, only /__admin/. Hit the
+    # admin root on the correct port; curl is in the image. start_period
+    # gives the JVM up to 30s before failures count toward the unhealthy
+    # threshold so a slow CI runner doesn't trip an otherwise-fine startup.
     healthcheck:
-      # Wiremock 3.x has no dedicated /health endpoint; `/__admin/` responds 200 with
-      # the mappings JSON once the server is up, which is enough to gate depends_on.
-      test: ['CMD-SHELL', 'wget -q --spider http://localhost:8081/__admin/ || exit 1']
-      interval: 2s
+      test: ['CMD-SHELL', 'curl -fs http://localhost:8081/__admin/ > /dev/null || exit 1']
+      interval: 3s
       timeout: 3s
-      retries: 30
+      retries: 20
+      start_period: 30s
 
   weekly-commit-service:
     image: eclipse-temurin:21-jre
