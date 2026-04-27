@@ -57,8 +57,12 @@ export default tseslint.config(
       ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-      // Allow underscored unused args (e.g. event handlers we don't yet wire).
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // Allow underscored unused args + vars (event handlers we don't yet wire,
+      // destructure-rest with `_`-prefixed throwaways for property omission).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
     },
   },
 );
