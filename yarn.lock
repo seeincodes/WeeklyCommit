@@ -3964,6 +3964,7 @@ __metadata:
     flowbite: "npm:^2.5.0"
     flowbite-react: "npm:^0.10.0"
     globals: "npm:^15.9.0"
+    jose: "npm:^5.9.0"
     jsdom: "npm:^25.0.0"
     postcss: "npm:^8.4.0"
     prettier: "npm:^3.3.3"
@@ -7772,6 +7773,13 @@ __metadata:
   bin:
     jiti: bin/jiti.js
   checksum: 10c0/77b61989c758ff32407cdae8ddc77f85e18e1a13fc4977110dbd2e05fc761842f5f71bce684d9a01316e1c4263971315a111385759951080bbfe17cbb5de8f7a
+  languageName: node
+  linkType: hard
+
+"jose@npm:^5.9.0":
+  version: 5.10.0
+  resolution: "jose@npm:5.10.0"
+  checksum: 10c0/e20d9fc58d7e402f2e5f04e824b8897d5579aae60e64cb88ebdea1395311c24537bf4892f7de413fab1acf11e922797fb1b42269bc8fc65089a3749265ccb7b0
   languageName: node
   linkType: hard
 

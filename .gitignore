@@ -14,6 +14,12 @@
 .env.staging
 *.pem
 *.p12
+# Targeted whitelist for the E2E test keypair. Both files have RFC-grade docs
+# in the same directory explaining why they're not production secrets (zero
+# authority outside the `e2e` Spring profile, which never runs in production).
+# Every other .pem in the repo stays ignored by default.
+!apps/weekly-commit-service/src/main/resources/e2e-keys/*.pem
+!apps/weekly-commit-ui/cypress/support/auth/keys/*.pem
 .terraform.tfstate
 .terraform.tfstate.backup
 .terraform/
