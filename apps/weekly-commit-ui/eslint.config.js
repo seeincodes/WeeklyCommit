@@ -29,6 +29,9 @@ export default tseslint.config(
       '*.config.js',
       '*.config.ts',
       'tests/playwright/**',
+      // Cypress + Cucumber files use ambient (Cypress global) typing and the
+      // preprocessor-resolved step files don't fit the src/ tsconfig project.
+      'cypress/**',
     ],
   },
   js.configs.recommended,

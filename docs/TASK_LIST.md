@@ -155,7 +155,7 @@ References: [MVP9], [MVP10]
 ### 13. Cross-remote E2E
 References: [MVP19], [MVP24]
 
-- [ ] Cypress + Cucumber setup in `apps/weekly-commit-ui/cypress/`
+- [x] Cypress + Cucumber setup in `apps/weekly-commit-ui/cypress/` *(devDeps: `cypress@^13.15.0`, `@badeball/cypress-cucumber-preprocessor@^20.1.0`, `@bahmutov/cypress-esbuild-preprocessor@^2.2.4`, `esbuild@^0.24.0` (esbuild matches the Vite-based dev experience). Files: `apps/weekly-commit-ui/cypress.config.ts` registers the cucumber preprocessor + esbuild bundler and points `specPattern` at `cypress/e2e/**/*.feature`; `cypress/support/e2e.ts` is the per-spec setup hook (empty for now -- subtask 4 lands `cy.loginAs(role)` here); `cypress/e2e/smoke.feature` + `cypress/support/step_definitions/smoke.ts` together prove the runner + preprocessor + step-definition resolution all wire correctly. Per-feature step file scoping (per CLAUDE.md Common-Issues note) is configured via `cypress-cucumber-preprocessor.stepDefinitions: cypress/support/step_definitions/[filepart].{ts,js}` in package.json. `test:cypress` + `test:cypress:open` scripts added. `.gitignore` extended for `cypress/{videos,screenshots,downloads}/`. eslint config ignores `cypress/**` -- step files use ambient Cypress globals and don't fit the src/ tsconfig project. The smoke scenario will be exercised end-to-end in subtask 5 once the docker-compose backend is up; no regression on the existing 129/129 vitest suite.)*
 - [ ] `commit-entry.feature`, `lock-week.feature`, `reconcile.feature`, `manager-review.feature`
 - [ ] Kill-switch `.feature`: host flag falls back to 15-Five link
 - [ ] Test Auth0 users seeded: IC (with manager), IC (null manager), MANAGER, ADMIN

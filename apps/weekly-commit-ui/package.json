@@ -17,7 +17,15 @@
     "test": "vitest run",
     "test:unit": "vitest run --coverage",
     "test:watch": "vitest",
-    "test:playwright": "playwright test"
+    "test:playwright": "playwright test",
+    "test:cypress": "cypress run",
+    "test:cypress:open": "cypress open"
+  },
+  "cypress-cucumber-preprocessor": {
+    "stepDefinitions": "cypress/support/step_definitions/[filepart].{ts,js}",
+    "json": {
+      "enabled": false
+    }
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.7",
@@ -30,6 +38,8 @@
     "react-router-dom": "^6.26.2"
   },
   "devDependencies": {
+    "@badeball/cypress-cucumber-preprocessor": "^20.1.0",
+    "@bahmutov/cypress-esbuild-preprocessor": "^2.2.4",
     "@eslint/js": "^9.10.0",
     "@originjs/vite-plugin-federation": "^1.3.5",
     "@playwright/test": "^1.47.0",
@@ -42,6 +52,8 @@
     "@vitejs/plugin-react": "^4.3.0",
     "@vitest/coverage-v8": "^2.1.0",
     "autoprefixer": "^10.4.0",
+    "cypress": "^13.15.0",
+    "esbuild": "^0.24.0",
     "eslint": "^9.10.0",
     "eslint-plugin-react": "^7.36.0",
     "eslint-plugin-react-hooks": "^4.6.2",
