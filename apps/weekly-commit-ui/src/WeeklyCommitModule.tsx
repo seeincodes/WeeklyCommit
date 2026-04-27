@@ -3,6 +3,8 @@ import { Provider } from 'react-redux';
 import { store } from './store';
 import { CurrentWeekPage } from './routes/CurrentWeekPage';
 import { HistoryPage } from './routes/HistoryPage';
+import { TeamPage } from './routes/TeamPage';
+import { TeamMemberPage } from './routes/TeamMemberPage';
 
 /**
  * Top-level federated component exposed to the PA host as
@@ -23,6 +25,8 @@ export function WeeklyCommitModule() {
           <Route index element={<Navigate to="current" replace />} />
           <Route path="current" element={<CurrentWeekPage />} />
           <Route path="history" element={<HistoryPage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="team/:employeeId" element={<TeamMemberPage />} />
         </Route>
       </Routes>
     </Provider>

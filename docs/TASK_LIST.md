@@ -146,7 +146,7 @@ Surfaced while building `<RCDOPicker />` in group 11 -- the UI cannot call the u
 ### 12. Frontend: Manager surfaces
 References: [MVP9], [MVP10]
 
-- [ ] Routes: `/weekly-commit/team`, `/weekly-commit/team/:employeeId`
+- [x] Routes: `/weekly-commit/team`, `/weekly-commit/team/:employeeId` *(two new routes added to the existing `<Route path="weekly-commit">` group in `WeeklyCommitModule.tsx`. Page shells in `apps/weekly-commit-ui/src/routes/{TeamPage,TeamMemberPage}.tsx` carry minimal Card+heading content (Playwright `toBeVisible` lesson from group 11). `<TeamMemberPage />` reads `:employeeId` via `useParams` and surfaces it in a `data-testid="team-member-id"` element so the routing test can assert the path-param round-trip. Real `<TeamRollup />` and `<IcDrawer />` land in subtasks 2-5 in place of the placeholders.)*
 - [ ] `<TeamRollup />` flagged-first ordering; aggregate stats
 - [ ] `<MemberCard />` with Top Rock, tier shape, reflection preview, flags
 - [ ] `<IcDrawer />` overlay (preserves team view context); full plan, full reflection, commit history with streak chains
