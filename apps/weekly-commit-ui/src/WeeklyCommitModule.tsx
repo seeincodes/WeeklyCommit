@@ -1,7 +1,8 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { Card } from 'flowbite-react';
 import { store } from './store';
+import { CurrentWeekPage } from './routes/CurrentWeekPage';
+import { HistoryPage } from './routes/HistoryPage';
 
 /**
  * Top-level federated component exposed to the PA host as
@@ -13,30 +14,17 @@ import { store } from './store';
  * collide with this remote's. v1 places the Provider here rather than
  * higher up so both standalone-dev and federated paths inherit it without
  * duplication.
- *
- * Real routes (current/history/team/admin) ship in groups 11-12. v1
- * placeholder just confirms the federation handshake works.
  */
 export function WeeklyCommitModule() {
   return (
     <Provider store={store}>
       <Routes>
-        <Route path="weekly-commit/*" element={<Placeholder />} />
+        <Route path="weekly-commit">
+          <Route index element={<Navigate to="current" replace />} />
+          <Route path="current" element={<CurrentWeekPage />} />
+          <Route path="history" element={<HistoryPage />} />
+        </Route>
       </Routes>
     </Provider>
-  );
-}
-
-function Placeholder() {
-  return (
-    <div data-testid="weekly-commit-root" className="p-6 bg-gray-50 min-h-screen">
-      <Card className="max-w-md">
-        <h1 className="text-2xl font-bold text-gray-900">Weekly Commit</h1>
-        <p className="text-gray-600">Module loaded. Routes ship in groups 11-12.</p>
-        <p className="text-sm text-gray-400" data-testid="version">
-          Build: {__WC_GIT_SHA__}
-        </p>
-      </Card>
-    </div>
   );
 }
