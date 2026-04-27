@@ -166,7 +166,9 @@ When('I click the {string} button', (label: string) => {
   cy.contains('button', label).click();
 });
 
-Then('the API receives POST /plans/reviews', () => {
+// RegExp instead of cucumber-expression to dodge the "alternative may not be empty" parse
+// error from `/plans/reviews` (slashes become alternation tokens, leaving empty alternatives).
+Then(/^the API receives POST \/plans\/reviews$/, () => {
   cy.wait('@createReview');
 });
 

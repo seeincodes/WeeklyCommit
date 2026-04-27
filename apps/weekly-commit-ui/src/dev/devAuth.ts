@@ -19,10 +19,12 @@
 // VITE_DEV_AUTH_ROLE which beats the hardcoded MANAGER default.
 
 import { SignJWT, importPKCS8 } from 'jose';
-// `?raw` is a Vite primitive: ship file contents as a string. The path reaches
-// up to the cypress/ tree where the test private key already lives -- no
-// duplication, single source of truth for the key material.
-import privateKeyPem from '../../cypress/support/auth/keys/private-key.pem?raw';
+
+// PEM is injected as a build-time `define` constant from vite.config.ts, which
+// reads the cypress/ test key at config time. Sidesteps Vite's runtime fs.allow
+// check (Yarn PnP confused the workspace-root resolution there). Single source
+// of truth remains the cypress key file; we never duplicate the PEM bytes.
+const privateKeyPem = __WC_DEV_PRIVATE_KEY__;
 
 type DevRole = 'IC' | 'IC_NULL_MANAGER' | 'MANAGER' | 'ADMIN';
 

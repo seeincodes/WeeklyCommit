@@ -75,7 +75,11 @@ Then('the reconciliation table is visible', () => {
   cy.get('[data-testid="week-editor-reconcile"]').should('be.visible');
 });
 
-Then('each commit row has DONE / PARTIAL / MISSED radios', () => {
+// Step strings with literal slashes use RegExp instead of cucumber-expressions to dodge the
+// "alternative may not be empty" parse error -- cucumber-expressions treat `/` as alternation
+// between the two adjacent tokens, and our URL paths + multi-status legends produce empty
+// alternatives that crash the registration step.
+Then(/^each commit row has DONE \/ PARTIAL \/ MISSED radios$/, () => {
   cy.get('[role="radiogroup"]').each(($group) => {
     cy.wrap($group).find('input[type="radio"][value="DONE"]').should('exist');
     cy.wrap($group).find('input[type="radio"][value="PARTIAL"]').should('exist');
@@ -89,7 +93,7 @@ When('I select the {string} status for commit {string}', (status: string, commit
     .check();
 });
 
-Then('the API receives PATCH /commits/{string} with actualStatus DONE', (commitId: string) => {
+Then(/^the API receives PATCH \/commits\/(\S+) with actualStatus DONE$/, (commitId: string) => {
   cy.wait('@patchCommit')
     .its('request')
     .should((req) => {
@@ -106,7 +110,7 @@ Then('the reflection counter reads {string}', (label: string) => {
   cy.get('[data-testid="reflection-counter"]').should('contain.text', label);
 });
 
-Then('the API receives PATCH /plans with the reflection body', () => {
+Then(/^the API receives PATCH \/plans with the reflection body$/, () => {
   cy.wait('@patchPlan')
     .its('request.body')
     .should((body) => {
@@ -133,7 +137,7 @@ When('I click the {string} button on commit {string}', (label: string, commitId:
   cy.get(`[data-testid="reconcile-row-${commitId}"]`).contains('button', label).click();
 });
 
-Then('the API receives POST /commits/{string}/carry-forward', (commitId: string) => {
+Then(/^the API receives POST \/commits\/(\S+)\/carry-forward$/, (commitId: string) => {
   cy.wait('@carryForward')
     .its('request.url')
     .should('match', new RegExp(`/api/v1/commits/${commitId}/carry-forward$`));
@@ -143,7 +147,7 @@ When('I click the {string} button', (label: string) => {
   cy.contains('button', label).click();
 });
 
-Then('the API receives POST /plans/transitions with target RECONCILED', () => {
+Then(/^the API receives POST \/plans\/transitions with target RECONCILED$/, () => {
   cy.wait('@transition').its('request.body').should('deep.equal', { to: 'RECONCILED' });
 });
 

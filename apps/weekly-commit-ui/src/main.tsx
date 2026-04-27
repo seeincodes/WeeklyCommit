@@ -34,8 +34,18 @@ if (sentryDsn) {
 // the dev/devAuth module + its `jose` + private-key payload out of the prod bundle.
 async function boot(): Promise<void> {
   if (import.meta.env.DEV) {
-    const { installDevAuth } = await import('./dev/devAuth');
-    await installDevAuth();
+    // The dev auth shim is best-effort: it lets a developer hit the backend
+    // from `vite dev` against the e2e Spring profile without 401s. If it
+    // fails (PEM not found, jose can't parse, anything else), log and move on
+    // -- the app still mounts and the developer sees backend 401s if they hit
+    // the real API. Critically, this means Playwright's smoke (which doesn't
+    // need backend auth at all) is unaffected by dev-auth setup errors.
+    try {
+      const { installDevAuth } = await import('./dev/devAuth');
+      await installDevAuth();
+    } catch (err) {
+      console.warn('[dev-auth] init failed; continuing without backend auth:', err);
+    }
   }
 
   const rootEl = document.getElementById('root');

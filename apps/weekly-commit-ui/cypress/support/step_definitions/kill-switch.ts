@@ -34,7 +34,9 @@ Given('the host kill-switch flag is {string}', (_state: string) => {
   requireHostHarness('the host kill-switch flag is "<state>"');
 });
 
-When("a user opens the host app's /weekly-commit route", () => {
+// RegExp instead of cucumber-expression to dodge the "alternative may not be empty" parse
+// error from `/weekly-commit` (the leading slash leaves an empty left-side alternative).
+When(/^a user opens the host app's \/weekly-commit route$/, () => {
   requireHostHarness("a user opens the host app's /weekly-commit route");
 });
 
@@ -66,7 +68,9 @@ When('the host kill-switch flag flips to {string}', (_state: string) => {
   requireHostHarness('the host kill-switch flag flips to "<state>"');
 });
 
-When('the user navigates back to /weekly-commit', () => {
+// RegExp instead of cucumber-expression to dodge the "alternative may not be empty" parse
+// error from `/weekly-commit` (the leading slash leaves an empty left-side alternative).
+When(/^the user navigates back to \/weekly-commit$/, () => {
   requireHostHarness('the user navigates back to /weekly-commit');
 });
 
