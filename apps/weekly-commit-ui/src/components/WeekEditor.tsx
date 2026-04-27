@@ -76,7 +76,7 @@ function PlanRouter({ plan, now, tz }: { plan: WeeklyPlanResponse; now: Date; tz
       return <DraftMode planId={plan.id} />;
     case 'LOCKED':
       return isReconcileEligible(plan.weekStart, now, tz) ? (
-        <ReconcileMode planId={plan.id} />
+        <ReconcileMode planId={plan.id} reflectionNote={plan.reflectionNote} />
       ) : (
         <LockedReadOnly planId={plan.id} />
       );
