@@ -96,7 +96,7 @@ describe('<WeekEditor />', () => {
       isFetching: false,
     });
     renderWithStore();
-    expect(screen.getByTestId('week-editor-locked-readonly')).toBeInTheDocument();
+    expect(screen.getByTestId('locked-readonly-loading')).toBeInTheDocument();
   });
 
   it('shows reconciliation mode for state=LOCKED at or after weekStart + 4 days', () => {
