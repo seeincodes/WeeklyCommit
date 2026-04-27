@@ -73,6 +73,11 @@ jobs:
         working-directory: apps/weekly-commit-ui
         run: docker compose -f docker-compose.e2e.yml logs --no-color weekly-commit-service
 
+      - name: Show rcdo-stub (wiremock) logs on failure
+        if: failure()
+        working-directory: apps/weekly-commit-ui
+        run: docker compose -f docker-compose.e2e.yml logs --no-color rcdo-stub
+
       # ---------------------------------------------------------------------------
       # Start the Vite dev server in the background. Cypress's baseUrl points at
       # http://localhost:4184 (matching vite.config.ts strictPort). The server

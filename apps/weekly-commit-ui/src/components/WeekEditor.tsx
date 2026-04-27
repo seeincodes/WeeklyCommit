@@ -1,8 +1,12 @@
 import { useGetCurrentForMeQuery } from '@wc/rtk-api-client';
-import type { WeeklyPlanResponse, SupportingOutcome } from '@wc/rtk-api-client';
+import type { WeeklyPlanResponse } from '@wc/rtk-api-client';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { getEmployeeTimezone, isReconcileEligible } from '../lib/timezone';
-import { RCDOPickerContainer } from './RCDOPickerContainer';
+import { BlankState } from './modes/BlankState';
+import { DraftMode } from './modes/DraftMode';
+import { LockedReadOnly } from './modes/LockedReadOnly';
+import { ReconcileMode } from './modes/ReconcileMode';
+import { ReconciledSummary } from './modes/ReconciledSummary';
 
 interface WeekEditorProps {
   /**
@@ -21,16 +25,18 @@ interface WeekEditorProps {
 
 /**
  * State-aware container for the current-week page. Owns the fetch for
- * `GET /plans/me/current` and routes to one of five child surfaces:
+ * `GET /plans/me/current` and dispatches to one of five mode panes (each a
+ * focused component under `./modes/`):
  *
- *   - blank state         : no plan exists (404)
- *   - DRAFT editor        : commit CRUD, links to RCDOPicker / ChessTier
- *   - LOCKED read-only    : weekStart..+4d, week is locked but not reconcile-eligible
- *   - reconcile mode      : LOCKED + now >= weekStart + 4d
- *   - reconciled summary  : RECONCILED, read-only with carry-forward affordances
+ *   - BlankState           : no plan exists (404)
+ *   - DraftMode            : commit CRUD, links to RCDOPicker / ChessTier
+ *   - LockedReadOnly       : weekStart..+4d, week is locked but not reconcile-eligible
+ *   - ReconcileMode        : LOCKED + now >= weekStart + 4d
+ *   - ReconciledSummary    : RECONCILED, read-only with carry-forward affordances
  *
- * Loading and error states render generic placeholders. The real surfaces
- * inside each mode land in subtasks 3-9.
+ * Loading and error states render generic placeholders. The mode-specific UX
+ * (commit-create form, ReconcileTable, ReflectionField, etc.) lives in each
+ * mode's own file -- group 13b wires them in.
  */
 export function WeekEditor({ now, tz }: WeekEditorProps) {
   const resolvedTz = getEmployeeTimezone(tz);
@@ -70,61 +76,20 @@ function PlanRouter({ plan, now, tz }: { plan: WeeklyPlanResponse; now: Date; tz
       return <DraftMode planId={plan.id} />;
     case 'LOCKED':
       return isReconcileEligible(plan.weekStart, now, tz) ? (
-        <ReconcileMode planId={plan.id} />
+        <ReconcileMode planId={plan.id} reflectionNote={plan.reflectionNote} />
       ) : (
         <LockedReadOnly planId={plan.id} />
       );
     case 'RECONCILED':
-      return <ReconciledSummary planId={plan.id} />;
+      return <ReconciledSummary planId={plan.id} reflectionNote={plan.reflectionNote} />;
     case 'ARCHIVED':
       // ARCHIVED plans aren't returned by /plans/me/current in normal operation
       // (the current-week query targets the live plan, not historical). Render
       // the read-only summary if it ever surfaces here so the UI degrades safely.
-      return <ReconciledSummary planId={plan.id} />;
+      return <ReconciledSummary planId={plan.id} reflectionNote={plan.reflectionNote} />;
   }
 }
 
 function isFetchError(err: unknown): err is FetchBaseQueryError {
   return typeof err === 'object' && err !== null && 'status' in err;
-}
-
-function BlankState() {
-  return (
-    <div data-testid="week-editor-blank">
-      <p>You haven’t started this week yet.</p>
-      <button type="button">Create plan</button>
-    </div>
-  );
-}
-
-function DraftMode({ planId: _planId }: { planId: string }) {
-  // Picker selection wiring lives in the commit-create flow that ships in a later subtask;
-  // for now the container exists so RCDO data flows end-to-end and the editor surfaces the
-  // picker UI. The no-op handler is intentional and will be replaced with a `useCreateCommit`
-  // dispatch when commit creation lands.
-  return (
-    <div data-testid="week-editor-draft" className="flex flex-col gap-4">
-      <RCDOPickerContainer onSelect={handlePickerSelect} />
-    </div>
-  );
-}
-
-function handlePickerSelect(_outcome: SupportingOutcome): void {
-  // no-op until commit creation lands; see DraftMode comment.
-}
-
-function LockedReadOnly({ planId: _planId }: { planId: string }) {
-  return (
-    <div data-testid="week-editor-locked-readonly">
-      Week is locked. Reconciliation opens Friday.
-    </div>
-  );
-}
-
-function ReconcileMode({ planId: _planId }: { planId: string }) {
-  return <div data-testid="week-editor-reconcile">Reconciliation (subtasks 5-7 land here).</div>;
-}
-
-function ReconciledSummary({ planId: _planId }: { planId: string }) {
-  return <div data-testid="week-editor-reconciled">Week reconciled.</div>;
 }

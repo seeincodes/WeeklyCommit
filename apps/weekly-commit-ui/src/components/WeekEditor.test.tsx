@@ -84,7 +84,12 @@ describe('<WeekEditor />', () => {
       isFetching: false,
     });
     renderWithStore();
-    expect(screen.getByTestId('week-editor-draft')).toBeInTheDocument();
+    // DraftMode now fires its own useListCommitsQuery on mount, so the
+    // initial render is the loading sentinel rather than the success surface.
+    // Asserting on `draft-loading` proves WeekEditor routed to the right
+    // mode -- same retarget pattern the LOCKED case got in 13b-1 and the
+    // RECONCILED case got in 13b-2.
+    expect(screen.getByTestId('draft-loading')).toBeInTheDocument();
   });
 
   it('shows the locked read-only view for state=LOCKED before weekStart + 4 days', () => {
@@ -96,7 +101,7 @@ describe('<WeekEditor />', () => {
       isFetching: false,
     });
     renderWithStore();
-    expect(screen.getByTestId('week-editor-locked-readonly')).toBeInTheDocument();
+    expect(screen.getByTestId('locked-readonly-loading')).toBeInTheDocument();
   });
 
   it('shows reconciliation mode for state=LOCKED at or after weekStart + 4 days', () => {
@@ -122,7 +127,12 @@ describe('<WeekEditor />', () => {
         <WeekEditor now={new Date('2026-05-01T00:00:00Z')} tz="UTC" />
       </Provider>,
     );
-    expect(screen.getByTestId('week-editor-reconcile')).toBeInTheDocument();
+    // ReconcileMode now fires its own useListCommitsQuery on mount, so the
+    // initial render is the loading sentinel rather than the success surface.
+    // Asserting on `reconcile-loading` proves WeekEditor routed to the right
+    // mode -- same retarget pattern the LOCKED-pre-day-4 case got in 13b-1
+    // and the RECONCILED case got in 13b-2.
+    expect(screen.getByTestId('reconcile-loading')).toBeInTheDocument();
   });
 
   it('shows the reconciled summary for state=RECONCILED', () => {
@@ -133,7 +143,11 @@ describe('<WeekEditor />', () => {
       isFetching: false,
     });
     renderWithStore();
-    expect(screen.getByTestId('week-editor-reconciled')).toBeInTheDocument();
+    // ReconciledSummary now fires its own useListCommitsQuery on mount, so the
+    // initial render is the loading sentinel rather than the success surface.
+    // Asserting on `reconciled-loading` proves WeekEditor routed to the right
+    // mode -- the same retarget the LOCKED case got in 13b-1.
+    expect(screen.getByTestId('reconciled-loading')).toBeInTheDocument();
   });
 
   it('shows an error banner on non-404 errors', () => {

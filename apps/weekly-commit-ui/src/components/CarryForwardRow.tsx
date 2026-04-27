@@ -1,15 +1,5 @@
 import type { WeeklyCommitResponse } from '@wc/rtk-api-client';
-
-/**
- * A commit is carry-forward eligible per [MVP6] when it ended the week
- * MISSED or PARTIAL and hasn't already been carried (carriedForwardToId
- * not yet set). DONE and PENDING never qualify -- DONE is finished work,
- * PENDING means reconciliation hasn't been written yet.
- */
-function isCarryEligible(commit: WeeklyCommitResponse): boolean {
-  if (commit.carriedForwardToId != null) return false;
-  return commit.actualStatus === 'MISSED' || commit.actualStatus === 'PARTIAL';
-}
+import { isCarryEligible } from '../lib/carryEligibility';
 
 interface CarryForwardRowProps {
   commit: WeeklyCommitResponse;
