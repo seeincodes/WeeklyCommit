@@ -197,6 +197,36 @@ describe('<IcDrawer />', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('focuses the close button on mount so the dialog is keyboard-reachable immediately', () => {
+    mockUseGetPlanByEmployeeAndWeekQuery.mockReturnValue({ data: SAMPLE_PLAN, isLoading: false });
+    mockUseListCommitsQuery.mockReturnValue({ data: [], isLoading: false });
+    renderDrawer();
+    expect(screen.getByRole('button', { name: /close/i })).toHaveFocus();
+  });
+
+  it('restores focus to the previously-focused element on unmount', () => {
+    mockUseGetPlanByEmployeeAndWeekQuery.mockReturnValue({ data: SAMPLE_PLAN, isLoading: false });
+    mockUseListCommitsQuery.mockReturnValue({ data: [], isLoading: false });
+
+    // Set up a real "trigger" element outside the drawer to mimic the
+    // MemberCard row a manager would have clicked from. Focus it, then mount
+    // the drawer; on unmount, focus must return to this trigger.
+    const trigger = document.createElement('button');
+    trigger.textContent = 'Open drawer';
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(trigger).toHaveFocus();
+
+    const { unmount } = renderDrawer();
+    // Drawer's mount effect captures activeElement and shifts focus to Close.
+    expect(screen.getByRole('button', { name: /close/i })).toHaveFocus();
+
+    unmount();
+    expect(trigger).toHaveFocus();
+
+    document.body.removeChild(trigger);
+  });
+
   it('groups commits visually into chess tiers (delegates to <ChessTier />)', () => {
     mockUseGetPlanByEmployeeAndWeekQuery.mockReturnValue({ data: SAMPLE_PLAN, isLoading: false });
     mockUseListCommitsQuery.mockReturnValue({

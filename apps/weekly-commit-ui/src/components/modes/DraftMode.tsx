@@ -38,12 +38,16 @@ export function DraftMode({ planId }: DraftModeProps) {
   const [transition, { isLoading: isLocking, error: lockError }] = useTransitionMutation();
 
   if (isLoading) {
-    return <div data-testid="draft-loading">Loading…</div>;
+    return (
+      <div data-testid="draft-loading" className="text-sm text-gray-500">
+        Loading your week…
+      </div>
+    );
   }
   if (error) {
     return (
-      <div data-testid="draft-error" role="alert">
-        Couldn’t load commits.
+      <div data-testid="draft-error" role="alert" className="text-sm text-red-700">
+        Couldn’t load commits. Try refreshing the page.
       </div>
     );
   }

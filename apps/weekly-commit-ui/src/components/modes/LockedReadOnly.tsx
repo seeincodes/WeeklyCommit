@@ -18,12 +18,16 @@ export function LockedReadOnly({ planId }: LockedReadOnlyProps) {
   const { data: commits, isLoading, error } = useListCommitsQuery({ planId });
 
   if (isLoading) {
-    return <div data-testid="locked-readonly-loading">Loading…</div>;
+    return (
+      <div data-testid="locked-readonly-loading" className="text-sm text-gray-500">
+        Loading the locked week…
+      </div>
+    );
   }
   if (error || !commits) {
     return (
-      <div data-testid="locked-readonly-error" role="alert">
-        Couldn’t load commits.
+      <div data-testid="locked-readonly-error" role="alert" className="text-sm text-red-700">
+        Couldn’t load commits. Try refreshing the page.
       </div>
     );
   }

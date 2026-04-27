@@ -91,6 +91,35 @@ describe('<MemberCard />', () => {
     expect(screen.getByTestId('flag-STUCK_COMMIT')).toBeInTheDocument();
   });
 
+  it('renders human-readable copy on each flag badge', () => {
+    render(
+      <MemberCard
+        member={member({ flags: ['UNREVIEWED_72H', 'STUCK_COMMIT', 'NO_TOP_ROCK'] })}
+        onClick={vi.fn()}
+      />,
+    );
+    // Visible label, not the raw enum.
+    expect(screen.getByTestId('flag-UNREVIEWED_72H')).toHaveTextContent('Unreviewed 72h');
+    expect(screen.getByTestId('flag-STUCK_COMMIT')).toHaveTextContent('Stuck commit');
+    expect(screen.getByTestId('flag-NO_TOP_ROCK')).toHaveTextContent('No Top Rock');
+  });
+
+  it('falls back to a humanized label for unknown flag codes', () => {
+    render(<MemberCard member={member({ flags: ['SOME_FUTURE_FLAG'] })} onClick={vi.fn()} />);
+    expect(screen.getByTestId('flag-SOME_FUTURE_FLAG')).toHaveTextContent('Some Future Flag');
+  });
+
+  it('clicking a flag badge does NOT bubble up to the row activation', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    render(<MemberCard member={member({ flags: ['UNREVIEWED_72H'] })} onClick={onClick} />);
+
+    await user.click(screen.getByTestId('flag-UNREVIEWED_72H'));
+
+    // Row click would have called onClick; flag's stopPropagation should prevent it.
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it('does not render the flags strip when flags is empty', () => {
     render(<MemberCard member={member({ flags: [] })} onClick={vi.fn()} />);
     expect(screen.queryByTestId('member-card-flags')).not.toBeInTheDocument();

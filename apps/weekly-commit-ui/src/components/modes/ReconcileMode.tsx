@@ -68,12 +68,16 @@ export function ReconcileMode({ planId, reflectionNote = '' }: ReconcileModeProp
   }, [reflection, reflectionNote, planId, updateReflection]);
 
   if (isLoading) {
-    return <div data-testid="reconcile-loading">Loading…</div>;
+    return (
+      <div data-testid="reconcile-loading" className="text-sm text-gray-500">
+        Loading the week to reconcile…
+      </div>
+    );
   }
   if (error || !commits) {
     return (
-      <div data-testid="reconcile-error" role="alert">
-        Couldn’t load commits.
+      <div data-testid="reconcile-error" role="alert" className="text-sm text-red-700">
+        Couldn’t load commits. Try refreshing the page.
       </div>
     );
   }

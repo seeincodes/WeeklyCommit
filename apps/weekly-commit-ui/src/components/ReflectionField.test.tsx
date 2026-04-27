@@ -20,9 +20,10 @@ describe('<ReflectionField />', () => {
     expect(onChange).toHaveBeenCalledWith('X');
   });
 
-  it('shows the character counter as "<used>/500"', () => {
+  it('shows the character counter as "<used>/500" while under the soft-warning threshold', () => {
     render(<ReflectionField value="hello" onChange={vi.fn()} />);
     expect(screen.getByTestId('reflection-counter')).toHaveTextContent('5/500');
+    expect(screen.getByTestId('reflection-counter')).toHaveAttribute('data-warn-level', 'none');
   });
 
   it('caps input at 500 characters via maxLength', () => {
@@ -41,5 +42,29 @@ describe('<ReflectionField />', () => {
     const value = 'a'.repeat(479);
     render(<ReflectionField value={value} onChange={vi.fn()} />);
     expect(screen.getByTestId('reflection-counter')).toHaveAttribute('data-warning', 'false');
+    expect(screen.getByTestId('reflection-counter')).toHaveAttribute('data-warn-level', 'none');
+  });
+
+  it('uses the SOFT (amber) warn level between 480 and 494 chars', () => {
+    const value = 'a'.repeat(480);
+    render(<ReflectionField value={value} onChange={vi.fn()} />);
+    const counter = screen.getByTestId('reflection-counter');
+    expect(counter).toHaveAttribute('data-warn-level', 'soft');
+    // Counter copy switches to "X left" framing once warning kicks in.
+    expect(counter).toHaveTextContent('20 left');
+  });
+
+  it('escalates to HARD (red) warn level at 495 chars', () => {
+    const value = 'a'.repeat(495);
+    render(<ReflectionField value={value} onChange={vi.fn()} />);
+    const counter = screen.getByTestId('reflection-counter');
+    expect(counter).toHaveAttribute('data-warn-level', 'hard');
+    expect(counter).toHaveTextContent('5 left');
+  });
+
+  it('shows "0 left" at the cap', () => {
+    const value = 'a'.repeat(500);
+    render(<ReflectionField value={value} onChange={vi.fn()} />);
+    expect(screen.getByTestId('reflection-counter')).toHaveTextContent('0 left');
   });
 });

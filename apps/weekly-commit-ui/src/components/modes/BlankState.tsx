@@ -14,19 +14,25 @@ export function BlankState() {
   const [createPlan, { isLoading, error }] = useCreateCurrentForMeMutation();
 
   return (
-    <div data-testid="week-editor-blank" className="flex flex-col gap-3">
-      <p>You haven’t started this week yet.</p>
+    <div data-testid="week-editor-blank" className="flex flex-col items-start gap-4 py-2">
+      <div className="flex flex-col gap-1.5">
+        <h2 className="text-xl font-semibold text-gray-900">A fresh week.</h2>
+        <p className="max-w-prose text-sm text-gray-600">
+          What would make this week a win? Create a plan to capture your Top Rock and the supporting
+          moves underneath it.
+        </p>
+      </div>
       <button
         type="button"
         onClick={() => void createPlan()}
         disabled={isLoading}
-        className="self-start rounded bg-blue-600 px-4 py-2 text-white disabled:bg-gray-300"
+        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:bg-gray-300"
       >
         {isLoading ? 'Creating…' : 'Create plan'}
       </button>
       {error && (
         <div data-testid="blank-state-error" role="alert" className="text-sm text-red-700">
-          Couldn’t create the plan. Try again.
+          Couldn’t create the plan. Try again in a moment.
         </div>
       )}
     </div>

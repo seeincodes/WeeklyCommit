@@ -32,8 +32,14 @@ export function TeamRollup({ rollup, renderMember }: TeamRollupProps) {
       <StatsStrip rollup={rollup} />
       <TierStrip tierDistribution={rollup.tierDistribution ?? {}} />
       {ordered.length === 0 ? (
-        <div data-testid="team-rollup-empty" className="text-sm italic text-gray-500">
-          No direct reports for this week.
+        <div
+          data-testid="team-rollup-empty"
+          className="rounded border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600"
+        >
+          <p className="font-medium text-gray-700">No direct reports for this week.</p>
+          <p className="mt-1 text-gray-500">
+            Members appear here once they’ve started their weekly plan.
+          </p>
         </div>
       ) : (
         <ul className="flex flex-col gap-2">{ordered.map((m) => renderMember(m))}</ul>

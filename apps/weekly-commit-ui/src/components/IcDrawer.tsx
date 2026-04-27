@@ -1,4 +1,4 @@
-import { useEffect, useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { useGetPlanByEmployeeAndWeekQuery, useListCommitsQuery } from '@wc/rtk-api-client';
 import type { WeeklyCommitResponse, WeeklyPlanResponse } from '@wc/rtk-api-client';
 import { ChessTier } from './ChessTier';
@@ -44,6 +44,26 @@ interface IcDrawerProps {
  */
 export function IcDrawer({ employeeId, employeeName, weekStart, onClose }: IcDrawerProps) {
   const titleId = useId();
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  // Capture whatever was focused before the drawer mounted -- typically the
+  // MemberCard row that triggered open. We restore focus there on close so
+  // keyboard users land back where they were instead of at <body>.
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previouslyFocusedRef.current =
+      typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
+    // Send focus into the drawer so the next Tab key hits the dialog content,
+    // not whatever's behind the backdrop.
+    closeButtonRef.current?.focus();
+    return () => {
+      // On unmount, restore focus to the trigger element. Wrapped in an
+      // optional-chained check because the captured element may have been
+      // removed from the DOM in the meantime (e.g. the underlying rollup
+      // refetched and rerendered the row).
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, []);
 
   // Escape closes the drawer no matter where focus is inside it.
   useEffect(() => {
@@ -78,10 +98,11 @@ export function IcDrawer({ employeeId, employeeName, weekStart, onClose }: IcDra
             {employeeName}
           </h2>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded p-1 text-gray-500 hover:bg-gray-100"
+            className="rounded p-1 text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             ✕
           </button>
