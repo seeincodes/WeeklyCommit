@@ -22,6 +22,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -41,6 +42,9 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
  *   <li>{@link OptimisticLockException}, {@link OptimisticLockingFailureException} → 409 {@code
  *       CONFLICT_OPTIMISTIC_LOCK}
  *   <li>{@link InvalidStateTransitionException} → 422 {@code INVALID_STATE_TRANSITION}
+ *   <li>{@link WebClientResponseException} → 502 {@code UPSTREAM_ERROR} (RCDO / notification-svc
+ *       returned a non-success status that survived Resilience4j retries; UI surfaces the cached-
+ *       data banner per MEMO Known Failure Modes)
  *   <li>Uncaught {@link Throwable} → 500 {@code INTERNAL_ERROR} (logged with stack trace; message
  *       scrubbed)
  * </ul>
@@ -190,6 +194,22 @@ public class GlobalExceptionHandler {
                 ex.getFromState(),
                 "toState",
                 ex.getToState())));
+  }
+
+  @ExceptionHandler(WebClientResponseException.class)
+  public ResponseEntity<ApiErrorEnvelope> handleUpstreamError(WebClientResponseException ex) {
+    // Reaches here only after Resilience4j retries are exhausted on a non-2xx upstream response.
+    // 4xx upstream is also forwarded as 502 because by definition the caller didn't make a bad
+    // request to *us*; the bad request was ours to RCDO/notification-svc.
+    log.warn(
+        "Upstream service returned {} {}; surfacing as 502 to caller",
+        ex.getStatusCode(),
+        ex.getStatusText());
+    return status(
+        HttpStatus.BAD_GATEWAY,
+        ApiErrorEnvelope.of(
+            "UPSTREAM_ERROR",
+            "An upstream service is temporarily unavailable; please try again shortly"));
   }
 
   @ExceptionHandler(Throwable.class)
