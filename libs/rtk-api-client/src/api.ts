@@ -116,7 +116,11 @@ export const api = createApi({
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
         try {
           const { data: newPlan } = await queryFulfilled;
-          dispatch(api.util.upsertQueryData('getCurrentForMe', undefined, newPlan));
+          // upsertQueryData is a thunk; dispatching it returns a Promise we
+          // intentionally fire-and-forget. The cache write is synchronous in
+          // practice and any failure is irrelevant to user-visible flow --
+          // tag invalidation will still trigger a refetch as a fallback.
+          void dispatch(api.util.upsertQueryData('getCurrentForMe', undefined, newPlan));
         } catch {
           // Server rejected the create -- let the error bubble through the
           // mutation's normal error path; no cache write to revert.
