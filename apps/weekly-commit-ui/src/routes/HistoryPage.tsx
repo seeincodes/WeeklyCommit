@@ -1,4 +1,4 @@
-import { Card } from 'flowbite-react';
+import { AppShell } from '../components/AppShell';
 
 /**
  * Route shell for /weekly-commit/history. The historical-weeks list ships
@@ -8,11 +8,10 @@ import { Card } from 'flowbite-react';
  */
 export function HistoryPage() {
   return (
-    <div data-testid="history-page" className="p-6 bg-gray-50 min-h-screen">
-      <Card className="max-w-3xl">
-        <h1 className="text-2xl font-bold text-gray-900">History</h1>
-        <p className="text-gray-600">Historical weeks list lands later in group 11.</p>
-      </Card>
-    </div>
+    <AppShell testId="history-page" eyebrow="Past weeks" title="History">
+      <div className="rounded-lg border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
+        Historical weeks list lands later in group 11.
+      </div>
+    </AppShell>
   );
 }

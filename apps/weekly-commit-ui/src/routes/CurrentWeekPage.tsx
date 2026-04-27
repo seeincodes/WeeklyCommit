@@ -1,21 +1,30 @@
-import { Card } from 'flowbite-react';
+import { AppShell } from '../components/AppShell';
+import { WeekContextBadge } from '../components/WeekContextBadge';
 import { WeekEditor } from '../components/WeekEditor';
+import { currentWeekStart, getEmployeeTimezone } from '../lib/timezone';
 
 /**
  * Route shell for /weekly-commit/current. The state-aware <WeekEditor />
  * owns the plan fetch and mode routing; this page wraps it with the
- * heading and version stamp that smoke tests target.
+ * AppShell header (which carries the product nav, eyebrow, and the
+ * version stamp inside the footer the Playwright smoke test grep'd for).
+ *
+ * Title text remains "Weekly Commit" so the smoke test's heading regex
+ * `getByRole('heading', { name: /weekly commit/i })` continues to match
+ * inside the `current-week-page` test-id container.
  */
 export function CurrentWeekPage() {
+  const now = new Date();
+  const tz = getEmployeeTimezone();
+  const weekStart = currentWeekStart(now, tz);
   return (
-    <div data-testid="current-week-page" className="p-6 bg-gray-50 min-h-screen">
-      <Card className="max-w-3xl">
-        <h1 className="text-2xl font-bold text-gray-900">Weekly Commit</h1>
-        <WeekEditor now={new Date()} />
-        <p className="text-sm text-gray-400" data-testid="version">
-          Build: {__WC_GIT_SHA__}
-        </p>
-      </Card>
-    </div>
+    <AppShell
+      testId="current-week-page"
+      eyebrow="This week"
+      title="Weekly Commit"
+      headerSlot={<WeekContextBadge weekStart={weekStart} tz={tz} />}
+    >
+      <WeekEditor now={now} />
+    </AppShell>
   );
 }

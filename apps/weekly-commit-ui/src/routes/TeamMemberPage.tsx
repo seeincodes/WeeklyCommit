@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card } from 'flowbite-react';
+import { AppShell } from '../components/AppShell';
 import { IcDrawer } from '../components/IcDrawer';
 import { currentWeekStart, getEmployeeTimezone } from '../lib/timezone';
 
@@ -20,31 +20,29 @@ export function TeamMemberPage() {
 
   if (!employeeId) {
     return (
-      <div data-testid="team-member-page" className="p-6 bg-gray-50 min-h-screen">
-        <Card className="max-w-3xl">
-          <h1 className="text-2xl font-bold text-gray-900">Team member</h1>
-          <p data-testid="team-member-missing" role="alert">
-            No employee id in the URL.
-          </p>
-        </Card>
-      </div>
+      <AppShell testId="team-member-page" eyebrow="Team detail" title="Team member">
+        <p
+          data-testid="team-member-missing"
+          role="alert"
+          className="rounded-md border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger-ink"
+        >
+          No employee id in the URL.
+        </p>
+      </AppShell>
     );
   }
 
   return (
-    <div data-testid="team-member-page" className="p-6 bg-gray-50 min-h-screen">
-      <Card className="max-w-3xl">
-        <h1 className="text-2xl font-bold text-gray-900">Team member</h1>
-        <p className="text-gray-600" data-testid="team-member-id">
-          Viewing employee: {employeeId}
-        </p>
-      </Card>
+    <AppShell testId="team-member-page" eyebrow="Team detail" title="Team member">
+      <p data-testid="team-member-id" className="text-slate-600">
+        Viewing employee: {employeeId}
+      </p>
       <IcDrawer
         employeeId={employeeId}
         employeeName={employeeId}
         weekStart={currentWeekStart(new Date(), getEmployeeTimezone())}
         onClose={() => navigate('/weekly-commit/team')}
       />
-    </div>
+    </AppShell>
   );
 }
