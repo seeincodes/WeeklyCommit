@@ -1,0 +1,75 @@
+# Demo profile -- AWS demo deploy.
+#
+# Combine with the e2e profile so JWT validation accepts test-signed tokens:
+#   SPRING_PROFILES_ACTIVE=e2e,demo
+#
+# This profile assumes:
+#   - SPRING_DATASOURCE_URL / USERNAME / PASSWORD point at the demo RDS instance
+#   - The frontend ships VITE_DEMO_MODE=true so its devAuth shim signs JWTs
+#     with the matching private key on every request
+#   - RCDO calls land at the in-process StubRcdoController (no external network
+#     call, no wiremock sidecar)
+#   - notification-svc calls land at the LoggingNotificationSender (logs the
+#     event, writes nothing to a downstream service)
+#
+# The demo profile is a deliberate deviation from the production architecture
+# documented in MEMO #12; do not enable it on a real production deployment.
+
+spring:
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+
+  flyway:
+    # Apply migrations against the empty demo RDS on first boot. Idempotent
+    # against a populated DB on subsequent boots.
+    enabled: true
+    locations: classpath:db/migration
+
+# Demo deploy fronts everything behind a single CloudFront distribution, so the
+# Authorization header survives the proxy hop. Keep the resource server config
+# the e2e profile installs (NimbusJwtDecoder + classpath public key) -- demo
+# layers on top, doesn't replace it.
+weekly-commit:
+  rcdo:
+    # Empty base-url is fine: the demo profile installs an in-process stub at
+    # /rcdo/supporting-outcomes (StubRcdoController) on the same backend, so
+    # RcdoClient's WebClient gets resolved against localhost. The stub bean is
+    # gated @Profile("demo") so prod is unaffected.
+    base-url: ${RCDO_BASE_URL:http://localhost:8080}
+    timeout-ms: ${RCDO_TIMEOUT_MS:2000}
+    service-token: ${RCDO_SERVICE_TOKEN:demo-no-token}
+  notification:
+    # LoggingNotificationSender is @Profile("!prod"), so anything other than
+    # the prod profile gets the no-op logger. Demo is one such profile.
+    base-url: ${NOTIFICATION_SVC_BASE_URL:}
+    timeout-ms: ${NOTIFICATION_SVC_TIMEOUT_MS:3000}
+    service-token: ${NOTIFICATION_SVC_SERVICE_TOKEN:demo-no-token}
+  scheduled:
+    # Disable scheduled jobs in the demo: a single ECS task running auto-lock
+    # every hour against a small demo dataset is at best noise, at worst it
+    # mutates the seeded plans out from under the user. The demo wants
+    # stable, repeatable state.
+    enabled: ${SCHEDULED_JOBS_ENABLED:false}
+  demo:
+    # Toggle the seeder. When true, on first boot DemoDataSeeder writes one
+    # manager + 3 reporting ICs + 1 unassigned IC + a current-week DRAFT plan
+    # for each + a prior reconciled week for the manager's reports. Subsequent
+    # boots see the seeded employees and skip seeding.
+    seed: ${DEMO_SEED:true}
+
+management:
+  cloudwatch:
+    metrics:
+      export:
+        # Demo doesn't ship metrics to CloudWatch -- the IAM cost + rate-card
+        # noise isn't worth it for a demo with one task. Sentry covers errors;
+        # CloudWatch container insights covers task health for free.
+        enabled: false
+
+logging:
+  level:
+    com.acme.weeklycommit: INFO
+    com.acme.weeklycommit.demo: INFO

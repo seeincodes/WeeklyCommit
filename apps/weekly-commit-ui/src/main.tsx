@@ -28,18 +28,30 @@ if (sentryDsn) {
   });
 }
 
-// Standalone-dev only: mint a self-signed JWT and patch fetch so the e2e-profile
-// backend accepts our requests. The federated path (host imports WeeklyCommitModule
-// directly) skips this entire file. The DEV gate ensures `vite build` tree-shakes
-// the dev/devAuth module + its `jose` + private-key payload out of the prod bundle.
+// Standalone-dev AND demo-deploy: mint a self-signed JWT and patch fetch so the
+// e2e-profile backend accepts our requests. The federated path (host imports
+// WeeklyCommitModule directly) skips this entire file.
+//
+// Two activation paths:
+//   - `import.meta.env.DEV`: standalone vite dev, the original use case.
+//   - `import.meta.env.VITE_DEMO_MODE === 'true'`: production build with the
+//     demo flag set. Used by docker-compose.demo.yml and the AWS demo deploy
+//     so a static bundle can talk to a demo-profile backend. See MEMO #12 for
+//     why this is a deliberate deviation from the federated production path.
+//
+// When neither flag is true `vite build` tree-shakes the dev/devAuth module +
+// its `jose` + private-key payload out of the prod bundle. Both gates collapse
+// to compile-time constants so the conditional branch is dead-code-eliminated.
 async function boot(): Promise<void> {
-  if (import.meta.env.DEV) {
-    // The dev auth shim is best-effort: it lets a developer hit the backend
-    // from `vite dev` against the e2e Spring profile without 401s. If it
-    // fails (PEM not found, jose can't parse, anything else), log and move on
-    // -- the app still mounts and the developer sees backend 401s if they hit
-    // the real API. Critically, this means Playwright's smoke (which doesn't
-    // need backend auth at all) is unaffected by dev-auth setup errors.
+  const demoMode = import.meta.env.VITE_DEMO_MODE === 'true';
+  if (import.meta.env.DEV || demoMode) {
+    // The dev auth shim is best-effort: it lets a developer or demo-deploy
+    // user hit the backend against the e2e Spring profile without 401s. If
+    // it fails (PEM not found, jose can't parse, anything else), log and
+    // move on -- the app still mounts and the user sees backend 401s if
+    // they hit the real API. Critically, this means Playwright's smoke
+    // (which doesn't need backend auth at all) is unaffected by dev-auth
+    // setup errors.
     try {
       const { installDevAuth } = await import('./dev/devAuth');
       await installDevAuth();
