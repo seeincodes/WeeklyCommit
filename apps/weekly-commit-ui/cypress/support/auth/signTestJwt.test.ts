@@ -6,10 +6,7 @@ import { jwtVerify, importSPKI } from 'jose';
 import { signTestJwt, resetSignerCache } from './signTestJwt';
 import { TEST_USERS } from './testUsers';
 
-const PRIVATE_KEY_PEM = readFileSync(
-  resolve(__dirname, 'keys/private-key.pem'),
-  'utf8',
-);
+const PRIVATE_KEY_PEM = readFileSync(resolve(__dirname, 'keys/private-key.pem'), 'utf8');
 const PUBLIC_KEY_PEM = readFileSync(resolve(__dirname, 'keys/public-key.pem'), 'utf8');
 
 describe('signTestJwt', () => {
