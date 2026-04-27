@@ -15,20 +15,41 @@
 // lock for the policy.
 
 import { readFileSync } from 'node:fs';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import federation from '@originjs/vite-plugin-federation';
 
-// Test private key for the standalone-dev auth shim. Read once at config time
-// so we sidestep Vite's `?raw` + fs.allow check entirely (the cypress/ tree
-// resolves outside the package's serving allowlist under Yarn PnP). Injected
-// into the bundle via a `define` constant; tree-shaken from production builds
-// because devAuth.ts -- the only consumer -- only loads under
-// import.meta.env.DEV. Single source of truth remains the cypress key file.
-const DEV_PRIVATE_KEY_PEM = readFileSync(
-  new URL('./cypress/support/auth/keys/private-key.pem', import.meta.url),
-  'utf8',
-);
+/**
+ * Exposes the cypress test private key (used by Cypress + Cucumber to sign JWTs)
+ * as a virtual ES module the standalone-dev auth shim can import directly.
+ * Sidesteps two things at once:
+ *   - Vite's `?raw` import + fs.allow check -- the cypress/ path resolves outside
+ *     the package serving allowlist under Yarn PnP, even with `allow: ['..']`.
+ *   - The brittleness of round-tripping a multi-line PEM through `define` +
+ *     JSON.stringify (esbuild's substitution can mangle escaped newlines).
+ *
+ * The virtual module name is opaque so it can never collide with a real package.
+ * Tree-shaken from production federation builds because the only importer
+ * (src/dev/devAuth.ts) is only reached under `import.meta.env.DEV`.
+ */
+function devPrivateKeyPlugin(): Plugin {
+  const VIRTUAL_ID = 'virtual:wc-dev-private-key';
+  const RESOLVED_ID = '\0' + VIRTUAL_ID;
+  return {
+    name: 'wc-dev-private-key',
+    resolveId(id) {
+      return id === VIRTUAL_ID ? RESOLVED_ID : null;
+    },
+    load(id) {
+      if (id !== RESOLVED_ID) return null;
+      const pem = readFileSync(
+        new URL('./cypress/support/auth/keys/private-key.pem', import.meta.url),
+        'utf8',
+      );
+      return `export default ${JSON.stringify(pem)};`;
+    },
+  };
+}
 
 // Singleton requirements track package.json's pinned versions. Keep the
 // caret prefix (^X.Y.Z) so a host shipping a newer compatible patch/minor
@@ -55,6 +76,7 @@ export default defineConfig({
       },
       shared: SHARED,
     }),
+    devPrivateKeyPlugin(),
   ],
   build: {
     // Host is the consumer and dictates browser support; matches PM remote.
@@ -71,6 +93,22 @@ export default defineConfig({
     port: 4184,
     strictPort: true,
     cors: true,
+    // Standalone-dev only. Forward /api/* and /actuator/* to the local Spring
+    // service brought up by docker-compose.e2e.yml. Same-origin from the
+    // browser's POV, so no CORS preflight / no need for a CORS bean on the
+    // backend. Production topology has the PA host's reverse proxy doing the
+    // same thing -- this mirrors it. Ignored entirely in `vite build` and the
+    // federated-into-host runtime.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: false,
+      },
+      '/actuator': {
+        target: 'http://localhost:8080',
+        changeOrigin: false,
+      },
+    },
   },
   define: {
     // Build-time version stamp (subtask 8). CI sets GIT_SHA; locally we
@@ -84,11 +122,6 @@ export default defineConfig({
     // rather than fork a separate vitest.config.ts.
     __WC_GIT_SHA__: JSON.stringify(process.env.GIT_SHA ?? 'dev'),
     __WC_BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-    // Test private key for the standalone-dev auth shim. See the import-time
-    // declaration above for why we inject it this way. Tree-shaken from prod
-    // because devAuth.ts (the only reader) only loads under
-    // import.meta.env.DEV.
-    __WC_DEV_PRIVATE_KEY__: JSON.stringify(DEV_PRIVATE_KEY_PEM),
   },
   test: {
     // Vitest config (subtask 9.5). Lives here rather than in a parallel

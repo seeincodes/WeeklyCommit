@@ -19,12 +19,11 @@
 // VITE_DEV_AUTH_ROLE which beats the hardcoded MANAGER default.
 
 import { SignJWT, importPKCS8 } from 'jose';
-
-// PEM is injected as a build-time `define` constant from vite.config.ts, which
-// reads the cypress/ test key at config time. Sidesteps Vite's runtime fs.allow
-// check (Yarn PnP confused the workspace-root resolution there). Single source
-// of truth remains the cypress key file; we never duplicate the PEM bytes.
-const privateKeyPem = __WC_DEV_PRIVATE_KEY__;
+// Virtual module supplied by `devPrivateKeyPlugin` in vite.config.ts -- reads
+// the cypress test key at Vite-config time and exposes it as a default export.
+// Sidesteps both the `?raw` + fs.allow path (Yarn PnP confused the workspace-
+// root check) and `define` + JSON.stringify newline-escaping fragility.
+import privateKeyPem from 'virtual:wc-dev-private-key';
 
 type DevRole = 'IC' | 'IC_NULL_MANAGER' | 'MANAGER' | 'ADMIN';
 
@@ -118,15 +117,19 @@ export async function installDevAuth(): Promise<DevRole> {
   installed = true;
 
   const role = resolveRole();
-  const apiBase = import.meta.env.VITE_API_BASE_URL ?? '';
   const token = await mintJwt(role);
 
   const originalFetch = window.fetch.bind(window);
   window.fetch = (input, init) => {
     const url =
       typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-    // Only attach to backend calls. Don't pollute Vite HMR / asset fetches.
-    if (apiBase && !url.startsWith(apiBase)) {
+    // Match by path so we attach the token whether RTK Query targets the Vite
+    // proxy (same-origin /api/...) or a fully-qualified backend URL. Anything
+    // that isn't an API or actuator request (Vite HMR pings, source maps, asset
+    // fetches) passes through untouched.
+    const path = url.startsWith('http') ? new URL(url).pathname : url;
+    const isBackendCall = path.startsWith('/api/') || path.startsWith('/actuator/');
+    if (!isBackendCall) {
       return originalFetch(input, init);
     }
     const headers = new Headers(
