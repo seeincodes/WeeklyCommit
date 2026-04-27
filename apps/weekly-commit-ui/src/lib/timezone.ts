@@ -106,3 +106,45 @@ export function formatInstant(
   const date = typeof instant === 'string' ? new Date(instant) : instant;
   return new Intl.DateTimeFormat('en-US', { ...options, timeZone: tz }).format(date);
 }
+
+/**
+ * Returns the Monday-of-this-week as a `YYYY-MM-DD` string anchored to the
+ * given IANA timezone. Used by the manager surfaces (`/team`, `/team/:id`)
+ * to query the current rollup window without relying on the system locale.
+ *
+ * `now` is injected so tests can pin the clock; `tz` is injected so callers
+ * can reuse a JWT-claim TZ once the auth-context hook lands.
+ */
+export function currentWeekStart(now: Date, tz: string): string {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+  });
+  const parts = fmt.formatToParts(now);
+  const yyyy = parts.find((p) => p.type === 'year')?.value;
+  const mm = parts.find((p) => p.type === 'month')?.value;
+  const dd = parts.find((p) => p.type === 'day')?.value;
+  const weekday = parts.find((p) => p.type === 'weekday')?.value;
+  if (yyyy == null || mm == null || dd == null || weekday == null) {
+    throw new Error(`Intl.DateTimeFormat returned an unexpected shape for ${tz}`);
+  }
+  // ISO weeks start Monday; subtract days until we hit Monday. Sun=6 keeps the
+  // current week intact when called Sunday evening (rather than rolling into
+  // next week's Monday).
+  const offsetByWeekday: Record<string, number> = {
+    Mon: 0,
+    Tue: 1,
+    Wed: 2,
+    Thu: 3,
+    Fri: 4,
+    Sat: 5,
+    Sun: 6,
+  };
+  const offset = offsetByWeekday[weekday] ?? 0;
+  const d = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - offset);
+  return d.toISOString().slice(0, 10);
+}

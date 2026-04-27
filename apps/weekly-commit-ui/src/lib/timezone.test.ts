@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  currentWeekStart,
   isReconcileEligible,
   formatInstant,
   getEmployeeTimezone,
@@ -96,6 +97,44 @@ describe('timezone helpers', () => {
 
     it('returns the explicit override when given', () => {
       expect(getEmployeeTimezone('Europe/Berlin')).toBe('Europe/Berlin');
+    });
+  });
+
+  describe('currentWeekStart', () => {
+    // Anchor: Mon 2026-04-27 00:00 UTC. Walking each weekday forward should
+    // resolve back to the same Monday until Sunday wraps and stays in week.
+    it('returns the same Monday when called Monday in UTC', () => {
+      expect(currentWeekStart(new Date('2026-04-27T12:00:00Z'), 'UTC')).toBe('2026-04-27');
+    });
+
+    it('returns the prior Monday when called Tuesday through Sunday in UTC', () => {
+      expect(currentWeekStart(new Date('2026-04-28T12:00:00Z'), 'UTC')).toBe('2026-04-27'); // Tue
+      expect(currentWeekStart(new Date('2026-04-29T12:00:00Z'), 'UTC')).toBe('2026-04-27'); // Wed
+      expect(currentWeekStart(new Date('2026-04-30T12:00:00Z'), 'UTC')).toBe('2026-04-27'); // Thu
+      expect(currentWeekStart(new Date('2026-05-01T12:00:00Z'), 'UTC')).toBe('2026-04-27'); // Fri
+      expect(currentWeekStart(new Date('2026-05-02T12:00:00Z'), 'UTC')).toBe('2026-04-27'); // Sat
+      expect(currentWeekStart(new Date('2026-05-03T12:00:00Z'), 'UTC')).toBe('2026-04-27'); // Sun
+    });
+
+    it('rolls into the next week on the following Monday', () => {
+      expect(currentWeekStart(new Date('2026-05-04T00:00:01Z'), 'UTC')).toBe('2026-05-04');
+    });
+
+    it('respects the IANA tz when computing local-day weekday', () => {
+      // 2026-04-27T03:00:00Z is still Sun 2026-04-26 23:00 EDT (UTC-04:00 in
+      // late April). Asking in America/New_York should return the prior week's
+      // Monday (2026-04-20), not the calendar-UTC Monday.
+      expect(currentWeekStart(new Date('2026-04-27T03:00:00Z'), 'America/New_York')).toBe(
+        '2026-04-20',
+      );
+    });
+
+    it('handles the DST spring-forward week without skewing the Monday', () => {
+      // Sun 2026-03-08 is the spring-forward day in America/New_York. Calling at
+      // noon local that day must still resolve to the week-start Mon 2026-03-02.
+      expect(currentWeekStart(new Date('2026-03-08T16:00:00Z'), 'America/New_York')).toBe(
+        '2026-03-02',
+      );
     });
   });
 });
