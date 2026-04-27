@@ -41,11 +41,26 @@ services:
       # is just cycle-burn. Loses ~50ms of startup vs. a persistent volume.
       - /var/lib/postgresql/data
 
+  rcdo-stub:
+    image: wiremock/wiremock:3.9.1
+    command: ['--port', '8081', '--global-response-templating', '--verbose']
+    ports:
+      - '8081:8081'
+    volumes:
+      - ./wiremock:/home/wiremock:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:8081/__admin/health || exit 1']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
   weekly-commit-service:
     image: eclipse-temurin:21-jre
     depends_on:
       postgres:
         condition: service_healthy
+      rcdo-stub:
+        condition: service_started
     ports:
       - '8080:8080'
     environment:
@@ -57,10 +72,11 @@ services:
       # binds them at startup -- placeholder values prevent property resolution errors.
       AUTH0_ISSUER_URI: https://e2e.invalid/
       AUTH0_AUDIENCE: e2e-tests
-      # RCDO + notification-svc clients aren't exercised by the green-path scenarios this
-      # harness runs today (group 13b adds those flows). Point at unreachable hosts so any
-      # accidental call fails loudly with a connect refusal rather than a silent timeout.
-      RCDO_BASE_URL: https://rcdo.invalid/
+      # RCDO points at the rcdo-stub wiremock service so the picker has real-shaped data
+      # to render in the standalone-dev path. notification-svc stays unreachable -- the
+      # green-path scenarios this harness runs today don't exercise notifications.
+      RCDO_BASE_URL: http://rcdo-stub:8081
+      RCDO_SERVICE_TOKEN: e2e-fake-token
       NOTIFICATION_SVC_BASE_URL: https://notification.invalid/
     volumes:
       # The JAR is pre-built by CI's `mvn package -DskipTests` step. The mount path is
