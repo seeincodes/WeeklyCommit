@@ -14,6 +14,13 @@ export default defineConfig({
     baseUrl: 'http://localhost:4184', // matches the Vite dev server in vite.config.ts
     // Subtask 5 may extend this with `webServer`-style config; for now we
     // assume the dev server (or a docker-compose stack) is already up.
+    // Default-skip @pending scenarios. The four scenario .feature files (commit-entry,
+    // lock-week, reconcile, manager-review) are all @pending until group 13b lands the
+    // WeekEditor mode-pane integration. CI re-enables them by setting
+    // CYPRESS_TAGS='' (or 'not @somethingElse') once 13b is merged.
+    env: {
+      TAGS: 'not @pending',
+    },
     async setupNodeEvents(on, config) {
       await addCucumberPreprocessorPlugin(on, config);
       on(
