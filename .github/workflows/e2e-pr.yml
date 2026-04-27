@@ -46,14 +46,81 @@ jobs:
       - name: Install JS deps
         run: yarn install --immutable
 
-      # Placeholder: ephemeral env provisioning lives in task group 13.
-      # For now this job is a shell; it reports success on empty test matrix.
-      - name: Provision ephemeral env (placeholder)
-        run: echo "TODO task group 13 -- terraform apply against an ephemeral env"
+      # ---------------------------------------------------------------------------
+      # Build the backend JAR. -DskipTests keeps the workflow single-purpose:
+      # backend-pr.yml runs the full backend test matrix, this job only needs the
+      # runnable artifact for the docker-compose harness.
+      #
+      # The JAR lands at target/weekly-commit-service.jar (stable name fixed via
+      # <finalName> in pom.xml), which is what docker-compose.e2e.yml mounts.
+      # ---------------------------------------------------------------------------
+      - name: Build backend JAR for the E2E stack
+        working-directory: apps/weekly-commit-service
+        run: ./mvnw -B -DskipTests package
 
-      - name: Cypress + Cucumber (placeholder)
-        run: echo "TODO task group 13 -- cypress run against host + remote"
+      # ---------------------------------------------------------------------------
+      # Bring up the ephemeral stack (postgres + the backend JAR via temurin:21-jre).
+      # See apps/weekly-commit-ui/docker-compose.e2e.yml for the full design notes.
+      # SPRING_PROFILES_ACTIVE=e2e activates E2eJwtDecoderConfig so the test JWTs
+      # the Cypress cy.loginAs(role) helper signs are trusted.
+      # ---------------------------------------------------------------------------
+      - name: Provision ephemeral env (docker compose up)
+        working-directory: apps/weekly-commit-ui
+        run: docker compose -f docker-compose.e2e.yml up -d --wait
 
-      - name: Tear down ephemeral env (placeholder)
+      - name: Show backend logs on failure
+        if: failure()
+        working-directory: apps/weekly-commit-ui
+        run: docker compose -f docker-compose.e2e.yml logs --no-color weekly-commit-service
+
+      # ---------------------------------------------------------------------------
+      # Start the Vite dev server in the background. Cypress's baseUrl points at
+      # http://localhost:4184 (matching vite.config.ts strictPort). The server
+      # process keeps running until the runner shuts down -- no explicit teardown
+      # because GitHub Actions cleans up the runner.
+      # ---------------------------------------------------------------------------
+      - name: Start Vite dev server
+        working-directory: apps/weekly-commit-ui
+        env:
+          VITE_API_BASE_URL: http://localhost:8080
+        run: yarn dev > /tmp/vite-dev.log 2>&1 &
+
+      - name: Wait for Vite dev server to be reachable
+        run: |
+          for i in {1..60}; do
+            if curl -sf http://localhost:4184 > /dev/null; then
+              echo "Vite dev server up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Vite dev server did not come up; tail of log:"
+          tail -50 /tmp/vite-dev.log || true
+          exit 1
+
+      # ---------------------------------------------------------------------------
+      # Cypress run. Default cypress.config.ts env.TAGS is `not @pending` -- the
+      # four scenario .feature files (commit-entry, lock-week, reconcile,
+      # manager-review) and the kill-switch contract scenarios are all @pending
+      # until group 13b lands the WeekEditor mode-pane integration. Today this
+      # job exercises only the smoke .feature against the real ephemeral stack;
+      # group 13b will flip those scenarios on.
+      # ---------------------------------------------------------------------------
+      - name: Cypress + Cucumber
+        working-directory: apps/weekly-commit-ui
+        run: yarn test:cypress
+
+      - name: Upload cypress artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-artifacts
+          path: |
+            apps/weekly-commit-ui/cypress/screenshots
+            apps/weekly-commit-ui/cypress/videos
+          if-no-files-found: ignore
+
+      - name: Tear down ephemeral env
         if: always()
-        run: echo "TODO task group 13 -- terraform destroy"
+        working-directory: apps/weekly-commit-ui
+        run: docker compose -f docker-compose.e2e.yml down -v

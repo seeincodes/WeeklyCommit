@@ -12,7 +12,7 @@
 import './index.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HashRouter } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 import { Flowbite } from 'flowbite-react';
 import { WeeklyCommitModule } from './WeeklyCommitModule';
@@ -28,14 +28,50 @@ if (sentryDsn) {
   });
 }
 
-const rootEl = document.getElementById('root');
-if (!rootEl) throw new Error('#root not found');
-createRoot(rootEl).render(
-  <StrictMode>
-    <Flowbite>
-      <HashRouter>
-        <WeeklyCommitModule />
-      </HashRouter>
-    </Flowbite>
-  </StrictMode>,
-);
+// Standalone-dev only: mint a self-signed JWT and patch fetch so the e2e-profile
+// backend accepts our requests. The federated path (host imports WeeklyCommitModule
+// directly) skips this entire file. The DEV gate ensures `vite build` tree-shakes
+// the dev/devAuth module + its `jose` + private-key payload out of the prod bundle.
+async function boot(): Promise<void> {
+  if (import.meta.env.DEV) {
+    // The dev auth shim is best-effort: it lets a developer hit the backend
+    // from `vite dev` against the e2e Spring profile without 401s. If it
+    // fails (PEM not found, jose can't parse, anything else), log and move on
+    // -- the app still mounts and the developer sees backend 401s if they hit
+    // the real API. Critically, this means Playwright's smoke (which doesn't
+    // need backend auth at all) is unaffected by dev-auth setup errors.
+    try {
+      const { installDevAuth } = await import('./dev/devAuth');
+      await installDevAuth();
+    } catch (err) {
+      console.warn('[dev-auth] init failed; continuing without backend auth:', err);
+    }
+  }
+
+  const rootEl = document.getElementById('root');
+  if (!rootEl) throw new Error('#root not found');
+
+  createRoot(rootEl).render(
+    <StrictMode>
+      <Flowbite>
+        <HashRouter>
+          {/*
+            Standalone-only redirect: WeeklyCommitModule's routes are all under
+            /weekly-commit/*, matching how the PA host mounts the federated
+            remote. In standalone mode the HashRouter starts at "/" which the
+            module doesn't recognize, so we send "/" → "/weekly-commit/current"
+            here. The catch-all "*" hands every other path to the module so its
+            existing route tree (current, history, team, team/:employeeId)
+            continues to work.
+          */}
+          <Routes>
+            <Route path="/" element={<Navigate to="/weekly-commit/current" replace />} />
+            <Route path="*" element={<WeeklyCommitModule />} />
+          </Routes>
+        </HashRouter>
+      </Flowbite>
+    </StrictMode>,
+  );
+}
+
+void boot();

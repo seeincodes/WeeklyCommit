@@ -1,0 +1,76 @@
+# Ephemeral E2E stack for the cross-remote Cypress + Cucumber suite (TASK_LIST group 13
+# subtask 5). Two services:
+#
+#   postgres                 -- 16.4-alpine, ephemeral data volume torn down with the stack
+#   weekly-commit-service    -- official temurin:21-jre running the pre-built JAR via volume
+#                               mount. No Dockerfile in this repo (group 14's territory);
+#                               using the upstream JRE keeps this harness scope-clean.
+#
+# Spring profile = `e2e` activates E2eJwtDecoderConfig so the test JWTs the cypress
+# `cy.loginAs(role)` helper signs are trusted. Production-path Auth0 wiring sits inactive.
+#
+# The Vite dev server is NOT in compose -- it runs on the GitHub Actions runner directly
+# (Cypress's baseUrl points at http://localhost:4184). This keeps the harness fast: no
+# Vite container build + the runner can hot-reload if a developer is iterating locally.
+#
+# Bring up:    docker compose -f apps/weekly-commit-ui/docker-compose.e2e.yml up -d
+# Tear down:   docker compose -f apps/weekly-commit-ui/docker-compose.e2e.yml down -v
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: weekly_commit_e2e
+      POSTGRES_USER: e2e
+      POSTGRES_PASSWORD: e2e
+    ports:
+      # Host 5434 → container 5432. Avoids colliding with a developer's local Postgres
+      # (5432, common on macOS via Homebrew) or other dev stacks parked on 5433. The
+      # Spring container talks to `postgres:5432` over the docker network, so the host
+      # port is purely for devs who want to dial the ephemeral DB directly. CI runners
+      # don't have a host Postgres so the choice is moot there; we standardize on 5434
+      # so local + CI behave identically.
+      - '5434:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U e2e -d weekly_commit_e2e']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    tmpfs:
+      # Keep DB state in tmpfs -- this stack never persists across runs and writing to disk
+      # is just cycle-burn. Loses ~50ms of startup vs. a persistent volume.
+      - /var/lib/postgresql/data
+
+  weekly-commit-service:
+    image: eclipse-temurin:21-jre
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '8080:8080'
+    environment:
+      SPRING_PROFILES_ACTIVE: e2e
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/weekly_commit_e2e
+      SPRING_DATASOURCE_USERNAME: e2e
+      SPRING_DATASOURCE_PASSWORD: e2e
+      # The e2e profile's JwtDecoder ignores these but the resource-server auto-config still
+      # binds them at startup -- placeholder values prevent property resolution errors.
+      AUTH0_ISSUER_URI: https://e2e.invalid/
+      AUTH0_AUDIENCE: e2e-tests
+      # RCDO + notification-svc clients aren't exercised by the green-path scenarios this
+      # harness runs today (group 13b adds those flows). Point at unreachable hosts so any
+      # accidental call fails loudly with a connect refusal rather than a silent timeout.
+      RCDO_BASE_URL: https://rcdo.invalid/
+      NOTIFICATION_SVC_BASE_URL: https://notification.invalid/
+    volumes:
+      # The JAR is pre-built by CI's `mvn package -DskipTests` step. The mount path is
+      # relative to the compose file location (apps/weekly-commit-ui/) so we go up two
+      # levels to reach the service's target/.
+      - ../weekly-commit-service/target/weekly-commit-service.jar:/app/app.jar:ro
+    command: ['java', '-jar', '/app/app.jar']
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:8080/actuator/health/readiness']
+      interval: 3s
+      timeout: 3s
+      retries: 40
+      start_period: 20s
