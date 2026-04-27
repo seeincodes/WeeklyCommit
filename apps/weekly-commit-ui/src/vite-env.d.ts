@@ -3,9 +3,14 @@
 // Build-time defines from vite.config.ts -- see the `define` block.
 declare const __WC_GIT_SHA__: string;
 declare const __WC_BUILD_TIME__: string;
-// Test private key PEM, injected at vite-config time. Read only by the
-// dev-only src/dev/devAuth.ts module; tree-shaken from prod federation builds.
-declare const __WC_DEV_PRIVATE_KEY__: string;
+
+// Virtual module from devPrivateKeyPlugin in vite.config.ts. Default export is
+// the cypress test private key PEM. Read only by src/dev/devAuth.ts under
+// import.meta.env.DEV; tree-shaken from prod federation builds.
+declare module 'virtual:wc-dev-private-key' {
+  const pem: string;
+  export default pem;
+}
 
 interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string;
