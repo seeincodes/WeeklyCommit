@@ -88,6 +88,25 @@ export default defineConfig({
     // Single CSS bundle so the host can load remote styles in one fetch.
     cssCodeSplit: false,
   },
+  // Perf: pre-bundle the heavy deps that DraftMode (and its picker/form/tier
+  // chain) pulls in. Without this, the first click of "Create plan" -- which
+  // is also the first time DraftMode's deps are resolved -- pays an on-demand
+  // `optimizeDeps` cost in dev mode that can stretch into multi-second
+  // territory on cold starts. Listing them up front means Vite warm-bundles
+  // them at server start, so the BlankState -> DraftMode transition is
+  // bound by network + render only. Production builds ignore this block.
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-redux',
+      'react-router-dom',
+      '@reduxjs/toolkit',
+      '@reduxjs/toolkit/query/react',
+      'flowbite-react',
+      'jose',
+    ],
+  },
   server: {
     // 4184 is reserved for this remote (ADR-0003). PM uses 4183.
     port: 4184,
