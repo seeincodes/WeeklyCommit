@@ -31,6 +31,51 @@ Copy this block when adding a new entry. Put new entries at the top of the `## L
 
 ## Log
 
+### 2026-04-27 — `cypress-cucumber` CI fails at compose-up: `container weekly-commit-ui-rcdo-stub-1 is unhealthy`
+
+**Error**
+```
+Container weekly-commit-ui-rcdo-stub-1  Started
+Container weekly-commit-ui-rcdo-stub-1  Waiting
+... 60s later ...
+container weekly-commit-ui-rcdo-stub-1 is unhealthy
+##[error]Process completed with exit code 1.
+```
+
+The full failure manifested only inside `docker compose up -d --wait`; `docker compose up -d` (without `--wait`) didn't surface the unhealthy state, so it didn't reproduce in casual local testing.
+
+**Context**
+PR #8 (group 13b mode-pane wire-up). Added a wiremock service (`wiremock/wiremock:3.9.1`) to `apps/weekly-commit-ui/docker-compose.e2e.yml` so the standalone-dev RCDO picker has real-shaped data. Two CI iterations failed with the same "unhealthy" error before root-cause was understood; total time-to-green was ~30 minutes.
+
+**Root Cause**
+Two compounding issues:
+
+1. **The wiremock image ships a baked-in `HEALTHCHECK` directive** (`docker inspect wiremock/wiremock:3.9.1` reveals it): `curl -f http://localhost:8080/__admin/health || exit 1`. Compose inherits image-level HEALTHCHECK by default; you don't get a clean slate just by omitting a `healthcheck:` block in compose.
+2. **Two things wrong with that baked check** for our setup: (a) it targets port **8080** (wiremock's default), but we run wiremock with `--port 8081` because 8080 is the backend, so the healthcheck pings a closed port; (b) wiremock 3.9.1 has no `/__admin/health` endpoint at all (returns 404). The admin root `/__admin/` does exist and returns 200 with mappings JSON.
+
+The first fix attempt (replace the test command, leave port wrong) didn't take effect because… actually it did take effect, but my replacement command also referenced `__admin/health` which doesn't exist regardless of port. The second fix attempt landed both: correct port (8081) and correct path (`/__admin/`).
+
+**Fix**
+[apps/weekly-commit-ui/docker-compose.e2e.yml](../apps/weekly-commit-ui/docker-compose.e2e.yml) — explicit healthcheck override under the `rcdo-stub` service:
+
+```yaml
+healthcheck:
+  test: ['CMD-SHELL', 'curl -fs http://localhost:8081/__admin/ > /dev/null || exit 1']
+  interval: 3s
+  timeout: 3s
+  retries: 20
+  start_period: 30s
+```
+
+The `start_period: 30s` absorbs slow CI cold-starts before failures count toward the unhealthy threshold.
+
+[.github/workflows/e2e-pr.yml](../.github/workflows/e2e-pr.yml) — added a `Show rcdo-stub (wiremock) logs on failure` step parallel to the existing `Show backend logs on failure` step so future failures land with actual container output to grep.
+
+**Prevention**
+- **Always check `docker inspect <image>` for an inherited HEALTHCHECK** when wiring an off-the-shelf image into a compose stack with `--wait`. The compose file's healthcheck is an *override*, not a from-scratch declaration; what's not in your compose file may still come from the image.
+- **Reproduce CI failures locally with the same flags CI uses** — specifically `docker compose up -d --wait`, not bare `up -d`. The `--wait` flag is what surfaces the unhealthy state. Document the exact CI compose command in the relevant workflow's comment block.
+- **Per-service log dump steps** in CI workflows — running `if: failure()` — pay for themselves the first time a container won't come up and the runner gives you no other observability.
+
 ### 2026-04-24 — Controller tests return 500 instead of 4xx (two causes)
 
 **Error**
