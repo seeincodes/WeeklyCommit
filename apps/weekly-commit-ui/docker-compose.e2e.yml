@@ -24,7 +24,12 @@ services:
       POSTGRES_USER: e2e
       POSTGRES_PASSWORD: e2e
     ports:
-      - '5432:5432'
+      # Host 5433 → container 5432. Avoids colliding with a developer's local Postgres on
+      # 5432 (common on macOS via Homebrew). The Spring container talks to `postgres:5432`
+      # over the docker network, so the host port is purely for devs who want to dial the
+      # ephemeral DB directly. CI runners don't have a host Postgres so the choice is moot
+      # there; we standardize on 5433 so local + CI behave identically.
+      - '5433:5432'
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U e2e -d weekly_commit_e2e']
       interval: 2s
