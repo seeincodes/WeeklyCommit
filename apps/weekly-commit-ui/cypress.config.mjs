@@ -4,11 +4,15 @@ import { addCucumberPreprocessorPlugin } from '@badeball/cypress-cucumber-prepro
 import createBundler from '@bahmutov/cypress-esbuild-preprocessor';
 import { createEsbuildPlugin } from '@badeball/cypress-cucumber-preprocessor/esbuild';
 
-// JS (not TS) on purpose: Cypress 13 loads its config in a packaged Node runtime that
-// doesn't transpile .ts. Yarn 4 PnP also doesn't auto-resolve a .ts config loader. The
-// JSDoc `@ts-check` directive above + the imports gives us TypeScript intellisense
-// without the runtime cost. (See ERR_UNKNOWN_FILE_EXTENSION error in the original
-// .ts attempt -- group 13 subtask 5 fix-forward.)
+// .mjs (explicitly ESM) on purpose. Two CI failure modes ruled out the alternatives:
+//   1. .ts -- Cypress 13's packaged Node runtime can't transpile it
+//      (ERR_UNKNOWN_FILE_EXTENSION).
+//   2. .js + package.json "type":"module" -- Cypress's plugin loader uses
+//      require(), which rejects ES-module .js with "require() of ES Module ... not
+//      supported".
+// .mjs is always-ESM regardless of package.json, so Cypress's loader routes to its
+// dynamic-import path. JSDoc `@ts-check` + the imports gives us TypeScript intellisense
+// without the runtime cost.
 
 export default defineConfig({
   e2e: {

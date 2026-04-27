@@ -27,6 +27,7 @@ export default tseslint.config(
       'coverage',
       'node_modules',
       '*.config.js',
+      '*.config.mjs',
       '*.config.ts',
       'tests/playwright/**',
       // Cypress + Cucumber files use ambient (Cypress global) typing and the

@@ -28,14 +28,28 @@ if (sentryDsn) {
   });
 }
 
-const rootEl = document.getElementById('root');
-if (!rootEl) throw new Error('#root not found');
-createRoot(rootEl).render(
-  <StrictMode>
-    <Flowbite>
-      <HashRouter>
-        <WeeklyCommitModule />
-      </HashRouter>
-    </Flowbite>
-  </StrictMode>,
-);
+// Standalone-dev only: mint a self-signed JWT and patch fetch so the e2e-profile
+// backend accepts our requests. The federated path (host imports WeeklyCommitModule
+// directly) skips this entire file. The DEV gate ensures `vite build` tree-shakes
+// the dev/devAuth module + its `jose` + private-key payload out of the prod bundle.
+async function boot(): Promise<void> {
+  if (import.meta.env.DEV) {
+    const { installDevAuth } = await import('./dev/devAuth');
+    await installDevAuth();
+  }
+
+  const rootEl = document.getElementById('root');
+  if (!rootEl) throw new Error('#root not found');
+
+  createRoot(rootEl).render(
+    <StrictMode>
+      <Flowbite>
+        <HashRouter>
+          <WeeklyCommitModule />
+        </HashRouter>
+      </Flowbite>
+    </StrictMode>,
+  );
+}
+
+void boot();

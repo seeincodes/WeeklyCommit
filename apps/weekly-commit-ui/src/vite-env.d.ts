@@ -6,6 +6,12 @@ declare const __WC_BUILD_TIME__: string;
 
 interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string;
+  // Standalone-dev only. Read by libs/rtk-api-client/src/api.ts (lazily, via a
+  // narrow inline cast) and by src/dev/devAuth.ts. Federated mode inherits the
+  // host's API URL and ignores this.
+  readonly VITE_API_BASE_URL?: string;
+  // Role the dev auth shim signs JWTs as. URL ?devRole=… wins at runtime.
+  readonly VITE_DEV_AUTH_ROLE?: string;
 }
 
 interface ImportMeta {
