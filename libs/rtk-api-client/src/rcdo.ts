@@ -5,15 +5,15 @@
  * Outcome. The list endpoint returns each row with all 4 levels inline so the
  * picker can render the breadcrumb without N+1 follow-ups.
  *
- * TODO(group-11-rcdo-integration): an RTK Query endpoint -- backed by a new
- * weekly-commit-service pass-through controller `GET /api/v1/rcdo/supporting-outcomes`
- * that wraps the existing backend RcdoClient -- replaces the local stub source
- * in apps/weekly-commit-ui. Until then the UI picker reads from the in-memory
- * stub and the BE endpoint sits as a follow-up subtask in TASK_LIST.md.
- *
  * Per CLAUDE.md tech-stack lock these types are the canonical shape; if the
  * real RCDO contract differs the diff lands here first, then ripples through
  * the backend RcdoClient mapper and any consumers.
+ *
+ * Wired end-to-end via `useGetSupportingOutcomesQuery` /
+ * `useGetSupportingOutcomeByIdQuery` -> backend `RcdoController` ->
+ * `RcdoClient` -> upstream RCDO. The picker integration container in
+ * `apps/weekly-commit-ui/src/components/RCDOPickerContainer.tsx` is the
+ * primary consumer.
  */
 export interface RcdoLevel {
   id: string;
