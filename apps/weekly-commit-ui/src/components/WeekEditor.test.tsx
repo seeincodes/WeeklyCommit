@@ -84,7 +84,12 @@ describe('<WeekEditor />', () => {
       isFetching: false,
     });
     renderWithStore();
-    expect(screen.getByTestId('week-editor-draft')).toBeInTheDocument();
+    // DraftMode now fires its own useListCommitsQuery on mount, so the
+    // initial render is the loading sentinel rather than the success surface.
+    // Asserting on `draft-loading` proves WeekEditor routed to the right
+    // mode -- same retarget pattern the LOCKED case got in 13b-1 and the
+    // RECONCILED case got in 13b-2.
+    expect(screen.getByTestId('draft-loading')).toBeInTheDocument();
   });
 
   it('shows the locked read-only view for state=LOCKED before weekStart + 4 days', () => {
