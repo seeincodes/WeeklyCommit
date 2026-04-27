@@ -4,6 +4,7 @@ import type { WeeklyCommitResponse, WeeklyPlanResponse } from '@wc/rtk-api-clien
 import { ChessTier } from './ChessTier';
 import { CarryStreakBadge } from './CarryStreakBadge';
 import { StateBadge } from './StateBadge';
+import { ReviewCommentField } from './ReviewCommentField';
 
 interface IcDrawerProps {
   employeeId: string;
@@ -135,6 +136,8 @@ function Body({
         <h3 className="text-sm font-semibold uppercase text-gray-600">Commits</h3>
         <ChessTier commits={commits} renderCommit={(c) => <CommitRow commit={c} />} />
       </section>
+
+      <ReviewCommentField planId={plan.id} managerReviewedAt={plan.managerReviewedAt} />
     </>
   );
 }
