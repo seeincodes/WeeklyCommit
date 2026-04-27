@@ -281,6 +281,37 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ApiEnvelopeRollupResponse"
+  /api/v1/rcdo/supporting-outcomes:
+    get:
+      tags:
+      - rcdo-controller
+      operationId: list
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeListSupportingOutcomeResponse"
+  /api/v1/rcdo/supporting-outcomes/{id}:
+    get:
+      tags:
+      - rcdo-controller
+      operationId: getById
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiEnvelopeSupportingOutcomeResponse"
   /api/v1/plans/team:
     get:
       tags:
@@ -682,6 +713,57 @@ components:
           format: uuid
         title:
           type: string
+    ApiEnvelopeListSupportingOutcomeResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SupportingOutcomeResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
+    Breadcrumb:
+      type: object
+      properties:
+        rallyCry:
+          $ref: "#/components/schemas/Level"
+        definingObjective:
+          $ref: "#/components/schemas/Level"
+        coreOutcome:
+          $ref: "#/components/schemas/Level"
+        supportingOutcome:
+          $ref: "#/components/schemas/Level"
+    Level:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+    SupportingOutcomeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        active:
+          type: boolean
+        breadcrumb:
+          $ref: "#/components/schemas/Breadcrumb"
+    ApiEnvelopeSupportingOutcomeResponse:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/SupportingOutcomeResponse"
+        meta:
+          type: object
+          additionalProperties:
+            type: object
     ApiEnvelopeListManagerReviewResponse:
       type: object
       properties:
