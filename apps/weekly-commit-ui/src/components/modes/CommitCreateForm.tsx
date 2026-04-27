@@ -85,10 +85,7 @@ export function CommitCreateForm({ onSubmit, disabled = false }: CommitCreateFor
 
       <RCDOPickerContainer onSelect={setOutcome} />
       {outcome != null && (
-        <div
-          data-testid="commit-create-form-selected-outcome"
-          className="text-xs text-gray-700"
-        >
+        <div data-testid="commit-create-form-selected-outcome" className="text-xs text-gray-700">
           Selected: <span className="font-medium">{outcome.label}</span>
         </div>
       )}

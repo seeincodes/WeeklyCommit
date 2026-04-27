@@ -13,10 +13,22 @@
           "label": "Alignment tooling GA",
           "active": true,
           "breadcrumb": {
-            "rallyCry": { "id": "11111111-2222-3333-4444-555555555551", "label": "Unblock product-led growth" },
-            "definingObjective": { "id": "11111111-2222-3333-4444-555555555552", "label": "Product-led GTM" },
-            "coreOutcome": { "id": "11111111-2222-3333-4444-555555555553", "label": "Tooling readiness" },
-            "supportingOutcome": { "id": "aaaaaaa1-1111-1111-1111-aaaaaaaaaaaa", "label": "Alignment tooling GA" }
+            "rallyCry": {
+              "id": "11111111-2222-3333-4444-555555555551",
+              "label": "Unblock product-led growth"
+            },
+            "definingObjective": {
+              "id": "11111111-2222-3333-4444-555555555552",
+              "label": "Product-led GTM"
+            },
+            "coreOutcome": {
+              "id": "11111111-2222-3333-4444-555555555553",
+              "label": "Tooling readiness"
+            },
+            "supportingOutcome": {
+              "id": "aaaaaaa1-1111-1111-1111-aaaaaaaaaaaa",
+              "label": "Alignment tooling GA"
+            }
           }
         },
         {
@@ -24,10 +36,22 @@
           "label": "Self-serve onboarding revamp",
           "active": true,
           "breadcrumb": {
-            "rallyCry": { "id": "11111111-2222-3333-4444-555555555551", "label": "Unblock product-led growth" },
-            "definingObjective": { "id": "11111111-2222-3333-4444-555555555554", "label": "Onboarding velocity" },
-            "coreOutcome": { "id": "11111111-2222-3333-4444-555555555555", "label": "Time-to-first-value" },
-            "supportingOutcome": { "id": "aaaaaaa2-2222-2222-2222-aaaaaaaaaaaa", "label": "Self-serve onboarding revamp" }
+            "rallyCry": {
+              "id": "11111111-2222-3333-4444-555555555551",
+              "label": "Unblock product-led growth"
+            },
+            "definingObjective": {
+              "id": "11111111-2222-3333-4444-555555555554",
+              "label": "Onboarding velocity"
+            },
+            "coreOutcome": {
+              "id": "11111111-2222-3333-4444-555555555555",
+              "label": "Time-to-first-value"
+            },
+            "supportingOutcome": {
+              "id": "aaaaaaa2-2222-2222-2222-aaaaaaaaaaaa",
+              "label": "Self-serve onboarding revamp"
+            }
           }
         },
         {
@@ -35,10 +59,22 @@
           "label": "API rate-limit fairness",
           "active": true,
           "breadcrumb": {
-            "rallyCry": { "id": "11111111-2222-3333-4444-555555555556", "label": "Platform reliability bar" },
-            "definingObjective": { "id": "11111111-2222-3333-4444-555555555557", "label": "Multi-tenant fairness" },
-            "coreOutcome": { "id": "11111111-2222-3333-4444-555555555558", "label": "Quota subsystem" },
-            "supportingOutcome": { "id": "aaaaaaa3-3333-3333-3333-aaaaaaaaaaaa", "label": "API rate-limit fairness" }
+            "rallyCry": {
+              "id": "11111111-2222-3333-4444-555555555556",
+              "label": "Platform reliability bar"
+            },
+            "definingObjective": {
+              "id": "11111111-2222-3333-4444-555555555557",
+              "label": "Multi-tenant fairness"
+            },
+            "coreOutcome": {
+              "id": "11111111-2222-3333-4444-555555555558",
+              "label": "Quota subsystem"
+            },
+            "supportingOutcome": {
+              "id": "aaaaaaa3-3333-3333-3333-aaaaaaaaaaaa",
+              "label": "API rate-limit fairness"
+            }
           }
         },
         {
@@ -46,10 +82,22 @@
           "label": "Telemetry budget cleanup",
           "active": true,
           "breadcrumb": {
-            "rallyCry": { "id": "11111111-2222-3333-4444-555555555556", "label": "Platform reliability bar" },
-            "definingObjective": { "id": "11111111-2222-3333-4444-555555555559", "label": "Cost discipline" },
-            "coreOutcome": { "id": "11111111-2222-3333-4444-55555555555a", "label": "Observability spend" },
-            "supportingOutcome": { "id": "aaaaaaa4-4444-4444-4444-aaaaaaaaaaaa", "label": "Telemetry budget cleanup" }
+            "rallyCry": {
+              "id": "11111111-2222-3333-4444-555555555556",
+              "label": "Platform reliability bar"
+            },
+            "definingObjective": {
+              "id": "11111111-2222-3333-4444-555555555559",
+              "label": "Cost discipline"
+            },
+            "coreOutcome": {
+              "id": "11111111-2222-3333-4444-55555555555a",
+              "label": "Observability spend"
+            },
+            "supportingOutcome": {
+              "id": "aaaaaaa4-4444-4444-4444-aaaaaaaaaaaa",
+              "label": "Telemetry budget cleanup"
+            }
           }
         }
       ],

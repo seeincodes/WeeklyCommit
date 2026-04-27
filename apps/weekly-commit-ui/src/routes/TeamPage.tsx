@@ -97,9 +97,7 @@ export function TeamPage() {
         {rollup && (
           <TeamRollup
             rollup={rollup}
-            renderMember={(m) => (
-              <MemberCard key={m.employeeId} member={m} onClick={openDrawer} />
-            )}
+            renderMember={(m) => <MemberCard key={m.employeeId} member={m} onClick={openDrawer} />}
           />
         )}
       </Card>

@@ -49,7 +49,9 @@ services:
     volumes:
       - ./wiremock:/home/wiremock:ro
     healthcheck:
-      test: ['CMD-SHELL', 'wget -q --spider http://localhost:8081/__admin/health || exit 1']
+      # Wiremock 3.x has no dedicated /health endpoint; `/__admin/` responds 200 with
+      # the mappings JSON once the server is up, which is enough to gate depends_on.
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:8081/__admin/ || exit 1']
       interval: 2s
       timeout: 3s
       retries: 30
