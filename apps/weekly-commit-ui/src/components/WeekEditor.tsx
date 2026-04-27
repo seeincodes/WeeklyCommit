@@ -43,7 +43,11 @@ export function WeekEditor({ now, tz }: WeekEditorProps) {
   const { data, error, isLoading } = useGetCurrentForMeQuery();
 
   if (isLoading) {
-    return <div data-testid="week-editor-loading">Loading…</div>;
+    return (
+      <div data-testid="week-editor-loading" className="text-sm text-gray-500">
+        Pulling your week…
+      </div>
+    );
   }
 
   if (error) {
@@ -51,8 +55,8 @@ export function WeekEditor({ now, tz }: WeekEditorProps) {
       return <BlankState />;
     }
     return (
-      <div data-testid="week-editor-error" role="alert">
-        Couldn’t load this week’s plan.
+      <div data-testid="week-editor-error" role="alert" className="text-sm text-red-700">
+        Couldn’t load this week’s plan. Try refreshing the page.
       </div>
     );
   }
@@ -61,8 +65,8 @@ export function WeekEditor({ now, tz }: WeekEditorProps) {
     // Shouldn't happen -- RTK Query gives us either data, error, or isLoading.
     // Render the error banner rather than crashing if it ever does.
     return (
-      <div data-testid="week-editor-error" role="alert">
-        Couldn’t load this week’s plan.
+      <div data-testid="week-editor-error" role="alert" className="text-sm text-red-700">
+        Couldn’t load this week’s plan. Try refreshing the page.
       </div>
     );
   }

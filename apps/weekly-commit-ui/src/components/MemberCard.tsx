@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from 'react';
+import { Tooltip } from 'flowbite-react';
 import type { MemberCard as MemberCardType } from '@wc/rtk-api-client';
 
 interface MemberCardProps {
@@ -8,6 +9,46 @@ interface MemberCardProps {
 }
 
 const PREVIEW_MAX = 80;
+
+/**
+ * Human copy for each flag code the rollup service emits. The label is what
+ * the user sees on the badge; the reason is the tooltip body that explains
+ * what triggered it. Keep these grounded in the backend's `RollupService.computeFlags`
+ * so the explanation matches the actual rule.
+ */
+interface FlagCopy {
+  label: string;
+  reason: string;
+}
+const FLAG_COPY: Record<string, FlagCopy> = {
+  UNREVIEWED_72H: {
+    label: 'Unreviewed 72h',
+    reason: 'Reconciled more than 72 hours ago and you haven’t commented yet.',
+  },
+  STUCK_COMMIT: {
+    label: 'Stuck commit',
+    reason: 'A commit on this plan has been carried forward 3+ weeks in a row.',
+  },
+  NO_TOP_ROCK: {
+    label: 'No Top Rock',
+    reason: 'No Rock-tier commit on this plan — there’s no clear weekly priority.',
+  },
+  DRAFT_WITH_UNLINKED: {
+    label: 'Empty draft',
+    reason: 'Plan is in DRAFT but has no commits yet — the IC may need a nudge.',
+  },
+};
+
+function copyFor(flag: string): FlagCopy {
+  return FLAG_COPY[flag] ?? { label: humanizeFallback(flag), reason: 'No additional context.' };
+}
+
+function humanizeFallback(flag: string): string {
+  return flag
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 /**
  * One row in the manager team rollup. Shows the at-a-glance signals per
@@ -101,13 +142,34 @@ function TierShape({ counts }: { counts: Record<string, number> }) {
 }
 
 function Flag({ flag }: { flag: string }) {
+  const { label, reason } = copyFor(flag);
   return (
-    <span
-      data-testid={`flag-${flag}`}
-      className="inline-flex items-center rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"
+    <Tooltip
+      content={reason}
+      placement="top"
+      // The badge is interactive (focusable) so keyboard users can hover-equivalent
+      // by tabbing in. The tooltip's accessible name comes from the badge content;
+      // the reason copy is announced by Flowbite's underlying `<Tooltip>` ARIA
+      // wiring.
+      style="dark"
     >
-      {flag.replace(/_/g, ' ').toLowerCase()}
-    </span>
+      <span
+        data-testid={`flag-${flag}`}
+        tabIndex={0}
+        // Stop the click from bubbling up to the row's onClick (which would
+        // open the drawer). Hovering/clicking the flag should reveal the
+        // tooltip without a navigation side-effect.
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.stopPropagation();
+          }
+        }}
+        className="inline-flex items-center rounded bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-200 cursor-help"
+      >
+        {label}
+      </span>
+    </Tooltip>
   );
 }
 
