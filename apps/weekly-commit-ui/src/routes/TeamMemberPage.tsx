@@ -1,42 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card } from 'flowbite-react';
 import { IcDrawer } from '../components/IcDrawer';
-import { getEmployeeTimezone } from '../lib/timezone';
-
-/**
- * Returns the YYYY-MM-DD of the Monday on or before "today" in the employee's
- * timezone. Mirrors the backend's UTC week-start derivation -- ISO weeks start
- * Monday per [MVP21]. TODO(group-?-week-helper): consolidate with the duplicate
- * in TeamPage once the cross-cutting helper lands in lib/timezone.ts.
- */
-function currentWeekStart(): string {
-  const tz = getEmployeeTimezone();
-  const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: tz,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    weekday: 'short',
-  });
-  const parts = fmt.formatToParts(new Date());
-  const yyyy = parts.find((p) => p.type === 'year')!.value;
-  const mm = parts.find((p) => p.type === 'month')!.value;
-  const dd = parts.find((p) => p.type === 'day')!.value;
-  const weekday = parts.find((p) => p.type === 'weekday')!.value;
-  const offsetByWeekday: Record<string, number> = {
-    Mon: 0,
-    Tue: 1,
-    Wed: 2,
-    Thu: 3,
-    Fri: 4,
-    Sat: 5,
-    Sun: 6,
-  };
-  const offset = offsetByWeekday[weekday] ?? 0;
-  const d = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - offset);
-  return d.toISOString().slice(0, 10);
-}
+import { currentWeekStart, getEmployeeTimezone } from '../lib/timezone';
 
 /**
  * Route shell for /weekly-commit/team/:employeeId -- the addressable
@@ -77,7 +42,7 @@ export function TeamMemberPage() {
       <IcDrawer
         employeeId={employeeId}
         employeeName={employeeId}
-        weekStart={currentWeekStart()}
+        weekStart={currentWeekStart(new Date(), getEmployeeTimezone())}
         onClose={() => navigate('/weekly-commit/team')}
       />
     </div>

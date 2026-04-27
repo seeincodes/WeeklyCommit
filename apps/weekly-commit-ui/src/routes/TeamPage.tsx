@@ -4,47 +4,12 @@ import { useGetTeamRollupQuery } from '@wc/rtk-api-client';
 import { TeamRollup } from '../components/TeamRollup';
 import { MemberCard } from '../components/MemberCard';
 import { IcDrawer } from '../components/IcDrawer';
-import { getEmployeeTimezone } from '../lib/timezone';
+import { currentWeekStart, getEmployeeTimezone } from '../lib/timezone';
 
 // TODO(group-?-auth-context): replace with JWT-derived managerId via React
 // context once the Auth0 principal hook lands. The dev-shim MANAGER's `sub`
 // is hardcoded so the rollup endpoint resolves during MVP click-tests.
 const DEV_MANAGER_ID = '22222222-2222-2222-2222-222222222222';
-
-/**
- * Returns the YYYY-MM-DD of the Monday on or before "today" in the employee's
- * timezone. Mirrors the backend's UTC week-start derivation -- ISO weeks start
- * Monday per [MVP21]. TODO(group-?-week-helper): consolidate with the duplicate
- * in TeamMemberPage once the cross-cutting helper lands in lib/timezone.ts.
- */
-function currentWeekStart(): string {
-  const tz = getEmployeeTimezone();
-  const fmt = new Intl.DateTimeFormat('en-CA', {
-    timeZone: tz,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    weekday: 'short',
-  });
-  const parts = fmt.formatToParts(new Date());
-  const yyyy = parts.find((p) => p.type === 'year')!.value;
-  const mm = parts.find((p) => p.type === 'month')!.value;
-  const dd = parts.find((p) => p.type === 'day')!.value;
-  const weekday = parts.find((p) => p.type === 'weekday')!.value;
-  const offsetByWeekday: Record<string, number> = {
-    Mon: 0,
-    Tue: 1,
-    Wed: 2,
-    Thu: 3,
-    Fri: 4,
-    Sat: 5,
-    Sun: 6,
-  };
-  const offset = offsetByWeekday[weekday] ?? 0;
-  const d = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - offset);
-  return d.toISOString().slice(0, 10);
-}
 
 /**
  * Route shell for /weekly-commit/team. Composes the manager team rollup
@@ -55,7 +20,7 @@ function currentWeekStart(): string {
 export function TeamPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const drawerEmployeeId = searchParams.get('employeeId');
-  const weekStart = currentWeekStart();
+  const weekStart = currentWeekStart(new Date(), getEmployeeTimezone());
 
   const {
     data: rollup,
