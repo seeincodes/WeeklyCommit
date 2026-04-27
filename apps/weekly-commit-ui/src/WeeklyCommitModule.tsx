@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store';
+import { ConflictToast } from './components/ConflictToast';
 import { CurrentWeekPage } from './routes/CurrentWeekPage';
 import { HistoryPage } from './routes/HistoryPage';
 import { TeamPage } from './routes/TeamPage';
@@ -29,6 +30,13 @@ export function WeeklyCommitModule() {
           <Route path="team/:employeeId" element={<TeamMemberPage />} />
         </Route>
       </Routes>
+      {/*
+        Singleton 409-conflict toast. Lives inside the Provider so it can
+        read the conflictToast slice; outside the Routes so it persists
+        across navigations. Fixed-positioned (bottom-right) and stays out
+        of any layout flow until something dispatches conflictToastActions.show.
+      */}
+      <ConflictToast />
     </Provider>
   );
 }
