@@ -1,6 +1,7 @@
 import { useGetCurrentForMeQuery } from '@wc/rtk-api-client';
 import type { WeeklyPlanResponse } from '@wc/rtk-api-client';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
+import { getEmployeeTimezone, isReconcileEligible } from '../lib/timezone';
 
 interface WeekEditorProps {
   /**
@@ -9,6 +10,12 @@ interface WeekEditorProps {
    * call site.
    */
   now: Date;
+  /**
+   * Employee timezone (IANA). Defaults to the browser's resolved TZ via
+   * `getEmployeeTimezone()`; tests inject an explicit value so reconcile-
+   * eligibility math is deterministic regardless of CI/local runner clock.
+   */
+  tz?: string;
 }
 
 /**
@@ -24,7 +31,8 @@ interface WeekEditorProps {
  * Loading and error states render generic placeholders. The real surfaces
  * inside each mode land in subtasks 3-9.
  */
-export function WeekEditor({ now }: WeekEditorProps) {
+export function WeekEditor({ now, tz }: WeekEditorProps) {
+  const resolvedTz = getEmployeeTimezone(tz);
   const { data, error, isLoading } = useGetCurrentForMeQuery();
 
   if (isLoading) {
@@ -52,15 +60,15 @@ export function WeekEditor({ now }: WeekEditorProps) {
     );
   }
 
-  return <PlanRouter plan={data} now={now} />;
+  return <PlanRouter plan={data} now={now} tz={resolvedTz} />;
 }
 
-function PlanRouter({ plan, now }: { plan: WeeklyPlanResponse; now: Date }) {
+function PlanRouter({ plan, now, tz }: { plan: WeeklyPlanResponse; now: Date; tz: string }) {
   switch (plan.state) {
     case 'DRAFT':
       return <DraftMode planId={plan.id} />;
     case 'LOCKED':
-      return isReconcileEligible(plan.weekStart, now) ? (
+      return isReconcileEligible(plan.weekStart, now, tz) ? (
         <ReconcileMode planId={plan.id} />
       ) : (
         <LockedReadOnly planId={plan.id} />
@@ -77,18 +85,6 @@ function PlanRouter({ plan, now }: { plan: WeeklyPlanResponse; now: Date }) {
 
 function isFetchError(err: unknown): err is FetchBaseQueryError {
   return typeof err === 'object' && err !== null && 'status' in err;
-}
-
-/**
- * TODO(subtask-10): replace with the TZ-aware helper from the IANA bridge.
- * Today: pure UTC math. weekStart is a date-only string (YYYY-MM-DD); the
- * threshold is "weekStart + 4 days, 00:00:00 UTC", and reconciliation opens
- * at-or-after that instant.
- */
-function isReconcileEligible(weekStart: string, now: Date): boolean {
-  const weekStartUtc = new Date(`${weekStart}T00:00:00Z`).getTime();
-  const fourDaysMs = 4 * 24 * 60 * 60 * 1000;
-  return now.getTime() >= weekStartUtc + fourDaysMs;
 }
 
 function BlankState() {

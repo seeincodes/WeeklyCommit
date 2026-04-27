@@ -31,7 +31,7 @@ function renderWithStore() {
   });
   return render(
     <Provider store={store}>
-      <WeekEditor now={new Date('2026-04-29T12:00:00Z')} />
+      <WeekEditor now={new Date('2026-04-29T12:00:00Z')} tz="UTC" />
     </Provider>,
   );
 }
@@ -119,7 +119,7 @@ describe('<WeekEditor />', () => {
           middleware: (getDefault) => getDefault().concat(api.middleware),
         })}
       >
-        <WeekEditor now={new Date('2026-05-01T00:00:00Z')} />
+        <WeekEditor now={new Date('2026-05-01T00:00:00Z')} tz="UTC" />
       </Provider>,
     );
     expect(screen.getByTestId('week-editor-reconcile')).toBeInTheDocument();
