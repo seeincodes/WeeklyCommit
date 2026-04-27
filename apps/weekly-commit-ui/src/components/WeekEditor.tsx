@@ -81,12 +81,12 @@ function PlanRouter({ plan, now, tz }: { plan: WeeklyPlanResponse; now: Date; tz
         <LockedReadOnly planId={plan.id} />
       );
     case 'RECONCILED':
-      return <ReconciledSummary planId={plan.id} />;
+      return <ReconciledSummary planId={plan.id} reflectionNote={plan.reflectionNote} />;
     case 'ARCHIVED':
       // ARCHIVED plans aren't returned by /plans/me/current in normal operation
       // (the current-week query targets the live plan, not historical). Render
       // the read-only summary if it ever surfaces here so the UI degrades safely.
-      return <ReconciledSummary planId={plan.id} />;
+      return <ReconciledSummary planId={plan.id} reflectionNote={plan.reflectionNote} />;
   }
 }
 
