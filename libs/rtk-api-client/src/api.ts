@@ -14,6 +14,7 @@ import type {
   WeeklyCommitResponse,
   WeeklyPlanResponse,
 } from './types';
+import type { SupportingOutcome } from './rcdo';
 
 // `import.meta.env` is provided by Vite (and surfaced to vitest via the same
 // transform). Read VITE_API_BASE_URL via a narrow inline cast so this lib
@@ -207,6 +208,20 @@ export const api = createApi({
         method: 'POST',
       }),
     }),
+    // RCDO pass-through (group 11a). Backed by the new BE controller that wraps the existing
+    // backend RcdoClient. Both endpoints get the 10-minute cache from MEMO #6 -- the picker is
+    // typically opened once per planning session, and the hierarchy doesn't change minute-to-
+    // minute upstream.
+    getSupportingOutcomes: build.query<SupportingOutcome[], void>({
+      query: () => '/api/v1/rcdo/supporting-outcomes',
+      providesTags: ['RCDO'],
+      keepUnusedDataFor: 600,
+    }),
+    getSupportingOutcomeById: build.query<SupportingOutcome, { id: string }>({
+      query: ({ id }) => `/api/v1/rcdo/supporting-outcomes/${id}`,
+      providesTags: (_res, _err, { id }) => [{ type: 'RCDO', id }],
+      keepUnusedDataFor: 600,
+    }),
   }),
 });
 
@@ -228,4 +243,6 @@ export const {
   useGetAuditForPlanQuery,
   useListUnassignedEmployeesQuery,
   useReplayDltRowMutation,
+  useGetSupportingOutcomesQuery,
+  useGetSupportingOutcomeByIdQuery,
 } = api;
