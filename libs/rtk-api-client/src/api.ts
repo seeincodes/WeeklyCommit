@@ -104,6 +104,28 @@ export const api = createApi({
         { type: 'Plan', id: 'LIST' },
         { type: 'Rollup', id: 'LIST' },
       ],
+      // Perf: write the new plan directly into `getCurrentForMe`'s cache so
+      // BlankState -> DraftMode doesn't need a refetch round-trip after the
+      // POST resolves. Without this, the chain is:
+      //   POST /plans -> 200ms tag-invalidation refetch -> GET /plans/me/current
+      //   -> rerender -> mount DraftMode -> GET /commits.
+      // With this, we drop the `GET /plans/me/current` round-trip; the cache
+      // already has the row and RTK Query's selector reads it synchronously.
+      // Tag invalidation still fires (invalidatesTags above) so anything else
+      // listening on Plan / Rollup tags refetches as expected.
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data: newPlan } = await queryFulfilled;
+          // upsertQueryData is a thunk; dispatching it returns a Promise we
+          // intentionally fire-and-forget. The cache write is synchronous in
+          // practice and any failure is irrelevant to user-visible flow --
+          // tag invalidation will still trigger a refetch as a fallback.
+          void dispatch(api.util.upsertQueryData('getCurrentForMe', undefined, newPlan));
+        } catch {
+          // Server rejected the create -- let the error bubble through the
+          // mutation's normal error path; no cache write to revert.
+        }
+      },
     }),
     updateReflection: build.mutation<
       WeeklyPlanResponse,
