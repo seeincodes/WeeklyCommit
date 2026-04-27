@@ -148,6 +148,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/rcdo/supporting-outcomes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/rcdo/supporting-outcomes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/plans/team": {
         parameters: {
             query?: never;
@@ -368,6 +400,36 @@ export interface components {
             /** Format: uuid */
             commitId?: string;
             title?: string;
+        };
+        ApiEnvelopeListSupportingOutcomeResponse: {
+            data?: components["schemas"]["SupportingOutcomeResponse"][];
+            meta?: {
+                [key: string]: Record<string, never>;
+            };
+        };
+        Breadcrumb: {
+            rallyCry?: components["schemas"]["Level"];
+            definingObjective?: components["schemas"]["Level"];
+            coreOutcome?: components["schemas"]["Level"];
+            supportingOutcome?: components["schemas"]["Level"];
+        };
+        Level: {
+            /** Format: uuid */
+            id?: string;
+            label?: string;
+        };
+        SupportingOutcomeResponse: {
+            /** Format: uuid */
+            id?: string;
+            label?: string;
+            active?: boolean;
+            breadcrumb?: components["schemas"]["Breadcrumb"];
+        };
+        ApiEnvelopeSupportingOutcomeResponse: {
+            data?: components["schemas"]["SupportingOutcomeResponse"];
+            meta?: {
+                [key: string]: Record<string, never>;
+            };
         };
         ApiEnvelopeListManagerReviewResponse: {
             data?: components["schemas"]["ManagerReviewResponse"][];
@@ -731,6 +793,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiEnvelopeRollupResponse"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiEnvelopeListSupportingOutcomeResponse"];
+                };
+            };
+        };
+    };
+    getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiEnvelopeSupportingOutcomeResponse"];
                 };
             };
         };

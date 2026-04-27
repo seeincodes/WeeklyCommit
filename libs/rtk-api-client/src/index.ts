@@ -21,6 +21,8 @@ export {
   useGetAuditForPlanQuery,
   useListUnassignedEmployeesQuery,
   useReplayDltRowMutation,
+  useGetSupportingOutcomesQuery,
+  useGetSupportingOutcomeByIdQuery,
 } from './api';
 
 export {

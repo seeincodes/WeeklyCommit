@@ -1,7 +1,8 @@
 import { useGetCurrentForMeQuery } from '@wc/rtk-api-client';
-import type { WeeklyPlanResponse } from '@wc/rtk-api-client';
+import type { WeeklyPlanResponse, SupportingOutcome } from '@wc/rtk-api-client';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { getEmployeeTimezone, isReconcileEligible } from '../lib/timezone';
+import { RCDOPickerContainer } from './RCDOPickerContainer';
 
 interface WeekEditorProps {
   /**
@@ -97,7 +98,19 @@ function BlankState() {
 }
 
 function DraftMode({ planId: _planId }: { planId: string }) {
-  return <div data-testid="week-editor-draft">Draft editor (subtasks 3-4 land here).</div>;
+  // Picker selection wiring lives in the commit-create flow that ships in a later subtask;
+  // for now the container exists so RCDO data flows end-to-end and the editor surfaces the
+  // picker UI. The no-op handler is intentional and will be replaced with a `useCreateCommit`
+  // dispatch when commit creation lands.
+  return (
+    <div data-testid="week-editor-draft" className="flex flex-col gap-4">
+      <RCDOPickerContainer onSelect={handlePickerSelect} />
+    </div>
+  );
+}
+
+function handlePickerSelect(_outcome: SupportingOutcome): void {
+  // no-op until commit creation lands; see DraftMode comment.
 }
 
 function LockedReadOnly({ planId: _planId }: { planId: string }) {

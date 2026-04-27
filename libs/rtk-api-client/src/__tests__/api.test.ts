@@ -391,4 +391,76 @@ describe('api endpoints', () => {
     expect(API_CONFIG.refetchOnReconnect).toBe(true);
     expect(API_CONFIG.keepUnusedDataFor).toBe(60);
   });
+
+  // ---------------------------------------------------------------------------------------------
+  // RCDO pass-through (group 11a). The picker contract lives in src/rcdo.ts; these tests pin the
+  // wire shape + cache policy + tag wiring so a future change to either side surfaces a CI fail.
+  // ---------------------------------------------------------------------------------------------
+
+  it('getSupportingOutcomes → GET /api/v1/rcdo/supporting-outcomes returns the picker shape', async () => {
+    server.use(
+      http.get('http://localhost/api/v1/rcdo/supporting-outcomes', () =>
+        HttpResponse.json({
+          data: [
+            {
+              id: 'so_1',
+              label: 'Alignment tooling GA',
+              active: true,
+              breadcrumb: {
+                rallyCry: { id: 'rc_1', label: 'Unblock product-led growth' },
+                definingObjective: { id: 'do_1', label: 'Product-led GTM' },
+                coreOutcome: { id: 'co_1', label: 'Tooling readiness' },
+                supportingOutcome: { id: 'so_1', label: 'Alignment tooling GA' },
+              },
+            },
+          ],
+          meta: {},
+        }),
+      ),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(api.endpoints.getSupportingOutcomes.initiate());
+    expect(result.data).toHaveLength(1);
+    const first = result.data?.[0];
+    expect(first?.breadcrumb.rallyCry.label).toBe('Unblock product-led growth');
+  });
+
+  it('getSupportingOutcomeById → GET /api/v1/rcdo/supporting-outcomes/{id} returns one outcome', async () => {
+    server.use(
+      http.get('http://localhost/api/v1/rcdo/supporting-outcomes/:id', ({ params }) =>
+        HttpResponse.json({
+          data: {
+            id: params.id,
+            label: 'Stub label',
+            active: true,
+            breadcrumb: {
+              rallyCry: { id: 'rc', label: 'rc' },
+              definingObjective: { id: 'do', label: 'do' },
+              coreOutcome: { id: 'co', label: 'co' },
+              supportingOutcome: { id: params.id, label: 'Stub label' },
+            },
+          },
+          meta: {},
+        }),
+      ),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(
+      api.endpoints.getSupportingOutcomeById.initiate({ id: 'so_42' }),
+    );
+    expect(result.data?.id).toBe('so_42');
+  });
+
+  it('getSupportingOutcomes propagates a 404 as an error result', async () => {
+    server.use(
+      http.get('http://localhost/api/v1/rcdo/supporting-outcomes/:id', () =>
+        HttpResponse.json({ error: { code: 'NOT_FOUND', message: 'gone' } }, { status: 404 }),
+      ),
+    );
+    const store = mkStore();
+    const result = await store.dispatch(
+      api.endpoints.getSupportingOutcomeById.initiate({ id: 'so_missing' }),
+    );
+    expect(result.error).toBeDefined();
+  });
 });

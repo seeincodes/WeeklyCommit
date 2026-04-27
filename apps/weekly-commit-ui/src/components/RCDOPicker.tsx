@@ -3,13 +3,9 @@ import type { SupportingOutcome, RcdoBreadcrumb } from '@wc/rtk-api-client';
 
 interface RCDOPickerProps {
   /**
-   * Source list of supporting outcomes. v1 reads this as a prop -- the data
-   * hook (`useSupportingOutcomes`) lives in the parent so the picker stays
-   * presentational and easy to unit-test.
-   *
-   * TODO(group-11-rcdo-integration): once the backend pass-through endpoint
-   * lands at `GET /api/v1/rcdo/supporting-outcomes`, the parent swaps the
-   * stub source for the RTK Query hook -- no change required here.
+   * Source list of supporting outcomes. The picker stays presentational; the
+   * fetch lives in the `<RCDOPickerContainer />` wrapper so this component
+   * remains trivially unit-testable with a fixture array.
    */
   outcomes: SupportingOutcome[];
   onSelect: (outcome: SupportingOutcome) => void;
