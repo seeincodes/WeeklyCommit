@@ -12,7 +12,7 @@
 import './index.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HashRouter } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 import { Flowbite } from 'flowbite-react';
 import { WeeklyCommitModule } from './WeeklyCommitModule';
@@ -55,7 +55,19 @@ async function boot(): Promise<void> {
     <StrictMode>
       <Flowbite>
         <HashRouter>
-          <WeeklyCommitModule />
+          {/*
+            Standalone-only redirect: WeeklyCommitModule's routes are all under
+            /weekly-commit/*, matching how the PA host mounts the federated
+            remote. In standalone mode the HashRouter starts at "/" which the
+            module doesn't recognize, so we send "/" → "/weekly-commit/current"
+            here. The catch-all "*" hands every other path to the module so its
+            existing route tree (current, history, team, team/:employeeId)
+            continues to work.
+          */}
+          <Routes>
+            <Route path="/" element={<Navigate to="/weekly-commit/current" replace />} />
+            <Route path="*" element={<WeeklyCommitModule />} />
+          </Routes>
         </HashRouter>
       </Flowbite>
     </StrictMode>,
