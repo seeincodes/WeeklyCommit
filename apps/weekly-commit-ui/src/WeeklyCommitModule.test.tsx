@@ -34,4 +34,25 @@ describe('WeeklyCommitModule routing', () => {
     // The redirect target's marker is the current-week-page testid.
     expect(screen.getByTestId('current-week-page')).toBeInTheDocument();
   });
+
+  it('renders the team rollup page at /weekly-commit/team', () => {
+    render(
+      <MemoryRouter initialEntries={['/weekly-commit/team']}>
+        <WeeklyCommitModule />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('team-page')).toBeInTheDocument();
+  });
+
+  it('renders the team member page at /weekly-commit/team/:employeeId with the id surfaced', () => {
+    render(
+      <MemoryRouter initialEntries={['/weekly-commit/team/emp-42']}>
+        <WeeklyCommitModule />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('team-member-page')).toBeInTheDocument();
+    expect(screen.getByTestId('team-member-id')).toHaveTextContent('emp-42');
+  });
 });
