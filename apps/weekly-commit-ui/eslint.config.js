@@ -33,6 +33,10 @@ export default tseslint.config(
       // Cypress + Cucumber files use ambient (Cypress global) typing and the
       // preprocessor-resolved step files don't fit the src/ tsconfig project.
       'cypress/**',
+      // Build-time scripts (post-build size budget, etc.). Plain Node ESM,
+      // not part of the src/ tsconfig project, so typed lint rules can't
+      // resolve their parserServices.
+      'scripts/**',
     ],
   },
   js.configs.recommended,

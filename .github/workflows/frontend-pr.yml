@@ -61,6 +61,9 @@ jobs:
       - name: Build remote
         run: yarn build
 
+      - name: Bundle size budget
+        run: yarn workspace @wc/weekly-commit-ui run size-check
+
       - name: Playwright smoke (remote in isolation)
         run: |
           yarn workspace @wc/weekly-commit-ui exec playwright install --with-deps chromium

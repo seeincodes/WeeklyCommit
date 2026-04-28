@@ -141,6 +141,23 @@ The AWS cloud-lift Terraform from MEMO #12 (PRs #15-#17) ships ~$43/month minimu
 
 The trade-off favoured "URL is reliably online for under $10/month" over "matches the PRD's production architecture more closely." The PRD architecture is reachable from this state when the budget changes.
 
+### 14. Lazy-loaded routes + bundle-size guardrails landed early (2026-04-27)
+
+PRD §Performance Targets asserts "Frontend initial route render < 1 s, lazy-loaded routes under `/weekly-commit/*`" and Task 18 ("Bundle-size analysis on remote") was queued for Phase 2. An audit found the routes were *not* lazy-loaded — all four pages (`CurrentWeekPage`, `HistoryPage`, `TeamPage`, `TeamMemberPage`) were eager-imported in [`WeeklyCommitModule.tsx`](../apps/weekly-commit-ui/src/WeeklyCommitModule.tsx), so the initial federated chunk carried code for routes the user hadn't visited. The PRD claim was aspirational, not implemented.
+
+**Why pull two Task-18 items forward:** the cheap parts (route-level `React.lazy` + a per-asset gzip budget) are mechanical changes that immediately make the PRD claim true and add a regression guard. They don't require infra (no k6, no CloudFront work, no DB profiling). Doing them now means the next "does Task 18 still need work?" question has a smaller surface.
+
+**What landed:**
+
+- Route-level code splitting via `React.lazy(...)` + a single `<Suspense>` boundary in [`WeeklyCommitModule.tsx`](../apps/weekly-commit-ui/src/WeeklyCommitModule.tsx). Pages stay as named exports; the lazy import re-shapes them to `default` at the import site so the route page files stay untouched.
+- `manualChunks` in [`vite.config.ts`](../apps/weekly-commit-ui/vite.config.ts) splits flowbite/sentry/jose into named vendor chunks. React/Router/RTK are *not* vendor-chunked — they're federation `shared: { singleton: true }` and the host provides them at runtime; vendor-chunking would duplicate them and break the singleton contract.
+- Opt-in `rollup-plugin-visualizer`: `yarn build:analyze` → `dist/stats.html`. Off by default so CI builds stay deterministic and the report doesn't get federated to the host.
+- Per-category gzip budget enforced by [`scripts/check-bundle-size.mjs`](../apps/weekly-commit-ui/scripts/check-bundle-size.mjs) (zero new runtime deps; `zlib` from stdlib). Categories: `remoteEntry`, `expose`, `route`, `vendor`, `css`, `standaloneEntry`, `other`. Wired into [`.github/workflows/frontend-pr.yml`](../.github/workflows/frontend-pr.yml) after the build step.
+
+**What's still open in Task 18:** k6 perf harness asserting `GET /plans/me/current` p95 < 200 ms, RCDO/rollup query EXPLAIN profiling, Flowbite tree-shake pass, CloudFront hit-ratio. Those need real infra and are the right shape for a dedicated "Perf hardening" task group later.
+
+**Trade-off accepted:** the bundle-size budget script is bespoke (~80 LOC) rather than `size-limit` or `bundlewatch`. Both alternatives need their own config + non-trivial install under Yarn PnP, and neither classifies the federation plugin's emitted chunks (`__federation_expose_*`, `remoteEntry.js`, `__federation_shared_*`) the way we need without per-chunk overrides anyway. The script is short enough that the maintenance is cheaper than the integration.
+
 ## Processing Strategy
 
 The system has three pipelines — user-driven, scheduled, and rollup — all reading from the same Postgres.
