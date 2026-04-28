@@ -34,8 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>local {@code SPRING_PROFILES_ACTIVE=e2e,perf} for hand-running the k6 script
  * </ul>
  *
- * <p>It is <strong>never</strong> active in production. Any of test, dev, prod, or demo
- * deployments leave this bean uninstantiated.
+ * <p>It is <strong>never</strong> active in production. Any of test, dev, prod, or demo deployments
+ * leave this bean uninstantiated.
  *
  * <p>Idempotent: re-running the seeder against an already-seeded DB is a no-op (checks for the
  * fixed manager UUID before inserting). This matters because compose restarts re-run startup; a
@@ -92,9 +92,7 @@ public class PerfDataSeeder {
   private final WeeklyCommitRepository commits;
 
   public PerfDataSeeder(
-      EmployeeRepository employees,
-      WeeklyPlanRepository plans,
-      WeeklyCommitRepository commits) {
+      EmployeeRepository employees, WeeklyPlanRepository plans, WeeklyCommitRepository commits) {
     this.employees = employees;
     this.plans = plans;
     this.commits = commits;
@@ -108,8 +106,11 @@ public class PerfDataSeeder {
       return;
     }
 
-    log.info("[perf-seeder] seeding {} ICs + {} plans + {} commits...",
-        IC_COUNT, IC_COUNT, IC_COUNT * COMMITS_PER_PLAN);
+    log.info(
+        "[perf-seeder] seeding {} ICs + {} plans + {} commits...",
+        IC_COUNT,
+        IC_COUNT,
+        IC_COUNT * COMMITS_PER_PLAN);
 
     Employee manager = new Employee(PERF_MANAGER_ID, PERF_ORG_ID);
     manager.setDisplayName("Perf Manager");
