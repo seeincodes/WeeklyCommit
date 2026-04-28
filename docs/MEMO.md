@@ -158,6 +158,15 @@ PRD §Performance Targets asserts "Frontend initial route render < 1 s, lazy-loa
 
 **Trade-off accepted:** the bundle-size budget script is bespoke (~80 LOC) rather than `size-limit` or `bundlewatch`. Both alternatives need their own config + non-trivial install under Yarn PnP, and neither classifies the federation plugin's emitted chunks (`__federation_expose_*`, `remoteEntry.js`, `__federation_shared_*`) the way we need without per-chunk overrides anyway. The script is short enough that the maintenance is cheaper than the integration.
 
+### 15. Two entities are deliberately exempt from `AbstractAuditingEntity` (2026-04-27)
+
+The project standard is that every business entity extends [`AbstractAuditingEntity`](../apps/weekly-commit-service/src/main/java/com/acme/weeklycommit/domain/entity/AbstractAuditingEntity.java), which adds Spring Data JPA `@CreatedBy / @CreatedDate / @LastModifiedBy / @LastModifiedDate` fields. Two entities deliberately do not, and should never be added to:
+
+- **[`AuditLog`](../apps/weekly-commit-service/src/main/java/com/acme/weeklycommit/domain/entity/AuditLog.java)** — this *is* the audit trail. It already carries `actorId` (who did the thing) and `occurredAt` (when), and the table is append-only. Layering `createdBy/createdDate/lastModifiedBy/lastModifiedDate` on top would duplicate the same data under different names and imply rows can be modified (they cannot — there is no update path).
+- **[`NotificationDlt`](../apps/weekly-commit-service/src/main/java/com/acme/weeklycommit/domain/entity/NotificationDlt.java)** — populated exclusively by background retry paths (not by user activity). The standard audit columns would be populated with the system principal in `lastModifiedBy` and would mislead anyone reading the row to think a person had touched it. The fields the table actually needs (`createdAt`, `attempts`, `lastError`) are explicit on the entity.
+
+**How to apply going forward:** if a future entity stores user-mutable business state, it extends `AbstractAuditingEntity`. If it's append-only system telemetry (e.g., another DLT, an event log, a metrics rollup), it doesn't. The two existing exemptions both have an in-class Javadoc cross-reference to this memo so the reasoning is visible at the point of definition.
+
 ## Processing Strategy
 
 The system has three pipelines — user-driven, scheduled, and rollup — all reading from the same Postgres.
