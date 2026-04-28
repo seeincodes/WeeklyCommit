@@ -13,23 +13,30 @@ name: deploy-demo
 on:
   push:
     branches: [main]
+    # GitHub does not allow `paths` and `paths-ignore` on the same event,
+    # so we use `paths` with explicitly-scoped globs that exclude docs and
+    # test directories. A push has to match at least one path to fire.
+    #
+    # Trade-off: someone editing only `infra/terraform/bootstrap/` won't
+    # trigger a redeploy (correct -- bootstrap doesn't touch the running
+    # stack). Someone editing `infra/terraform/demo-deploy/README.md`
+    # WILL trigger one because we can't `paths-ignore` while also using
+    # `paths`. The preflight job catches this case quickly and doesn't
+    # call into AWS, so cost is bounded to ~30 seconds of runner time.
     paths:
-      - 'apps/weekly-commit-service/**'
-      - 'apps/weekly-commit-ui/**'
-      - 'libs/**'
-      - 'infra/terraform/demo-deploy/**'
+      - 'apps/weekly-commit-service/src/main/**'
+      - 'apps/weekly-commit-service/pom.xml'
+      - 'apps/weekly-commit-service/Dockerfile'
+      - 'apps/weekly-commit-ui/src/**'
+      - 'apps/weekly-commit-ui/Dockerfile'
+      - 'apps/weekly-commit-ui/nginx-demo.conf'
+      - 'apps/weekly-commit-ui/package.json'
+      - 'apps/weekly-commit-ui/vite.config.ts'
+      - 'apps/weekly-commit-ui/tailwind.config.ts'
+      - 'libs/**/src/**'
+      - 'libs/**/package.json'
+      - 'infra/terraform/demo-deploy/**.tf'
       - '.github/workflows/deploy-demo.yml'
-    # Doc-only changes inside the filtered paths shouldn't trigger a deploy.
-    # paths-ignore is evaluated AFTER paths, so a push that matches only an
-    # ignored path is skipped entirely.
-    paths-ignore:
-      - '**/*.md'
-      - '**/.gitignore'
-      - '**/README'
-      - 'apps/weekly-commit-ui/cypress/**'
-      - 'apps/weekly-commit-ui/tests/**'
-      - 'apps/weekly-commit-ui/wiremock/**'
-      - 'apps/weekly-commit-service/src/test/**'
   workflow_dispatch:
     inputs:
       skip_terraform:
