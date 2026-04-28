@@ -28,6 +28,26 @@ Terraform stack that lifts the docker-compose demo onto AWS:
 
 ## Apply (first time)
 
+### Easiest path: one-shot script
+
+```bash
+./infra/terraform/apply.sh
+```
+
+The script runs all four steps below in sequence with progress output and
+clear error messages. It pre-flights `aws`, `terraform`, `gh`, and `jq`,
+confirms your AWS identity + region, asks for confirmation before touching
+anything, then applies bootstrap → wires repo secrets → applies demo-deploy
+with a placeholder image. ~25 minutes total (CloudFront propagation is the
+slow part). At the end it prints the live URL and the `gh workflow run`
+command that brings the real backend online.
+
+The script never reads or transmits credentials; it relies on whatever AWS
+auth your shell already has configured (`aws configure`, `aws sso login`,
+or your org's auth tool).
+
+### Manual path
+
 Run from your AWS-credentialed shell. The first apply needs roughly 25 minutes
 because CloudFront distribution creation is slow; subsequent applies take a
 few minutes.
