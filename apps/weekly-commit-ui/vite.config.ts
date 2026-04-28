@@ -63,19 +63,35 @@ const SHARED = {
   '@reduxjs/toolkit/query': { singleton: true, eager: false, requiredVersion: '^2.2.7' },
 } as const;
 
+// Demo deploys (VITE_DEMO_MODE=true) skip federation entirely. Federation builds
+// produce a `remoteEntry.js` + `__federation_shared_*` chunks that expect a host
+// to call `init()` on the share scope at runtime. In standalone production builds
+// (Railway, S3+CloudFront, etc.) there's no host -- the federation runtime's
+// `await importShared('react')` calls hang waiting for an init that never fires,
+// boot stalls inside `main.tsx`'s top-level await, React never mounts, page goes
+// white with no console error. `vite dev` papered over this with an automatic
+// dev-mode share-scope init; production builds didn't.
+//
+// The federated remote is still the production target (consumed by the PA host
+// per MVP18). Toggling federation off only for demo builds preserves the host
+// integration path -- a regular `yarn build` from CI keeps emitting
+// `remoteEntry.js` for the host team to pick up.
+const DEMO_MODE = process.env.VITE_DEMO_MODE === 'true';
+
 export default defineConfig({
   plugins: [
     react(),
-    federation({
-      // Globalname the host imports as `weekly_commit/WeeklyCommitModule`.
-      // snake_case is intentional and mirrors the host's PM convention.
-      name: 'weekly_commit',
-      filename: 'remoteEntry.js',
-      exposes: {
-        './WeeklyCommitModule': './src/WeeklyCommitModule.tsx',
-      },
-      shared: SHARED,
-    }),
+    !DEMO_MODE &&
+      federation({
+        // Globalname the host imports as `weekly_commit/WeeklyCommitModule`.
+        // snake_case is intentional and mirrors the host's PM convention.
+        name: 'weekly_commit',
+        filename: 'remoteEntry.js',
+        exposes: {
+          './WeeklyCommitModule': './src/WeeklyCommitModule.tsx',
+        },
+        shared: SHARED,
+      }),
     devPrivateKeyPlugin(),
   ],
   build: {
