@@ -4,6 +4,7 @@ import com.acme.weeklycommit.api.dto.ApiEnvelope;
 import com.acme.weeklycommit.api.dto.RollupResponse;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.service.RollupService;
+import io.micrometer.core.annotation.Timed;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -28,6 +29,11 @@ public class RollupController {
     this.rollupService = rollupService;
   }
 
+  @Timed(
+      value = "wc.rollup.get_team",
+      description = "GET /rollup/team — manager dashboard rollup (PRD p95 < 500ms target)",
+      histogram = true,
+      percentiles = {0.5, 0.95, 0.99})
   @GetMapping("/team")
   public ResponseEntity<ApiEnvelope<RollupResponse>> getTeamRollup(
       @RequestParam("managerId") UUID managerId,

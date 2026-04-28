@@ -10,6 +10,7 @@ import com.acme.weeklycommit.api.exception.ResourceNotFoundException;
 import com.acme.weeklycommit.config.AuthenticatedPrincipal;
 import com.acme.weeklycommit.domain.entity.WeeklyPlan;
 import com.acme.weeklycommit.service.WeeklyPlanService;
+import io.micrometer.core.annotation.Timed;
 import jakarta.validation.Valid;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -55,6 +56,11 @@ public class PlansController {
    * Current-week plan for the authenticated caller, or 404 if none exists. 404 drives the UI's
    * explicit "Start your week" blank state (MEMO decision #10: no auto-create on route entry).
    */
+  @Timed(
+      value = "wc.plans.get_current",
+      description = "GET /plans/me/current — IC current-week lookup",
+      histogram = true,
+      percentiles = {0.5, 0.95, 0.99})
   @GetMapping("/me/current")
   public ResponseEntity<ApiEnvelope<WeeklyPlanResponse>> getCurrentForMe(
       AuthenticatedPrincipal caller) {
@@ -84,6 +90,11 @@ public class PlansController {
    * Look up a specific plan by {@code (employeeId, weekStart)}. Authz decided by the service: self
    * or MANAGER, else 403. 404 on missing plan.
    */
+  @Timed(
+      value = "wc.plans.get_by_employee_week",
+      description = "GET /plans?employeeId&weekStart — manager lookup",
+      histogram = true,
+      percentiles = {0.5, 0.95, 0.99})
   @GetMapping
   public ResponseEntity<ApiEnvelope<WeeklyPlanResponse>> getPlanByEmployeeAndWeek(
       @RequestParam("employeeId") UUID employeeId,
@@ -143,6 +154,11 @@ public class PlansController {
    *       Spring's verbose Page serialization.
    * </ul>
    */
+  @Timed(
+      value = "wc.plans.get_team",
+      description = "GET /plans/team — paginated team list (manager view)",
+      histogram = true,
+      percentiles = {0.5, 0.95, 0.99})
   @GetMapping("/team")
   public ResponseEntity<ApiEnvelope<List<WeeklyPlanResponse>>> getTeam(
       @RequestParam("managerId") UUID managerId,
