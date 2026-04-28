@@ -175,13 +175,32 @@ Surfaced while writing group 13's `.feature` files. Groups 11 + 12 shipped the *
 - [ ] Once integrated: re-enable the four group-13 `.feature` files (currently `@pending`-tagged) and remove the tag
 
 ### 14. Infra
-References: [MVP14], [MVP18], [MVP20]
+References: [MVP14], [MVP18], [MVP20]; see [MEMO #12](MEMO.md#12-demo-deploy-ships-a-docker-compose-stack-first-aws-cloud-lift-is-a-follow-up-2026-04-27) for the demo-vs-production deployment split.
 
-- [ ] Terraform: EKS deployment + HPA (CPU 70%, min 2 / max 6); ConfigMap for env vars; Secrets wired from AWS Secrets Manager
-- [ ] RDS Postgres 16.4 Multi-AZ, gp3 20GB, backup retention 7d
-- [ ] CloudFront + S3 origin for remote bundle; versioned path cache policy; manifest `no-cache`
-- [ ] CloudWatch alarms: DLT < 1h, scheduled-job ≥2 consecutive failures, HPA capped, RDS CPU > 80%
-- [ ] IAM: service role for EKS pod → RDS, CloudWatch, Secrets Manager
+**α-local demo (`task/14-aws-demo-deploy` branch, 2026-04-27):**
+
+- [x] Backend Dockerfile + .dockerignore + repo-root .dockerignore (multi-stage, layered jar, non-root runtime user)
+- [x] Demo-profile config: `application-demo.yml` + `StubRcdoController` + `DemoSecurityConfig` + `DemoDataSeeder` (idempotent first-boot seed: 1 manager + 3 ICs + 1 unassigned + current-week DRAFTs + prior reconciled week)
+- [x] Frontend `VITE_DEMO_MODE` flag wired through `main.tsx` so production builds can include the devAuth shim on demand
+- [x] Frontend Dockerfile + nginx-demo.conf (vite build → nginx static serve, SPA fallback, asset cache headers)
+- [x] `docker-compose.demo.yml` at repo root: postgres + backend + frontend, single localhost URL at `http://localhost:5173`
+- [x] `docs/runbook.md` covering local demo, state-machine recovery, DLT replay, scheduled-job re-run, remote rollback, legal escalation
+- [x] `infra/terraform/demo-deploy/README.md` placeholder + AWS-lift plan
+
+**Cloud lift (deferred — needs your AWS account + first-apply session):**
+
+- [ ] Terraform: VPC + 2 public subnets + IGW; ECR; RDS db.t4g.micro single-AZ (deviation from PRD's Multi-AZ — cost compromise per MEMO #12); ECS Fargate cluster + task; ALB; S3; CloudFront with `/api/*` → ALB + default → S3; IAM (task exec, task, OIDC); Secrets Manager for DB password
+- [ ] CloudWatch log groups + alarms: DLT < 1h, scheduled-job ≥2 consecutive failures, RDS CPU > 80%
+- [ ] GitHub Actions `deploy-demo.yml`: build + push backend image to ECR, force-new-deployment on ECS, build + push frontend to S3 + invalidate CloudFront `/index.html`
+- [ ] First `terraform apply` from your AWS-credentialed session (agent cannot apply)
+- [ ] Validate full IC + Manager flow against the live URL
+
+**Production target (deferred — needs Auth0 tenant + PA host coordination):**
+
+- [ ] EKS + HPA (per-PRD posture; replaces ECS Fargate when scale demands it)
+- [ ] RDS Multi-AZ Postgres 16.4 (replaces single-AZ)
+- [ ] Real Auth0 tenant; remove `e2e`-profile JWT decoder from production deploys
+- [ ] PA host app integration; `WeeklyCommitModule` consumed via `remoteEntry.js` from CloudFront
 - [ ] ArgoCD app manifest; sync policy `automated: { prune: true, selfHeal: true }`
 - [ ] Kill-switch feature flag plumbed through host-app config *(host-side implementation per [MVP24]; the cross-remote contract is documented in `apps/weekly-commit-ui/cypress/e2e/kill-switch.feature` -- 3 scenarios with `@pending @host-contract` tags. Step definitions in `cypress/support/step_definitions/kill-switch.ts` throw `[host-harness-required]` errors with explicit pointers to this entry, so anyone running the suite without the harness sees what's missing instead of a selector failure. Once the host harness exists, drop the `@pending` tag (keep `@host-contract` for selective runs) and the cross-remote E2E job in `e2e-pr.yml` overrides `CYPRESS_TAGS=@host-contract` for the kill-switch suite specifically.)*
 

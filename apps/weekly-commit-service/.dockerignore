@@ -1,0 +1,22 @@
+# Don't ship the local Maven build output into the image -- the multi-stage
+# build runs `./mvnw package` fresh inside the build container and shadowing
+# from the host fails on host-OS-specific paths.
+target/
+
+# Editor / IDE
+.idea/
+.vscode/
+*.iml
+
+# Local logs / coverage reports
+*.log
+logs/
+
+# Avoid copying the local Maven cache; the image's Maven wrapper builds its own.
+.m2/
+
+# Tests + test resources only matter to CI; image build runs `-DskipTests`.
+src/test/
+
+# Mac-OS metadata
+.DS_Store

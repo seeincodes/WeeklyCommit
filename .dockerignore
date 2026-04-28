@@ -1,0 +1,51 @@
+# Repo-root .dockerignore -- applies when `docker build` is invoked with
+# `--file apps/weekly-commit-service/Dockerfile .` (or the equivalent for the
+# frontend image), which is the only invocation pattern docker-compose.demo.yml
+# uses.
+#
+# The Dockerfile's COPY statements reach down into specific app subtrees;
+# everything outside those subtrees is unnecessary for the image and just
+# slows down the docker build context upload.
+
+.git/
+.github/
+.idea/
+.vscode/
+
+# Yarn caches + offline mirror -- huge, image-irrelevant.
+.yarn/cache/
+.yarn/install-state.gz
+.yarn/unplugged/
+.pnp.*
+
+# Node / Vite outputs
+node_modules/
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+**/.nx/
+
+# Maven outputs / cache
+**/target/
+.m2/
+
+# Test outputs
+**/coverage/
+**/test-results/
+**/playwright-report/
+**/cypress/screenshots/
+**/cypress/videos/
+
+# Docs + infra are not needed in any image
+docs/
+infra/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Local env files
+.env
+.env.*
+!.env.example

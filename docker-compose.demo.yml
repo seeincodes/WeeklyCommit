@@ -1,0 +1,93 @@
+# Demo stack: Postgres + backend + frontend, all running locally.
+#
+# Run from the repo root:
+#   docker compose -f docker-compose.demo.yml up --build
+#
+# Then open http://localhost:5173/ in a browser. The frontend is served by
+# nginx; it mints a self-signed JWT (devAuth) for the seeded MANAGER user and
+# attaches it to every backend call, so authentication "Just Works" without
+# an Auth0 tenant. Backend runs the e2e + demo Spring profiles, which:
+#   - trust JWTs signed by the e2e-keys/private-key.pem committed to the repo
+#   - serve the in-process StubRcdoController under /rcdo/*
+#   - seed Postgres with one manager + 3 reporting ICs + 1 unassigned IC + a
+#     current week's drafts + a prior week's reconciled history
+#
+# To switch the active demo identity, append `?devRole=IC|MANAGER|ADMIN|IC_NULL_MANAGER`
+# to the URL (handled by src/dev/devAuth.ts:resolveRole).
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_USER: weeklycommit
+      POSTGRES_PASSWORD: weeklycommit
+      POSTGRES_DB: weeklycommit
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U weeklycommit -d weeklycommit']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    volumes:
+      - postgres-demo-data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: apps/weekly-commit-service/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: 'e2e,demo'
+      SPRING_DATASOURCE_URL: 'jdbc:postgresql://postgres:5432/weeklycommit'
+      SPRING_DATASOURCE_USERNAME: weeklycommit
+      SPRING_DATASOURCE_PASSWORD: weeklycommit
+      # AUTH0_* placeholders are referenced by application.yml's resource-server
+      # block; under the e2e profile NimbusJwtDecoder is replaced by the
+      # E2eJwtDecoderConfig bean and these never resolve to a JWKS endpoint.
+      # Filling them anyway keeps Spring's property resolver happy at boot.
+      AUTH0_ISSUER_URI: 'http://demo-no-issuer/'
+      AUTH0_AUDIENCE: 'demo-no-audience'
+      # The stub RCDO endpoint lives on this same backend at /rcdo/*; the
+      # WebClient resolves http://backend:8080 from inside the container
+      # network, which is the loopback for the same JVM.
+      RCDO_BASE_URL: 'http://backend:8080'
+      # Disable scheduled jobs in the demo so background timers don't mutate
+      # the seeded data out from under the user.
+      SCHEDULED_JOBS_ENABLED: 'false'
+      DEMO_SEED: 'true'
+    ports:
+      - '8080:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO- http://127.0.0.1:8080/actuator/health/readiness | grep -q UP || exit 1',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 60s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/weekly-commit-ui/Dockerfile
+      args:
+        # The bundled fetch calls go to this absolute URL. localhost:8080
+        # resolves to the host machine, which forwards to the backend
+        # container's 8080 (mapped above).
+        VITE_API_BASE_URL: 'http://localhost:8080'
+        VITE_DEMO_MODE: 'true'
+    ports:
+      - '5173:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres-demo-data:
+    driver: local

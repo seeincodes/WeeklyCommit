@@ -75,7 +75,10 @@ export default {
         // A 4-step display + body scale. Hint values keep the rhythm tight without
         // requiring per-element tracking overrides at call sites. Pair with `font-display`
         // / `font-title` semantics in JSX rather than raw `text-3xl`.
-        display: ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em', fontWeight: '600' }],
+        display: [
+          '1.875rem',
+          { lineHeight: '2.25rem', letterSpacing: '-0.02em', fontWeight: '600' },
+        ],
         title: ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em', fontWeight: '600' }],
         body: ['0.9375rem', { lineHeight: '1.5rem', fontWeight: '400' }],
         meta: ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.06em', fontWeight: '500' }],

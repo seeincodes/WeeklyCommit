@@ -89,6 +89,29 @@ We expanded group 19 into a real visual redesign across the IC + Manager surface
 
 **Tech-stack lock honoured throughout:** Tailwind + Flowbite only (no new CSS files / Emotion / styled-components), no new top-level deps, every animation gated `motion-safe:`, every visual-only change preserved every `data-testid` and accessible-name contract referenced by the existing test suites (172/172 vitest pass).
 
+### 12. Demo deploy ships a docker-compose stack first; AWS cloud lift is a follow-up (2026-04-27)
+
+The PRD's deployment story is **EKS + RDS Multi-AZ + CloudFront + S3 + ArgoCD**, federated as a Module Federation remote consumed by the existing Performance Assessment host app. That's the v1 production target. **It is not what `task/14-aws-demo-deploy` shipped.**
+
+What shipped on `task/14-aws-demo-deploy`:
+
+  - A `docker-compose.demo.yml` at the repo root that brings up Postgres + the backend (`SPRING_PROFILES_ACTIVE=e2e,demo`) + the frontend (built with `VITE_DEMO_MODE=true`). Runs at `http://localhost:5173` after one `docker compose up --build`.
+  - Demo-only backend code: [`StubRcdoController`](../apps/weekly-commit-service/src/main/java/com/acme/weeklycommit/demo/StubRcdoController.java), [`DemoSecurityConfig`](../apps/weekly-commit-service/src/main/java/com/acme/weeklycommit/demo/DemoSecurityConfig.java), [`DemoDataSeeder`](../apps/weekly-commit-service/src/main/java/com/acme/weeklycommit/demo/DemoDataSeeder.java) — all `@Profile("demo")`-gated.
+  - A `VITE_DEMO_MODE` build flag that keeps the existing `devAuth` shim in production-built frontends so static-bundle deploys can sign their own JWTs against the e2e-profile backend.
+  - An empty [`infra/terraform/demo-deploy/`](../infra/terraform/demo-deploy/README.md) directory with a README describing the planned AWS lift.
+
+**What didn't ship and why:**
+
+  - **No EKS / Multi-AZ RDS / CloudFront / S3 origin / ArgoCD.** The first `terraform apply` requires AWS credentials only the user has, and the `apply ↔ debug ↔ apply` loop is incompatible with the agent's single-conversation execution model. Deferring lets the local stack validate the application end-to-end first, so the cloud apply only debugs *infrastructure*, not application behavior.
+  - **No real Auth0 tenant.** The demo stack uses the existing `e2e`-profile JWT decoder (NimbusJwtDecoder + classpath-loaded test public key) and the frontend's `devAuth` shim mints matching JWTs in-browser. **The cypress test private key is committed to the repo and gets bundled into the demo frontend.** This means anyone who can hit the demo URL can mint a JWT for any seeded user. Acceptable for a demo, *not* acceptable for the production target.
+  - **No notification-svc.** `LoggingNotificationSender` is `@Profile("!prod")`, which catches `demo`. Reconciliation transitions log the would-be notification but emit nothing downstream.
+  - **No real RCDO upstream.** `StubRcdoController` serves a hardcoded 5-outcome catalog from inside the same JVM via a localhost loopback. Sufficient for clicking through the picker; doesn't exercise the Resilience4j retry / circuit-breaker paths.
+  - **Scheduled jobs disabled.** `SCHEDULED_JOBS_ENABLED=false` in the compose env so background timers don't mutate seeded plans during a demo session.
+
+**MVP18 / MVP19 deviation:** The demo ships the **standalone-dev SPA bundle** (i.e. the existing `main.tsx` entry that mounts `<WeeklyCommitModule>` directly inside a HashRouter), *not* the federated `remoteEntry.js` consumed by a host app. This is option C from the deploy-strategy discussion — fastest to a clickable URL, smaller deviation than building a host shell, and the federated `remoteEntry.js` *is also produced* by the same `vite build` run, so the PA host team can still consume it from S3 when they're ready. The deviation is recorded here, not silently absorbed.
+
+**Why this shape:** the PRD's production target requires user-driven decisions (AWS account, region, domain, Auth0 tenant, host app coordination) that the conversation could not unblock. Shipping a working demo on docker-compose lets every other piece of the system get exercised end-to-end *now*, while the cloud lift becomes a separable follow-up branch where Terraform can be reviewed and applied carefully against your AWS account.
+
 ## Processing Strategy
 
 The system has three pipelines — user-driven, scheduled, and rollup — all reading from the same Postgres.
