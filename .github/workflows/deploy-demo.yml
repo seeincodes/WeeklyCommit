@@ -13,11 +13,29 @@ name: deploy-demo
 on:
   push:
     branches: [main]
+    # GitHub does not allow `paths` and `paths-ignore` on the same event,
+    # so we use `paths` with explicitly-scoped globs that exclude docs and
+    # test directories. A push has to match at least one path to fire.
+    #
+    # Trade-off: someone editing only `infra/terraform/bootstrap/` won't
+    # trigger a redeploy (correct -- bootstrap doesn't touch the running
+    # stack). Someone editing `infra/terraform/demo-deploy/README.md`
+    # WILL trigger one because we can't `paths-ignore` while also using
+    # `paths`. The preflight job catches this case quickly and doesn't
+    # call into AWS, so cost is bounded to ~30 seconds of runner time.
     paths:
-      - 'apps/weekly-commit-service/**'
-      - 'apps/weekly-commit-ui/**'
-      - 'libs/**'
-      - 'infra/terraform/demo-deploy/**'
+      - 'apps/weekly-commit-service/src/main/**'
+      - 'apps/weekly-commit-service/pom.xml'
+      - 'apps/weekly-commit-service/Dockerfile'
+      - 'apps/weekly-commit-ui/src/**'
+      - 'apps/weekly-commit-ui/Dockerfile'
+      - 'apps/weekly-commit-ui/nginx-demo.conf'
+      - 'apps/weekly-commit-ui/package.json'
+      - 'apps/weekly-commit-ui/vite.config.ts'
+      - 'apps/weekly-commit-ui/tailwind.config.ts'
+      - 'libs/**/src/**'
+      - 'libs/**/package.json'
+      - 'infra/terraform/demo-deploy/**.tf'
       - '.github/workflows/deploy-demo.yml'
   workflow_dispatch:
     inputs:
@@ -40,11 +58,55 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
 
 jobs:
+  # ---------------- Pre-flight: required secrets/vars present ----------------
+
+  # Fails fast with a clear error if the bootstrap apply hasn't run yet
+  # (in which case AWS_DEPLOY_ROLE_ARN doesn't exist as a repo secret). The
+  # alternative is the cryptic "Could not load credentials from any
+  # providers" error from aws-actions/configure-aws-credentials, which
+  # doesn't tell anyone what to do about it.
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Verify AWS_DEPLOY_ROLE_ARN is set
+        env:
+          ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+        run: |
+          if [ -z "${ROLE_ARN}" ]; then
+            echo "::error::AWS_DEPLOY_ROLE_ARN secret is not set."
+            {
+              echo "## Deploy skipped — AWS not bootstrapped"
+              echo ""
+              echo "The deploy workflow needs the \`AWS_DEPLOY_ROLE_ARN\` secret + the"
+              echo "\`TF_STATE_BUCKET\` / \`TF_LOCK_TABLE\` / \`AWS_REGION\` repo variables."
+              echo "These are set by the bootstrap apply, which only you can run from your"
+              echo "AWS-credentialed shell:"
+              echo ""
+              echo '```bash'
+              echo "./infra/terraform/apply.sh"
+              echo '```'
+              echo ""
+              echo "After that completes the next push to main will succeed."
+            } >> "${GITHUB_STEP_SUMMARY}"
+            exit 1
+          fi
+      - name: Verify TF_STATE_BUCKET + TF_LOCK_TABLE are set
+        env:
+          BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          LOCK: ${{ vars.TF_LOCK_TABLE }}
+        run: |
+          if [ -z "${BUCKET}" ] || [ -z "${LOCK}" ]; then
+            echo "::error::TF_STATE_BUCKET or TF_LOCK_TABLE repo variable not set. See workflow summary."
+            exit 1
+          fi
+
   # ---------------- Terraform plan/apply ----------------
 
   terraform:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    needs: preflight
     if: ${{ inputs.skip_terraform != 'true' }}
     outputs:
       cloudfront_distribution_id: ${{ steps.tf_output.outputs.cloudfront_distribution_id }}
