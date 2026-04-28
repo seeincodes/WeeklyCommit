@@ -38,7 +38,7 @@ const env = (import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } 
 // treat empty string as a deliberate "use same-origin" signal, distinct from
 // "not set at all."
 const rawBaseUrl = env?.VITE_API_BASE_URL;
-const baseUrl: string = rawBaseUrl === undefined ? 'http://localhost' : rawBaseUrl;
+const baseUrl: string = rawBaseUrl ?? 'http://localhost';
 
 const baseQuery = withConflictRetry(rawBaseQuery);
 

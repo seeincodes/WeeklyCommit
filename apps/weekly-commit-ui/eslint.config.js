@@ -37,6 +37,10 @@ export default tseslint.config(
       // not part of the src/ tsconfig project, so typed lint rules can't
       // resolve their parserServices.
       'scripts/**',
+      // Perf harness: a Node ESM signer + a k6 .js script that runs on
+      // k6's Goja runtime, not Node. Same exclusion reason as scripts/ --
+      // outside the src/ tsconfig project.
+      'perf/**',
     ],
   },
   js.configs.recommended,
