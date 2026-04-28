@@ -15,9 +15,10 @@
 // lock for the policy.
 
 import { readFileSync } from 'node:fs';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig, type Plugin, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
 import federation from '@originjs/vite-plugin-federation';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 /**
  * Exposes the cypress test private key (used by Cypress + Cucumber to sign JWTs)
@@ -78,6 +79,12 @@ const SHARED = {
 // `remoteEntry.js` for the host team to pick up.
 const DEMO_MODE = process.env.VITE_DEMO_MODE === 'true';
 
+// Visualizer is opt-in: ANALYZE=1 yarn build emits dist/stats.html. Off by
+// default so CI builds stay deterministic and don't ship the report into
+// the federation upload. `as PluginOption` because rollup-plugin-visualizer
+// types as a Rollup plugin and Vite's Plugin union is wider.
+const ANALYZE = process.env.ANALYZE === '1' || process.env.ANALYZE === 'true';
+
 export default defineConfig({
   plugins: [
     react(),
@@ -93,6 +100,16 @@ export default defineConfig({
         shared: SHARED,
       }),
     devPrivateKeyPlugin(),
+    ANALYZE &&
+      (visualizer({
+        filename: 'dist/stats.html',
+        gzipSize: true,
+        brotliSize: true,
+        // 'treemap' gives the most useful at-a-glance view of which
+        // dependency dominates a chunk; matches what the PM remote ships.
+        template: 'treemap',
+        emitFile: false,
+      }) as PluginOption),
   ],
   build: {
     // Host is the consumer and dictates browser support; matches PM remote.
@@ -103,6 +120,31 @@ export default defineConfig({
     minify: 'esbuild',
     // Single CSS bundle so the host can load remote styles in one fetch.
     cssCodeSplit: false,
+    rollupOptions: {
+      output: {
+        // Manual chunking strategy: keep heavy non-shared deps out of the
+        // route bundles so a hot edit to a route only re-downloads ~tens
+        // of KB rather than the full vendor surface. React, ReactDOM,
+        // react-router-dom, and @reduxjs/toolkit are NOT chunked here
+        // -- they're declared `shared: { singleton: true }` above and
+        // resolved against the host at runtime, so duplicating them into
+        // a vendor chunk would undo the federation contract.
+        //
+        // Filename patterns are intentionally left at Vite/Rollup
+        // defaults: the federation plugin owns `remoteEntry.js` via its
+        // `filename` option, and Rollup's default chunk naming already
+        // content-hashes everything else (CDN-cache-safe).
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('flowbite-react') || id.includes('/flowbite/')) {
+            return 'vendor-flowbite';
+          }
+          if (id.includes('@sentry/')) return 'vendor-sentry';
+          if (id.includes('jose')) return 'vendor-jose';
+          return undefined;
+        },
+      },
+    },
   },
   // Perf: pre-bundle the heavy deps that DraftMode (and its picker/form/tier
   // chain) pulls in. Without this, the first click of "Create plan" -- which

@@ -248,7 +248,10 @@ References: Performance Targets section of [PRD.md](PRD.md#performance-targets)
 
 - [ ] Query profiling for `GET /rollup/team` at 50 reports; EXPLAIN ANALYZE on indexes
 - [ ] Rollup N+1 audit; add `@EntityGraph` or projection DTO as needed
-- [ ] Bundle-size analysis on remote; tree-shake Flowbite imports
+- [x] Lazy-loaded routes under `/weekly-commit/*` via `React.lazy` + Suspense ([WeeklyCommitModule.tsx](../apps/weekly-commit-ui/src/WeeklyCommitModule.tsx)) — initial federated chunk no longer carries History/Team/TeamMember code
+- [x] Bundle-size analysis on remote: `manualChunks` for flowbite/sentry/jose, opt-in visualizer (`yarn build:analyze` → `dist/stats.html`), per-category gzip budget enforced in CI ([scripts/check-bundle-size.mjs](../apps/weekly-commit-ui/scripts/check-bundle-size.mjs))
+- [ ] Tree-shake Flowbite imports — current `vendor-flowbite` chunk is 65 KB gz, well under its 180 KB budget but worth a pass once a wider Flowbite surface is in use
+- [ ] k6 perf harness asserting `GET /plans/me/current` p95 < 200 ms (PRD §Performance Targets)
 - [ ] CloudFront hit-ratio monitoring; cache rules verified
 
 ### 19. UX polish + visual redesign
