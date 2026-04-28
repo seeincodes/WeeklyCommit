@@ -15,7 +15,14 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import * as Sentry from '@sentry/react';
-import { Flowbite } from 'flowbite-react';
+// Subpath import (vs `from 'flowbite-react'`) bypasses the package barrel,
+// which re-exports every component (Button/Card/Modal/Sidebar/...) and
+// drags in heavy peers (react-icons, @floating-ui). flowbite-react 0.10.2
+// declares no `sideEffects: false`, so the bundler conservatively keeps
+// the whole barrel even though we only consume one component. The
+// `./components/*` subpath is part of the package's published `exports`
+// map -- standard ESM, not a private path.
+import { Flowbite } from 'flowbite-react/components/Flowbite';
 import { WeeklyCommitModule } from './WeeklyCommitModule';
 
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;

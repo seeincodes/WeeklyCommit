@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
-import { Toast, ToastToggle } from 'flowbite-react';
+// Subpath import to avoid pulling the full flowbite-react barrel; see
+// the explanation in src/main.tsx where the same pattern is applied.
+import { Toast, ToastToggle } from 'flowbite-react/components/Toast';
 import { conflictToastActions, selectConflictToast } from '@wc/rtk-api-client';
 import { useAppDispatch, useAppSelector } from '../store/typedHooks';
 

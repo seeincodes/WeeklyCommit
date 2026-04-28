@@ -161,7 +161,12 @@ export default defineConfig({
       'react-router-dom',
       '@reduxjs/toolkit',
       '@reduxjs/toolkit/query/react',
-      'flowbite-react',
+      // Specific subpaths only, mirroring the actual import sites in
+      // src/main.tsx and src/components/ConflictToast.tsx. Listing the
+      // bare 'flowbite-react' barrel here would re-introduce the
+      // tree-shake hole the subpath imports just closed.
+      'flowbite-react/components/Flowbite',
+      'flowbite-react/components/Toast',
       'jose',
     ],
   },
