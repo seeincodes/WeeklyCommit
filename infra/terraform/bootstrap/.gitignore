@@ -1,0 +1,8 @@
+# Bootstrap state stays local. Never committed -- the state is small,
+# applied once, and the human running it owns the file. If lost, re-import.
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!example.tfvars
