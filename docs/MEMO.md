@@ -112,6 +112,35 @@ What shipped on `task/14-aws-demo-deploy`:
 
 **Why this shape:** the PRD's production target requires user-driven decisions (AWS account, region, domain, Auth0 tenant, host app coordination) that the conversation could not unblock. Shipping a working demo on docker-compose lets every other piece of the system get exercised end-to-end *now*, while the cloud lift becomes a separable follow-up branch where Terraform can be reviewed and applied carefully against your AWS account.
 
+### 13. Active demo target switched from AWS to Railway under the $10/mo budget (2026-04-28)
+
+The AWS cloud-lift Terraform from MEMO #12 (PRs #15-#17) ships ~$43/month minimum because the ALB alone costs ~$18/month on us-east-1 — there is no architecture for "ECS Fargate + ALB + RDS, always-on" that fits under $10/month. Path 1 from the cost discussion (run AWS on-demand, `terraform destroy` between demos) is workable but requires manual bring-up before every demo session.
+
+**Decision:** route the active demo to Railway. Backend + frontend bundled into a single Spring Boot jar; Railway's hobby plan + Postgres add-on lands at ~$5-7/month always-on.
+
+**What changed:**
+
+- New deployment artifact: [`apps/weekly-commit-service/Dockerfile.bundled`](../apps/weekly-commit-service/Dockerfile.bundled) — multi-stage build that compiles the frontend (`yarn workspace @wc/weekly-commit-ui run build`) and copies `dist/` into `apps/weekly-commit-service/src/main/resources/static/` before `mvn package` runs. Spring's default `ResourceHandlerRegistry` then serves the static bundle from the same JVM that serves the API.
+- `SecurityConfig` adds `permitAll()` for `/`, `/index.html`, `/favicon.ico`, `/assets/**` so the static bundle loads unauthenticated; the bundled JS then mints JWTs in-browser (devAuth shim) and authenticated API calls work as before.
+- `railway.toml` declares the build (Dockerfile path) + healthcheck path; everything else is environment vars set in the Railway dashboard per [`infra/railway/SETUP.md`](../infra/railway/SETUP.md).
+- `.github/workflows/deploy-railway.yml` triggers a Railway build via the CLI on push to `main`. Pre-flight job fails fast if `RAILWAY_TOKEN` isn't set.
+
+**MVP18 / MVP19 deviation tightens:** the demo now ships as a *single-origin* Spring Boot service that hosts both the SPA bundle and the API — not the federated `remoteEntry.js` consumed by a host app. The standalone-dev `vite build` still produces `remoteEntry.js` so the PA host team can consume it later from any static origin (S3, Cloudflare Pages, the Spring resource handler in this same jar, anywhere).
+
+**AWS code stays in the repo, dormant.** PR #15-#17 are not reverted. `infra/terraform/{bootstrap,demo-deploy}/` and `apps/weekly-commit-service/Dockerfile` (the two-image AWS variant) remain unchanged. `apps/weekly-commit-service/Dockerfile.bundled` is the Railway-only single-image pattern. Anyone who wants to flip back to AWS later runs `./infra/terraform/apply.sh` from their AWS-credentialed shell -- the path is preserved, just not the *active* deployment target.
+
+**Trade-offs accepted:**
+
+| | AWS demo (dormant) | Railway path (active) |
+|---|---|---|
+| Cost while running | $43/mo (always on) or $0 (paused) | $5-7/mo (always on) |
+| Architecture | Two-origin (S3 + ALB), CloudFront unifies | Single-origin (Spring serves both) |
+| Production headroom | Closer to PRD's federated remote | Further from it |
+| Bring-up time | 25 min cold + AWS apply | ~5 min after dashboard setup |
+| MVP18 fidelity | Higher (CloudFront + S3 + ECS) | Lower (single Spring service) |
+
+The trade-off favoured "URL is reliably online for under $10/month" over "matches the PRD's production architecture more closely." The PRD architecture is reachable from this state when the budget changes.
+
 ## Processing Strategy
 
 The system has three pipelines — user-driven, scheduled, and rollup — all reading from the same Postgres.

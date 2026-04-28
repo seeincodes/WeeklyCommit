@@ -1,0 +1,92 @@
+name: deploy-railway
+
+# Deploys to Railway on push to main. The actual image build happens inside
+# Railway's builder (driven by railway.toml), so this workflow's job is just
+# to trigger the deploy and wait for it.
+#
+# Pre-flight:
+#   - Repo secret RAILWAY_TOKEN: project-scoped token from
+#     https://railway.app/account/tokens
+#   - Repo variable RAILWAY_SERVICE: service name in your Railway project
+#     (defaults to "weekly-commit" if unset)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/weekly-commit-service/src/main/**'
+      - 'apps/weekly-commit-service/pom.xml'
+      - 'apps/weekly-commit-service/Dockerfile.bundled'
+      - 'apps/weekly-commit-ui/src/**'
+      - 'apps/weekly-commit-ui/Dockerfile'
+      - 'apps/weekly-commit-ui/package.json'
+      - 'apps/weekly-commit-ui/vite.config.ts'
+      - 'apps/weekly-commit-ui/tailwind.config.ts'
+      - 'libs/**/src/**'
+      - 'libs/**/package.json'
+      - 'railway.toml'
+      - '.github/workflows/deploy-railway.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-railway
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Verify RAILWAY_TOKEN is set
+        env:
+          TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -z "${TOKEN}" ]; then
+            echo "::error::RAILWAY_TOKEN secret not set."
+            {
+              echo "## Deploy skipped — Railway not configured"
+              echo ""
+              echo "The deploy workflow needs a Railway project token. See"
+              echo "[infra/railway/SETUP.md](../../infra/railway/SETUP.md)"
+              echo "for the one-time setup."
+            } >> "${GITHUB_STEP_SUMMARY}"
+            exit 1
+          fi
+
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: preflight
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.com/install.sh | sh
+          echo "${HOME}/.railway/bin" >> "${GITHUB_PATH}"
+
+      - name: Trigger deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          SERVICE: ${{ vars.RAILWAY_SERVICE || 'weekly-commit' }}
+        run: |
+          railway up --service "${SERVICE}" --ci
+
+      - name: Print deploy URL
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          SERVICE: ${{ vars.RAILWAY_SERVICE || 'weekly-commit' }}
+        run: |
+          URL=$(railway domain --service "${SERVICE}" 2>/dev/null || true)
+          if [ -n "${URL}" ]; then
+            {
+              echo "## Live URL"
+              echo ""
+              echo "Live at: https://${URL}"
+            } >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "::warning::No domain yet -- assign one in the Railway dashboard."
+          fi

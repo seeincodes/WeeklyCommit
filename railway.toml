@@ -1,0 +1,34 @@
+# Railway deploy config.
+#
+# Single-service deployment: backend + frontend bundled into one Spring Boot
+# jar via apps/weekly-commit-service/Dockerfile.bundled. Pair with the Postgres
+# add-on Railway provides; Railway injects DATABASE_URL automatically when the
+# Postgres plugin is attached, but Spring needs SPRING_DATASOURCE_URL/USERNAME/
+# PASSWORD instead -- the deploy workflow translates these.
+#
+# See infra/railway/SETUP.md for the dashboard clicks that don't fit in this
+# file (creating the project, attaching Postgres, copying RAILWAY_TOKEN to GH
+# repo secrets).
+
+[build]
+# DOCKERFILE builder uses the path below verbatim, so Railway's Nixpacks
+# auto-detect doesn't get a chance to second-guess. Build context is the
+# repo root because Dockerfile.bundled COPY-references both apps/ and libs/.
+builder = "DOCKERFILE"
+dockerfilePath = "apps/weekly-commit-service/Dockerfile.bundled"
+
+[deploy]
+# Spring takes ~60s to boot before /actuator/health/readiness goes UP. Railway's
+# default healthcheck timeout (300s) is generous enough; explicit value here
+# documents the contract.
+healthcheckPath = "/actuator/health/readiness"
+healthcheckTimeout = 300
+
+# `restartPolicyType` defaults to ON_FAILURE; explicit so it's clear in
+# review. ECS-style "always restart" would loop on a misconfigured deploy
+# instead of marking it failed.
+restartPolicyType = "ON_FAILURE"
+
+# Railway exposes one HTTP port per service; Spring auto-binds to ${PORT}
+# (handled in the Dockerfile.bundled ENTRYPOINT). No port mapping needed
+# here -- Railway figures it out from the EXPOSE directive + PORT env.
