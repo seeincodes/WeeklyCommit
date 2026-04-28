@@ -1,0 +1,26 @@
+# Perf-stack override. Layers on top of docker-compose.e2e.yml to add the
+# `perf` Spring profile so PerfDataSeeder fires at startup and the k6
+# harness has realistic row counts to exercise the hot endpoints.
+#
+# Bring up:    docker compose -f docker-compose.e2e.yml -f docker-compose.perf.yml up -d --wait
+# Tear down:   docker compose -f docker-compose.e2e.yml -f docker-compose.perf.yml down -v
+#
+# Why a separate file vs. mutating docker-compose.e2e.yml:
+#   - docker-compose.e2e.yml is the Cypress + Cucumber harness's contract. Adding
+#     250 perf rows to it would shift Cypress test fixtures (the rollup count would
+#     suddenly jump from "one IC's plan" to "50 plans") and break unrelated assertions.
+#   - The perf profile pulls a different startup cost (~1s of bulk inserts) that the
+#     Cypress runner doesn't need to pay on every PR.
+#   - Overrides compose cleanly via -f chaining; no duplication of the postgres /
+#     rcdo-stub / Spring service blocks.
+#
+# Only the env vars on weekly-commit-service are altered. Everything else (image,
+# ports, healthcheck, datasource) is inherited from the base compose file.
+
+services:
+  weekly-commit-service:
+    environment:
+      # Activates BOTH e2e (test JWT trust + WireMock RCDO base url) AND perf
+      # (PerfDataSeeder runs once at startup). Order matters for property resolution
+      # only when keys collide -- they don't here.
+      SPRING_PROFILES_ACTIVE: e2e,perf
