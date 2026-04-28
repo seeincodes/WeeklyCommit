@@ -21,7 +21,9 @@
     "test:watch": "vitest",
     "test:playwright": "playwright test",
     "test:cypress": "cypress run",
-    "test:cypress:open": "cypress open"
+    "test:cypress:open": "cypress open",
+    "perf:sign-jwt": "node ./perf/sign-perf-jwt.mjs",
+    "perf:current-week": "k6 run ./perf/current-week.k6.js"
   },
   "cypress-cucumber-preprocessor": {
     "stepDefinitions": "cypress/support/step_definitions/[filepart].{ts,js}",
