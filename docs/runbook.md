@@ -81,8 +81,32 @@ you create during the demo.
 
 ## AWS demo deploy
 
+### One-shot script (recommended)
+
+```bash
+./infra/terraform/apply.sh
+```
+
+Runs the bootstrap apply, wires the GitHub repo secrets/variables, and
+applies the demo-deploy stack with a placeholder image. Pre-flights all
+required CLIs + AWS identity, asks for confirmation, prints the live URL
+on success. ~25 minutes total. The script never reads or transmits
+credentials -- it relies on whatever AWS auth your shell already has.
+
+After the script completes:
+
+```bash
+gh workflow run deploy-demo.yml --ref main
+gh run watch
+```
+
+That builds the real backend image and brings the live URL online.
+
+### Manual path
+
 See [`infra/terraform/demo-deploy/README.md`](../infra/terraform/demo-deploy/README.md)
-for the full apply procedure. Quick version:
+for the step-by-step manual sequence. Quick version below; the script above
+runs these for you.
 
 ```bash
 # 1. Bootstrap (one time, your AWS-credentialed shell)
