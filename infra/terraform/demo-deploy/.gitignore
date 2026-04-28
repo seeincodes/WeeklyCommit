@@ -1,0 +1,7 @@
+# Lock file is environment-specific (provider binaries depend on OS/arch).
+# Commit it deliberately if you want consistent provider versions across
+# CI + local; for now leave it local-only.
+.terraform.lock.hcl
+.terraform/
+*.tfvars
+!example.tfvars
