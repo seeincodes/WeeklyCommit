@@ -22,11 +22,23 @@ import type { SupportingOutcome } from './rcdo';
 // re-declare `ImportMetaEnv` in a way that would conflict with the consuming
 // app's vite/client typing when typechecked across the workspace.
 const env = (import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }).env;
-// `||` (not `??`) is intentional: Vitest can surface VITE_API_BASE_URL as an
-// empty string rather than undefined when running through nx, and `??` would
-// preserve that empty string and break MSW URL parsing. Treat empty as unset.
-// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-const baseUrl: string = env?.VITE_API_BASE_URL || 'http://localhost';
+// Three modes:
+//   - undefined / unset: vitest's MSW patterns target absolute http://localhost/...
+//     URLs, so we fall back to "http://localhost" (no port) to match.
+//   - explicit "": demo / production same-origin. The frontend is served by the
+//     backend (Railway) or by a host that proxies /api/* (federated prod).
+//     Relative URLs like "/api/v1/..." resolve against window.location.origin,
+//     which is what we want.
+//   - explicit "https://...": deployment-specific override (rare).
+//
+// The empty-string vs undefined distinction matters because vitest used to
+// surface VITE_API_BASE_URL as "" rather than undefined when running through
+// nx -- in that environment the test scaffolding's MSW URL patterns broke.
+// That's been fixed upstream; the test envs now produce undefined. So we can
+// treat empty string as a deliberate "use same-origin" signal, distinct from
+// "not set at all."
+const rawBaseUrl = env?.VITE_API_BASE_URL;
+const baseUrl: string = rawBaseUrl === undefined ? 'http://localhost' : rawBaseUrl;
 
 const baseQuery = withConflictRetry(rawBaseQuery);
 
