@@ -1,0 +1,53 @@
+name: terraform-pr
+
+# Validates Terraform on every PR that touches infra/. Catches HCL syntax,
+# provider config, and resource-reference errors before they hit the deploy
+# pipeline -- which only runs on push to main.
+
+on:
+  pull_request:
+    paths:
+      - 'infra/terraform/**'
+      - '.github/workflows/terraform-pr.yml'
+
+concurrency:
+  group: terraform-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        stack:
+          - bootstrap
+          - demo-deploy
+    env:
+      STACK_DIR: infra/terraform/${{ matrix.stack }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+
+      - name: Terraform fmt
+        working-directory: ${{ env.STACK_DIR }}
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init (no backend)
+        working-directory: ${{ env.STACK_DIR }}
+        # -backend=false skips the S3-backend-config requirement that
+        # demo-deploy normally needs from CI vars. validate is a static
+        # check; the backend doesn't need to actually be reachable.
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        working-directory: ${{ env.STACK_DIR }}
+        run: terraform validate

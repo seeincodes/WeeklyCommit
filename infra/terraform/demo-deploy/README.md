@@ -1,96 +1,146 @@
-# Demo deploy — AWS infrastructure (deferred)
+# demo-deploy
 
-This directory is the **placeholder** for the AWS Terraform that would lift
-`docker-compose.demo.yml` onto AWS. **It is intentionally empty in this commit.**
-The local docker-compose flow (see [../../../docs/runbook.md](../../../docs/runbook.md))
-is the actively-supported demo path; the AWS lift is a follow-up task.
+Terraform stack that lifts the docker-compose demo onto AWS:
 
-## Why deferred
+- **VPC** (public-only, 2 AZs, no NAT)
+- **ECR** for the backend image
+- **RDS** Postgres 16.4 db.t4g.micro single-AZ
+- **ECS Fargate** task running the backend (256 cpu / 512 mem)
+- **ALB** in front of the task (HTTP-only)
+- **S3** for the frontend bundle
+- **CloudFront** in front of S3 + ALB; routes `/api/*` and `/actuator/*` to the ALB, everything else to S3
+- **CloudWatch alarms** on RDS CPU + ECS task count
+- **Secrets Manager** for the RDS master password
 
-The α-local scope agreed for the [`task/14-aws-demo-deploy`](https://github.com/seeincodes/WeeklyCommit/tree/task/14-aws-demo-deploy)
-branch deliberately *did not* include the AWS Terraform. Reasons:
+## Cost (rough)
 
-1. **First-apply needs human-driven AWS credentials.** The CI pipeline can run
-   subsequent applies, but the bootstrap (S3 state bucket, IAM OIDC trust policy,
-   ACM cert, Route53 zone if any) has to happen from a privileged session. That's
-   you, not the agent.
-2. **The local docker-compose stack reproduces the exact same backend +
-   frontend container images** that the AWS deploy will run. Validating the
-   demo locally first means the cloud apply only debugs *infrastructure* issues,
-   not application issues.
-3. **Scope discipline.** "Get a working demo I can click" is achievable now;
-   "AWS-hosted demo with a public URL" requires another full branch's worth of
-   Terraform (~600 LOC), GHA wiring, and post-apply iteration. Splitting them
-   keeps the feedback loop tight.
+| Resource                                | $/month |
+|-----------------------------------------|--------:|
+| ECS Fargate task (256 cpu / 512 mem 24x7) | ~$10    |
+| RDS db.t4g.micro single-AZ + 20GB gp3   | ~$13    |
+| ALB                                     | ~$18    |
+| CloudFront (PriceClass_100, low traffic)| ~$1     |
+| S3 (frontend bundle, < 100 MB)          | ~$0.10  |
+| Secrets Manager (1 secret)              | ~$0.40  |
+| CloudWatch logs (low volume)            | ~$0.50  |
+| ECR (last 10 images)                    | ~$0.10  |
+| **Total**                               | **~$43**|
 
-## What the AWS lift will need
+## Apply (first time)
 
-When you're ready to take the docker-compose stack to AWS, the follow-up
-branch (`task/14-aws-deploy-cloud`) should land:
+Run from your AWS-credentialed shell. The first apply needs roughly 25 minutes
+because CloudFront distribution creation is slow; subsequent applies take a
+few minutes.
 
-### Terraform modules
+### 1. Run the bootstrap stack first
 
-| Resource                              | Purpose                                              | Estimated cost ($/mo) |
-|---------------------------------------|------------------------------------------------------|----------------------:|
-| VPC + 2 public subnets + IGW          | Network for the ECS task and ALB                     | $0                    |
-| ECR repository (one)                  | Backend image registry                               | ~$0 (well under 0.5GB) |
-| RDS Postgres 16.4 db.t4g.micro single-AZ | Demo DB; deviation from PRD's Multi-AZ           | ~$13                  |
-| ECS Fargate cluster + service (1 task)| Backend runtime                                      | ~$15 (0.25 vCPU + 0.5 GB RAM) |
-| Application Load Balancer             | TLS termination + health checks for ECS              | ~$18                  |
-| S3 bucket                             | Frontend static origin                               | ~$0.50                |
-| CloudFront distribution               | TLS in front of S3 + ALB; routes `/api/*` to ALB     | ~$1                   |
-| Secrets Manager (1 secret)            | RDS password                                         | ~$0.40                |
-| IAM roles (task execution, task, OIDC)| Permissions                                          | $0                    |
-| CloudWatch log groups                 | ECS task stdout                                      | ~$0.10                |
-| **Total**                             |                                                      | **~$48/mo**           |
+See [`../bootstrap/README.md`](../bootstrap/README.md). The bootstrap creates:
 
-### File layout (proposed)
+- The S3 bucket this stack uses for remote state
+- The DynamoDB table for state locking
+- The IAM role the GitHub Actions deploy workflow assumes
 
-```
-infra/terraform/demo-deploy/
-  versions.tf         # AWS provider 5.x, terraform 1.7+
-  variables.tf        # region, environment, image_tag
-  vpc.tf              # public-only VPC, 2 AZs
-  ecr.tf              # one repo, lifecycle rule keeps last 10 images
-  rds.tf              # db.t4g.micro, single-AZ, gp3 20GB, retention 7d
-  secrets.tf          # one Secrets Manager entry for DB password
-  ecs.tf              # cluster, task definition, service
-  alb.tf              # ALB, target group, listener, security groups
-  s3.tf               # frontend bucket + bucket policy for CloudFront OAC
-  cloudfront.tf       # distribution with two behaviors: default→S3, /api/*→ALB
-  iam.tf              # task execution role, task role, GitHub OIDC role
-  outputs.tf          # the live URL
-  README.md           # apply instructions
+After bootstrap, you have four output values you need to keep handy:
+
+```bash
+cd ../bootstrap
+terraform output
 ```
 
-### CI deploy workflow
+### 2. Set GitHub repo secrets + variables
 
-`.github/workflows/deploy-demo.yml` should:
+```bash
+gh secret set AWS_DEPLOY_ROLE_ARN --body "$(cd ../bootstrap && terraform output -raw github_actions_role_arn)"
+gh variable set TF_STATE_BUCKET --body "$(cd ../bootstrap && terraform output -raw tf_state_bucket)"
+gh variable set TF_LOCK_TABLE --body "$(cd ../bootstrap && terraform output -raw tf_lock_table)"
+gh variable set AWS_REGION --body "us-east-1"
+```
 
-1. Build the backend image with the layered-jar Dockerfile
-2. Push to ECR with the commit SHA as the tag
-3. Update the ECS task definition to point at the new image tag
-4. Force-new-deployment on the service
-5. Build the frontend with `VITE_API_BASE_URL=https://${cloudfront_domain}` and
-   `VITE_DEMO_MODE=true`
-6. Sync `dist/` to the S3 bucket
-7. Invalidate the CloudFront cache for `/index.html` (bundled assets are
-   content-hashed and never need invalidation)
+### 3. First apply (manual)
 
-### Sequencing
+The first apply has a chicken-and-egg with ECR: the ECS task definition
+references `<ecr-uri>:<sha>`, but ECR is empty. Two workarounds; pick one.
 
-Suggest this order, each a separate commit so a stuck step is easy to roll back:
+**Option A — apply with a placeholder image, push real one immediately after.**
+Recommended; lets the deploy workflow's image push fix the state on the next push.
 
-1. `task(14): bootstrap S3 state bucket + DynamoDB lock + OIDC role`
-2. `task(14): VPC + ECR + RDS + Secrets Manager`
-3. `task(14): ALB + ECS + first manual deploy`
-4. `task(14): S3 + CloudFront + frontend deploy`
-5. `task(14): GHA deploy-demo workflow + post-merge automation`
+```bash
+cd infra/terraform/demo-deploy
+terraform init \
+  -backend-config="bucket=$(cd ../bootstrap && terraform output -raw tf_state_bucket)" \
+  -backend-config="dynamodb_table=$(cd ../bootstrap && terraform output -raw tf_lock_table)" \
+  -backend-config="region=us-east-1"
+terraform apply -var "image_tag=placeholder"
+# ECS service will be in steady state with a failing task; that's expected.
+# Push your first commit to main and the deploy-demo.yml workflow takes over.
+```
 
-Each step is a `terraform apply` you run from your AWS-credentialed shell. The
-agent can write the HCL but cannot run the apply.
+**Option B — push an image first, then apply.** Slightly more involved but
+ECS comes up healthy on the first apply.
 
-## Today, this directory holds
+```bash
+# Build + push manually (one time):
+ECR_URL=$(aws ecr describe-repositories --repository-names weekly-commit-service --query 'repositories[0].repositoryUri' --output text)
+aws ecr get-login-password | docker login --username AWS --password-stdin "$ECR_URL"
+# But wait -- ECR repo doesn't exist yet because demo-deploy hasn't been
+# applied. Apply ECR-only first:
+terraform apply -target=aws_ecr_repository.backend -var "image_tag=placeholder"
+# Now build + push:
+docker build -f apps/weekly-commit-service/Dockerfile -t "$ECR_URL:initial" .
+docker push "$ECR_URL:initial"
+# Now full apply:
+terraform apply -var "image_tag=initial"
+```
 
-Nothing. Run `docker compose -f docker-compose.demo.yml up --build` from the
-repo root and the demo runs at <http://localhost:5173>.
+### 4. Verify
+
+```bash
+terraform output cloudfront_url
+# Open in a browser. CloudFront edge propagation takes a few minutes for
+# brand-new distributions; the deploy workflow's smoke check polls for up
+# to 5 minutes.
+```
+
+## Subsequent deploys
+
+After first apply, the GitHub Actions deploy workflow handles everything:
+push to main → terraform apply → image build + push → ECS rolling deploy →
+frontend build + S3 sync → CloudFront invalidation → smoke check.
+
+`workflow_dispatch` is also enabled with a `skip_terraform: true` input, useful
+if you only want to push fresh images without re-checking infra state.
+
+## Destroy
+
+```bash
+cd infra/terraform/demo-deploy
+terraform destroy
+cd ../bootstrap
+terraform destroy
+```
+
+If `force_destroy` on the S3 bucket fails (rare), empty the bucket manually
+first via `aws s3 rm s3://<bucket> --recursive`.
+
+## Production target
+
+This stack is **not** the PRD-aligned production target. Documented deviations
+([MEMO #11](../../../docs/MEMO.md#11-demo-deploy-ships-a-docker-compose-stack-first-aws-cloud-lift-is-a-follow-up-2026-04-27)):
+
+| Aspect            | Demo                       | Production target                |
+|-------------------|----------------------------|----------------------------------|
+| Compute           | ECS Fargate single task    | EKS + HPA, min 2 / max 6 tasks   |
+| Database          | RDS single-AZ              | RDS Multi-AZ                     |
+| Network           | Public subnets, no NAT     | Private subnets + NAT or VPCe    |
+| TLS at ALB        | HTTP-only (CloudFront fronts it) | HTTPS w/ ACM cert        |
+| Auth              | Self-signed JWT in browser | Real Auth0 tenant                |
+| Host integration  | Standalone SPA bundle      | Federated remote in PA host     |
+| Notification svc  | Logging-only               | Real notification-svc           |
+| RCDO upstream     | In-process stub            | Real RCDO host                   |
+| Domain            | Default *.cloudfront.net   | weekly-commit.<org>.com          |
+| GitOps            | GitHub Actions             | ArgoCD                           |
+| ECR images        | Plain                      | Image scan + signed tags         |
+| Audit retention   | None at infra level        | Backup retention 7d → S3 archive |
+
+Each row is a deliberate cost / scope reduction. The follow-up branch lifts
+each individually.
