@@ -1,0 +1,93 @@
+# Single-image Dockerfile -- frontend + backend in one Spring Boot jar.
+#
+# Used by the Railway deploy path (see infra/railway/SETUP.md and
+# .github/workflows/deploy-railway.yml). Railway hosts one service per
+# Postgres add-on at the budget tier we use (~$5-7/mo); two-service
+# deployments push past $10/mo. So instead of running nginx + Spring
+# separately like docker-compose.demo.yml does, we bake the frontend
+# `dist/` into the backend jar's classpath:/static/ and let Spring's
+# default ResourceHandlerRegistry serve it.
+#
+# The original apps/weekly-commit-service/Dockerfile (used by AWS ECS +
+# docker-compose.demo.yml) is unchanged. That two-image pattern still
+# works for the AWS path that's now dormant in infra/terraform/.
+
+# ---------- Stage 1: build frontend ----------
+FROM node:20-alpine AS frontend-build
+WORKDIR /workspace
+
+# Corepack-pinned yarn 4.5.0 (matches packageManager in root package.json).
+RUN corepack enable && corepack prepare yarn@4.5.0 --activate
+
+# Copy descriptors first so yarn install caches across iterative source
+# changes. Same pattern as apps/weekly-commit-ui/Dockerfile.
+COPY package.json yarn.lock .yarnrc.yml nx.json tsconfig.base.json ./
+COPY .yarn ./.yarn
+COPY apps/weekly-commit-ui/package.json ./apps/weekly-commit-ui/
+COPY libs/rtk-api-client/package.json ./libs/rtk-api-client/
+COPY libs/contracts/package.json ./libs/contracts/
+COPY libs/ui-components/package.json ./libs/ui-components/
+
+RUN yarn install --immutable
+
+COPY libs ./libs
+COPY apps/weekly-commit-ui ./apps/weekly-commit-ui
+
+# VITE_DEMO_MODE=true keeps the in-browser devAuth shim in the bundle so
+# the frontend can sign self-issued JWTs against the e2e-profile backend.
+# VITE_API_BASE_URL is empty -- the frontend talks to the same origin
+# (Spring is serving both static + API), so relative URLs work. RTK Query's
+# baseUrl logic in libs/rtk-api-client/src/api.ts treats empty == same-origin.
+ARG VITE_API_BASE_URL=""
+ARG VITE_DEMO_MODE=true
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+ENV VITE_DEMO_MODE=${VITE_DEMO_MODE}
+
+RUN yarn workspace @wc/weekly-commit-ui run build
+
+# ---------- Stage 2: build backend (with frontend baked in) ----------
+FROM eclipse-temurin:21-jdk-alpine AS backend-build
+WORKDIR /workspace
+
+COPY apps/weekly-commit-service/.mvn .mvn
+COPY apps/weekly-commit-service/mvnw .
+COPY apps/weekly-commit-service/pom.xml .
+RUN chmod +x ./mvnw && ./mvnw -B -q dependency:go-offline -DskipTests
+
+COPY apps/weekly-commit-service/src ./src
+
+# Copy the frontend bundle into the classpath:/static/ location Spring's
+# default ResourceHandlerRegistry serves automatically. Filenames are
+# content-hashed by Vite so cache headers can be aggressive; nginx-style
+# cache control comes from a Spring config (see WebMvcConfig).
+COPY --from=frontend-build /workspace/apps/weekly-commit-ui/dist/ ./src/main/resources/static/
+
+RUN ./mvnw -B -q package -DskipTests
+
+# Layered jar extraction so iterative rebuilds reuse the dependency layer.
+RUN java -Djarmode=layertools -jar target/weekly-commit-service.jar extract --destination /workspace/extracted
+
+# ---------- Stage 3: runtime ----------
+FROM eclipse-temurin:21-jre-alpine AS runtime
+RUN addgroup -S spring && adduser -S spring -G spring
+USER spring:spring
+WORKDIR /app
+
+COPY --from=backend-build --chown=spring:spring /workspace/extracted/dependencies/ ./
+COPY --from=backend-build --chown=spring:spring /workspace/extracted/spring-boot-loader/ ./
+COPY --from=backend-build --chown=spring:spring /workspace/extracted/snapshot-dependencies/ ./
+COPY --from=backend-build --chown=spring:spring /workspace/extracted/application/ ./
+
+# Default profile activation matches docker-compose.demo.yml: e2e for the
+# self-signed JWT decoder, demo for the in-process RCDO stub + DemoDataSeeder.
+# Railway's environment-variable injection overrides this if you set
+# SPRING_PROFILES_ACTIVE in the service config.
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=70 -XX:MaxGCPauseMillis=200" \
+    SPRING_PROFILES_ACTIVE="e2e,demo" \
+    SERVER_PORT=8080
+
+# Railway sets PORT at runtime to whatever it allocates. Spring honors
+# SERVER_PORT, so we map PORT -> SERVER_PORT in the entrypoint.
+EXPOSE 8080
+
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -Dserver.port=${PORT:-8080} org.springframework.boot.loader.launch.JarLauncher"]

@@ -48,6 +48,15 @@ public class SecurityConfig {
                     // spec-generation IT.
                     .requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/v3/api-docs.yaml")
                     .permitAll()
+                    // Frontend static assets served from classpath:/static/ when bundled
+                    // into the same jar (Railway / single-service deploy path -- see
+                    // apps/weekly-commit-service/Dockerfile.bundled). On AWS / dev where
+                    // the frontend is hosted separately these matchers don't match any
+                    // real request, so they're a no-op there. Listing each path explicitly
+                    // (rather than "/*") keeps the matcher tight enough that future API
+                    // routes added at the root won't accidentally fall under permitAll.
+                    .requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**")
+                    .permitAll()
                     // Admin surface (DLT replay, unassigned-employees report) requires ADMIN role
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")

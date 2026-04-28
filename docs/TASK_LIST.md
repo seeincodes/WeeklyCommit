@@ -175,7 +175,7 @@ Surfaced while writing group 13's `.feature` files. Groups 11 + 12 shipped the *
 - [ ] Once integrated: re-enable the four group-13 `.feature` files (currently `@pending`-tagged) and remove the tag
 
 ### 14. Infra
-References: [MVP14], [MVP18], [MVP20]; see [MEMO #12](MEMO.md#12-demo-deploy-ships-a-docker-compose-stack-first-aws-cloud-lift-is-a-follow-up-2026-04-27) for the demo-vs-production deployment split.
+References: [MVP14], [MVP18], [MVP20]; see [MEMO #12](MEMO.md#12-demo-deploy-ships-a-docker-compose-stack-first-aws-cloud-lift-is-a-follow-up-2026-04-27) for the demo-vs-production deployment split, and [MEMO #13](MEMO.md#13-active-demo-target-switched-from-aws-to-railway-under-the-10mo-budget-2026-04-28) for why the live demo target moved from AWS to Railway.
 
 **α-local demo (`task/14-aws-demo-deploy` branch, 2026-04-27):**
 
@@ -195,6 +195,16 @@ References: [MVP14], [MVP18], [MVP20]; see [MEMO #12](MEMO.md#12-demo-deploy-shi
 - [x] Runbook updated with the apply procedure + recovery paths (stuck deploy, stale CloudFront)
 - [ ] **First `terraform apply` from your AWS-credentialed session** — bootstrap then demo-deploy with placeholder image; first push to main fixes the image
 - [ ] Validate full IC + Manager flow against the live URL
+
+**Railway demo (`task/14-railway-deploy` branch, 2026-04-28 — code shipped, dashboard setup pending):**
+
+- [x] Single-image Dockerfile.bundled: stage 1 builds frontend (yarn + vite); stage 2 copies `dist/` into `apps/weekly-commit-service/src/main/resources/static/` then `mvn package` produces a Spring Boot jar that serves both the SPA bundle and the API
+- [x] `SecurityConfig` opens `/`, `/index.html`, `/favicon.ico`, `/assets/**` to `permitAll()` so the bundle loads unauthenticated; bundled JS mints JWTs in-browser via the existing devAuth shim
+- [x] `railway.toml` at repo root: builder=DOCKERFILE pointing at `Dockerfile.bundled`; healthcheck `/actuator/health/readiness`
+- [x] `.github/workflows/deploy-railway.yml`: preflight checks `RAILWAY_TOKEN`, then runs `railway up --service <name> --ci` and prints the live URL
+- [x] `infra/railway/SETUP.md`: dashboard walkthrough (project create + Postgres add-on + variable mapping + token generation + GH secrets)
+- [ ] **Railway dashboard one-time setup** — your hands; create project, attach Postgres, set env vars, generate token, paste into `gh secret set RAILWAY_TOKEN`
+- [ ] Validate full IC + Manager flow against the `*.up.railway.app` URL
 
 **Production target (deferred — needs Auth0 tenant + PA host coordination):**
 
