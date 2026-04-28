@@ -20,6 +20,11 @@ import org.hibernate.type.SqlTypes;
  * governed by {@code GET /api/v1/audit/plans/{id}} (MANAGER role or self; see docs/USER_FLOW.md).
  *
  * <p>No FK on {@code entityId} — see V5 migration note.
+ *
+ * <p>Not extending {@link AbstractAuditingEntity} — this table <em>is</em> the audit trail;
+ * layering {@code createdBy/createdDate/lastModifiedBy/lastModifiedDate} on top would duplicate
+ * {@code actorId/occurredAt} and imply rows can be modified (they cannot — append-only). See MEMO
+ * #15 for the full rationale and project-wide policy.
  */
 @Entity
 @Table(name = "audit_log")

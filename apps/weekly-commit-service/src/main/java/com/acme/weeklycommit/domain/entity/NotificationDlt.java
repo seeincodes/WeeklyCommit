@@ -17,7 +17,8 @@ import org.hibernate.type.SqlTypes;
  * the circuit is open (MEMO decision #2). Deleted by admin replay on success.
  *
  * <p>Not extending {@link AbstractAuditingEntity} — this table is populated by background retry
- * paths, not by user activity; standard audit fields would be misleading.
+ * paths, not by user activity; standard audit fields would be misleading. See MEMO #15 for the
+ * project-wide policy on which entities are auditing-exempt.
  */
 @Entity
 @Table(name = "notification_dlt")
