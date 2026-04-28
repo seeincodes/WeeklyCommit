@@ -20,9 +20,14 @@ WORKDIR /workspace
 RUN corepack enable && corepack prepare yarn@4.5.0 --activate
 
 # Copy descriptors first so yarn install caches across iterative source
-# changes. Same pattern as apps/weekly-commit-ui/Dockerfile.
+# changes. NOTE: we do NOT `COPY .yarn ./.yarn` -- the repo's .yarn/ contains
+# only .yarn/cache, .yarn/install-state.gz, and .yarn/unplugged, all of which
+# are dockerignored. With everything inside .yarn/ excluded, BuildKit fails
+# the checksum step on the directory itself ("/.yarn: not found") under
+# stricter builders like Railway's. Corepack-managed yarn 4.5.0 doesn't
+# require a local .yarn/ directory; `yarn install --immutable` reads
+# package.json + yarn.lock + .yarnrc.yml and resolves from the registry.
 COPY package.json yarn.lock .yarnrc.yml nx.json tsconfig.base.json ./
-COPY .yarn ./.yarn
 COPY apps/weekly-commit-ui/package.json ./apps/weekly-commit-ui/
 COPY libs/rtk-api-client/package.json ./libs/rtk-api-client/
 COPY libs/contracts/package.json ./libs/contracts/
