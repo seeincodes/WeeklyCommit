@@ -1,0 +1,138 @@
+# perf-pr — k6 latency gate for the hot read path.
+#
+# Separate from e2e-pr.yml because:
+#   - The compose stack is layered (e2e + perf override) to activate the
+#     `perf` Spring profile, which fires PerfDataSeeder (50 ICs / 50 plans /
+#     250 commits). Cypress doesn't need that row volume and would break.
+#   - The trigger paths are narrower: only changes that can affect server-
+#     side latency or the perf harness itself should pay this workflow's cost.
+#   - The job mints a Bearer JWT and runs k6 against localhost:8080 -- a
+#     different shape from the Cypress browser flow.
+# k6's threshold (p95<200ms) lives in current-week.k6.js; this workflow just
+# propagates k6's exit code and dumps backend logs + Prometheus timers on
+# failure so the developer can diagnose without re-running locally.
+
+name: perf-pr
+
+on:
+  pull_request:
+    paths:
+      - 'apps/weekly-commit-service/**'
+      - 'apps/weekly-commit-ui/perf/**'
+      - 'apps/weekly-commit-ui/docker-compose.perf.yml'
+      - 'apps/weekly-commit-ui/docker-compose.e2e.yml'
+      - 'apps/weekly-commit-ui/cypress/support/auth/keys/**'
+      - 'apps/weekly-commit-ui/package.json'
+      - '.github/workflows/perf-pr.yml'
+  push:
+    branches: [main]
+
+concurrency:
+  group: perf-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  k6-latency-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Corepack must activate Yarn 4.5.0 BEFORE actions/setup-node runs:
+      # setup-node's `cache: yarn` invokes `yarn` to discover the lockfile, and
+      # the runner's preinstalled Yarn 1.22.22 fails the `packageManager` gate
+      # in package.json. Enabling corepack first shims `yarn` to 4.5.0 globally.
+      - name: Enable Corepack + pin Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@4.5.0 --activate
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Setup JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Install JS deps
+        run: yarn install --immutable
+
+      # Backend JAR for the perf stack. -DskipTests because backend-pr.yml owns
+      # the full backend test matrix; this job only needs the runnable artifact
+      # at target/weekly-commit-service.jar (mounted by docker-compose.e2e.yml).
+      - name: Build backend JAR for the perf stack
+        working-directory: apps/weekly-commit-service
+        run: ./mvnw -B -DskipTests package
+
+      # Compose chaining: base (e2e) + override (perf). The override flips
+      # SPRING_PROFILES_ACTIVE to `e2e,perf` so PerfDataSeeder runs at startup.
+      # --wait blocks on Docker healthchecks, NOT on @PostConstruct completion;
+      # the next step closes that gap.
+      - name: Bring up perf stack (e2e + perf compose chain)
+        working-directory: apps/weekly-commit-ui
+        run: docker compose -f docker-compose.e2e.yml -f docker-compose.perf.yml up -d --wait
+
+      # Healthcheck passes as soon as Spring's actuator answers, but the seeder
+      # runs on a @PostConstruct hook that may still be inserting 250 commits.
+      # Running k6 before the seeder finishes would benchmark a half-empty DB
+      # and produce false-green p95 numbers. Poll the marker line for 60s; if
+      # it never lands the seeder failed silently and the rest is meaningless.
+      - name: Wait for PerfDataSeeder to finish
+        working-directory: apps/weekly-commit-ui
+        run: |
+          for i in {1..60}; do
+            if docker compose -f docker-compose.e2e.yml -f docker-compose.perf.yml logs weekly-commit-service 2>&1 | grep -q '\[perf-seeder\] done'; then
+              echo "PerfDataSeeder finished after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "PerfDataSeeder did not signal completion within 60s; tailing logs:"
+          docker compose -f docker-compose.e2e.yml -f docker-compose.perf.yml logs --no-color weekly-commit-service | tail -100
+          exit 1
+
+      - name: Install k6
+        uses: grafana/setup-k6-action@v1
+
+      # Mint a Bearer JWT for the k6 VUs. add-mask is critical: without it the
+      # token would be visible in any subsequent step that prints $WC_PERF_JWT
+      # (or in `set -x` traces). The masking applies to the entire job, so even
+      # an accidental `echo $WC_PERF_JWT` later stays redacted in logs.
+      - name: Mint perf JWT
+        id: jwt
+        working-directory: apps/weekly-commit-ui
+        run: |
+          TOKEN=$(yarn run perf:sign-jwt)
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      # k6 enforces the threshold (p95<200ms) inside current-week.k6.js and
+      # exits non-zero if it trips -- which fails this step and the workflow.
+      - name: k6 — GET /plans/me/current p95<200ms
+        env:
+          WC_PERF_JWT: ${{ steps.jwt.outputs.token }}
+        run: k6 run apps/weekly-commit-ui/perf/current-week.k6.js
+
+      # On failure, give the developer enough signal to diagnose without
+      # re-running locally: app logs (stack traces, slow-query warnings) and
+      # the @Timed Prometheus histograms (per-method in-process latency,
+      # which can disambiguate "slow endpoint" from "slow downstream").
+      - name: Show backend logs on failure
+        if: failure()
+        working-directory: apps/weekly-commit-ui
+        run: docker compose -f docker-compose.e2e.yml -f docker-compose.perf.yml logs --no-color weekly-commit-service
+
+      - name: Show /actuator/prometheus on failure (wc.* timers)
+        if: failure()
+        run: curl -s http://localhost:8080/actuator/prometheus | grep -E '^(# HELP |# TYPE |)wc_' || true
+
+      - name: Tear down stack
+        if: always()
+        working-directory: apps/weekly-commit-ui
+        run: docker compose -f docker-compose.e2e.yml -f docker-compose.perf.yml down -v

@@ -119,6 +119,18 @@
       <groupId>io.micrometer</groupId>
       <artifactId>micrometer-registry-cloudwatch2</artifactId>
     </dependency>
+    <!--
+      AOP starter is required for `@Timed` to actually fire. Micrometer's
+      TimedAspect (registered as a @Bean in MetricsConfig) is an AspectJ
+      around-advice, and Spring's auto-proxy infrastructure ships in this
+      starter. Without it, @Timed annotations compile fine but become
+      silent no-ops at runtime — the worst possible failure mode for a
+      perf observability layer. See MetricsConfig.java for the bean wiring.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-aop</artifactId>
+    </dependency>
 
     <!-- DTO mapping -->
     <dependency>
