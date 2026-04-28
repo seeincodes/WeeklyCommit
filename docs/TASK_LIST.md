@@ -187,12 +187,13 @@ References: [MVP14], [MVP18], [MVP20]; see [MEMO #12](MEMO.md#12-demo-deploy-shi
 - [x] `docs/runbook.md` covering local demo, state-machine recovery, DLT replay, scheduled-job re-run, remote rollback, legal escalation
 - [x] `infra/terraform/demo-deploy/README.md` placeholder + AWS-lift plan
 
-**Cloud lift (deferred — needs your AWS account + first-apply session):**
+**Cloud lift (`task/14-aws-cloud-lift` branch, 2026-04-27 — code shipped, apply pending):**
 
-- [ ] Terraform: VPC + 2 public subnets + IGW; ECR; RDS db.t4g.micro single-AZ (deviation from PRD's Multi-AZ — cost compromise per MEMO #12); ECS Fargate cluster + task; ALB; S3; CloudFront with `/api/*` → ALB + default → S3; IAM (task exec, task, OIDC); Secrets Manager for DB password
-- [ ] CloudWatch log groups + alarms: DLT < 1h, scheduled-job ≥2 consecutive failures, RDS CPU > 80%
-- [ ] GitHub Actions `deploy-demo.yml`: build + push backend image to ECR, force-new-deployment on ECS, build + push frontend to S3 + invalidate CloudFront `/index.html`
-- [ ] First `terraform apply` from your AWS-credentialed session (agent cannot apply)
+- [x] Bootstrap module (`infra/terraform/bootstrap/`): S3 state bucket + DynamoDB lock + GitHub OIDC provider + GHA deploy role
+- [x] demo-deploy stack (`infra/terraform/demo-deploy/`): VPC + 2 public subnets + IGW; ECR + lifecycle; RDS db.t4g.micro single-AZ + Secrets Manager; ECS Fargate cluster + task definition + service; ALB + target group + listener; S3 + CloudFront OAC; CloudFront distribution with `/api/*` and `/actuator/*` → ALB + default → S3; CloudWatch alarms (RDS CPU, ECS running task count); IAM roles (task exec, task)
+- [x] GitHub Actions `deploy-demo.yml`: terraform apply → backend image build + ECR push + ECS force-new-deployment → frontend build + S3 sync + CloudFront invalidate `/index.html` → smoke check curl on the live URL
+- [x] Runbook updated with the apply procedure + recovery paths (stuck deploy, stale CloudFront)
+- [ ] **First `terraform apply` from your AWS-credentialed session** — bootstrap then demo-deploy with placeholder image; first push to main fixes the image
 - [ ] Validate full IC + Manager flow against the live URL
 
 **Production target (deferred — needs Auth0 tenant + PA host coordination):**

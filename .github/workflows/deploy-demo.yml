@@ -1,0 +1,264 @@
+name: deploy-demo
+
+# Deploys the demo stack to AWS on push to main. Two prerequisites that the
+# repo owner sets up via `infra/terraform/bootstrap`:
+#
+#   - Repo secrets: AWS_DEPLOY_ROLE_ARN
+#   - Repo variables: TF_STATE_BUCKET, TF_LOCK_TABLE, AWS_REGION (default us-east-1)
+#
+# Without those, the workflow fails at the configure-credentials step with
+# a clear "missing secret" error -- safer than running with the wrong
+# credentials.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/weekly-commit-service/**'
+      - 'apps/weekly-commit-ui/**'
+      - 'libs/**'
+      - 'infra/terraform/demo-deploy/**'
+      - '.github/workflows/deploy-demo.yml'
+  workflow_dispatch:
+    inputs:
+      skip_terraform:
+        description: 'Skip terraform plan/apply (true if you only want to push images and refresh the deploy)'
+        required: false
+        default: 'false'
+
+# Only one deploy at a time. ECS rolling deploys + CloudFront invalidations
+# don't tolerate parallel runs cleanly.
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # for OIDC token issuance to AWS
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+jobs:
+  # ---------------- Terraform plan/apply ----------------
+
+  terraform:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    if: ${{ inputs.skip_terraform != 'true' }}
+    outputs:
+      cloudfront_distribution_id: ${{ steps.tf_output.outputs.cloudfront_distribution_id }}
+      frontend_s3_bucket: ${{ steps.tf_output.outputs.frontend_s3_bucket }}
+      ecr_repository_url: ${{ steps.tf_output.outputs.ecr_repository_url }}
+      ecs_cluster_name: ${{ steps.tf_output.outputs.ecs_cluster_name }}
+      ecs_service_name: ${{ steps.tf_output.outputs.ecs_service_name }}
+      cloudfront_url: ${{ steps.tf_output.outputs.cloudfront_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+
+      - name: Terraform init
+        working-directory: infra/terraform/demo-deploy
+        env:
+          TF_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          TF_LOCK: ${{ vars.TF_LOCK_TABLE }}
+        run: |
+          terraform init \
+            -backend-config="bucket=${TF_BUCKET}" \
+            -backend-config="dynamodb_table=${TF_LOCK}" \
+            -backend-config="region=${AWS_REGION}"
+
+      - name: Terraform plan
+        working-directory: infra/terraform/demo-deploy
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # image_tag is set to the GitHub SHA so a fresh apply always pulls
+          # the just-built image. The build-backend job pushes that tag
+          # before this step runs (job ordering below).
+          terraform plan \
+            -var "image_tag=${IMAGE_TAG}" \
+            -out=tfplan
+
+      - name: Terraform apply
+        working-directory: infra/terraform/demo-deploy
+        run: terraform apply -auto-approve tfplan
+
+      - name: Capture outputs
+        id: tf_output
+        working-directory: infra/terraform/demo-deploy
+        run: |
+          {
+            echo "cloudfront_distribution_id=$(terraform output -raw cloudfront_distribution_id)"
+            echo "frontend_s3_bucket=$(terraform output -raw frontend_s3_bucket)"
+            echo "ecr_repository_url=$(terraform output -raw ecr_repository_url)"
+            echo "ecs_cluster_name=$(terraform output -raw ecs_cluster_name)"
+            echo "ecs_service_name=$(terraform output -raw ecs_service_name)"
+            echo "cloudfront_url=$(terraform output -raw cloudfront_url)"
+          } >> "$GITHUB_OUTPUT"
+
+  # ---------------- Build + push backend image ----------------
+
+  build-backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    needs: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build backend image
+        env:
+          ECR_URL: ${{ needs.terraform.outputs.ecr_repository_url }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -f apps/weekly-commit-service/Dockerfile \
+            -t "${ECR_URL}:${IMAGE_TAG}" \
+            -t "${ECR_URL}:latest" \
+            .
+
+      - name: Push backend image
+        env:
+          ECR_URL: ${{ needs.terraform.outputs.ecr_repository_url }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker push "${ECR_URL}:${IMAGE_TAG}"
+          docker push "${ECR_URL}:latest"
+
+      - name: Force ECS service to redeploy
+        env:
+          CLUSTER: ${{ needs.terraform.outputs.ecs_cluster_name }}
+          SERVICE: ${{ needs.terraform.outputs.ecs_service_name }}
+        run: |
+          aws ecs update-service \
+            --cluster "${CLUSTER}" \
+            --service "${SERVICE}" \
+            --force-new-deployment \
+            > /dev/null
+          # Wait for deployment to stabilize. Bounded at 10 minutes; if it
+          # exceeds that the workflow fails (intentional -- a hung deploy
+          # is louder than a silent one).
+          aws ecs wait services-stable \
+            --cluster "${CLUSTER}" \
+            --services "${SERVICE}"
+
+  # ---------------- Build + push frontend ----------------
+
+  build-frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: terraform
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enable Corepack + pin Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@4.5.0 --activate
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: yarn
+
+      - name: Install
+        run: yarn install --immutable
+
+      - name: Build frontend
+        env:
+          # The bundled fetch URL points at the same CloudFront domain --
+          # the distribution routes /api/* + /actuator/* to the ALB and
+          # everything else to S3. Same-origin from the browser's POV.
+          VITE_API_BASE_URL: ${{ needs.terraform.outputs.cloudfront_url }}
+          VITE_DEMO_MODE: 'true'
+          GIT_SHA: ${{ github.sha }}
+        run: yarn workspace @wc/weekly-commit-ui run build
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync to S3
+        env:
+          BUCKET: ${{ needs.terraform.outputs.frontend_s3_bucket }}
+        run: |
+          # Sync everything; for /assets/ (content-hashed) we set immutable
+          # caching, for /index.html we set no-cache so users get the new
+          # bundle immediately. Two passes -- one for static assets, one
+          # for the entry point.
+          aws s3 sync apps/weekly-commit-ui/dist/ "s3://${BUCKET}/" \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "index.html"
+          aws s3 cp apps/weekly-commit-ui/dist/index.html "s3://${BUCKET}/index.html" \
+            --cache-control "public, max-age=0, must-revalidate"
+
+      - name: Invalidate CloudFront /index.html
+        env:
+          DIST_ID: ${{ needs.terraform.outputs.cloudfront_distribution_id }}
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${DIST_ID}" \
+            --paths "/index.html" \
+            > /dev/null
+
+  # ---------------- Smoke check ----------------
+
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [terraform, build-backend, build-frontend]
+    steps:
+      - name: Wait + curl the live URL
+        env:
+          URL: ${{ needs.terraform.outputs.cloudfront_url }}
+        run: |
+          # CloudFront propagation is fast for behavior changes (seconds),
+          # but the first apply can take 20+ minutes for a brand-new
+          # distribution to reach all edges. Give it 5 minutes max here;
+          # if it's slower than that on a redeploy something is wrong.
+          for i in {1..30}; do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "${URL}/")
+            if [ "$CODE" = "200" ]; then
+              echo "✅ ${CODE} from ${URL}/"
+              exit 0
+            fi
+            echo "Got $CODE; retrying in 10s ($i/30)..."
+            sleep 10
+          done
+          echo "❌ Live URL never returned 200. Investigate ECS task logs + CloudFront state."
+          exit 1
+      - name: Print live URL
+        if: success()
+        env:
+          URL: ${{ needs.terraform.outputs.cloudfront_url }}
+        run: |
+          {
+            echo "## Live URL"
+            echo ""
+            echo "👉 ${URL}/"
+          } >> "$GITHUB_STEP_SUMMARY"

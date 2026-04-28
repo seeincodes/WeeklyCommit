@@ -79,16 +79,63 @@ you create during the demo.
 
 ---
 
-## AWS demo deploy (deferred)
+## AWS demo deploy
 
 See [`infra/terraform/demo-deploy/README.md`](../infra/terraform/demo-deploy/README.md)
-for the planned AWS lift. This is intentionally not done on the
-`task/14-aws-demo-deploy` branch — first-apply requires AWS credentials that
-only you have, and the docker-compose stack validates the application end-to-end
-before committing to cloud spend.
+for the full apply procedure. Quick version:
 
-When you're ready to do the AWS apply, the follow-up branch will cost
-**~$48/month** to keep running.
+```bash
+# 1. Bootstrap (one time, your AWS-credentialed shell)
+cd infra/terraform/bootstrap
+terraform init
+terraform apply
+
+# 2. Save the four bootstrap outputs as repo secrets/vars
+gh secret set AWS_DEPLOY_ROLE_ARN --body "$(terraform output -raw github_actions_role_arn)"
+gh variable set TF_STATE_BUCKET --body "$(terraform output -raw tf_state_bucket)"
+gh variable set TF_LOCK_TABLE --body "$(terraform output -raw tf_lock_table)"
+gh variable set AWS_REGION --body "us-east-1"
+
+# 3. First apply of the demo stack (placeholder image; first push to main fixes it)
+cd ../demo-deploy
+terraform init \
+  -backend-config="bucket=$(cd ../bootstrap && terraform output -raw tf_state_bucket)" \
+  -backend-config="dynamodb_table=$(cd ../bootstrap && terraform output -raw tf_lock_table)" \
+  -backend-config="region=us-east-1"
+terraform apply -var "image_tag=placeholder"
+
+# 4. The next push to main triggers .github/workflows/deploy-demo.yml,
+#    which builds the real image, deploys it, and prints the live URL.
+
+# 5. Get the live URL anytime:
+terraform output -raw cloudfront_url
+```
+
+Cost: ~$43/month while running. `terraform destroy` (in both stacks, demo-deploy first)
+to bring the bill back to zero.
+
+### Recovery from a stuck deploy
+
+If `deploy-demo.yml` hangs at `aws ecs wait services-stable`:
+
+1. Check the ECS service events: `aws ecs describe-services --cluster weekly-commit-demo-cluster --services weekly-commit-demo-backend`
+2. Common causes:
+   - **Image pull failure** — first deploy with no image yet. Push manually with `docker push <ecr-uri>:<sha>` and re-run the workflow with `skip_terraform: true`.
+   - **Health check failing** — the task is starting but `/actuator/health/readiness` is returning non-200. Check ECS task logs in CloudWatch (`/ecs/weekly-commit-demo/backend`).
+   - **Subnet routing** — the public subnet's route table is missing the IGW route. Re-apply terraform.
+3. To force-stop a stuck deploy: `aws ecs update-service --cluster ... --service ... --desired-count 0` then re-deploy with `--desired-count 1`.
+
+### Recovery from CloudFront serving stale content
+
+CloudFront caches the bundle. After a successful deploy, if users see the old version:
+
+1. The deploy workflow already invalidates `/index.html`. If you suspect a cache-policy bug, manually invalidate everything:
+   ```bash
+   aws cloudfront create-invalidation \
+     --distribution-id $(cd infra/terraform/demo-deploy && terraform output -raw cloudfront_distribution_id) \
+     --paths "/*"
+   ```
+2. If the bundle's hashed filenames are correct but the served `index.html` references old hashes, the S3 sync's `--delete` flag should have already removed the old bundle. Confirm with `aws s3 ls s3://<bucket>`.
 
 ---
 
