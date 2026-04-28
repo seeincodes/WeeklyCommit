@@ -54,6 +54,14 @@ RUN yarn workspace @wc/weekly-commit-ui run build
 FROM eclipse-temurin:21-jdk-alpine AS backend-build
 WORKDIR /workspace
 
+# alpine doesn't ship curl by default; the Maven wrapper's bootstrap step
+# uses curl to download maven-wrapper.jar on first run. Without it, mvnw
+# exits 127 ("curl: not found") under stricter builders like Railway's
+# Metal builder. Local Docker Desktop tolerates the missing curl because
+# the wrapper falls through to a `wget` branch -- but Railway's image
+# doesn't ship wget either. Install curl explicitly.
+RUN apk add --no-cache curl
+
 COPY apps/weekly-commit-service/.mvn .mvn
 COPY apps/weekly-commit-service/mvnw .
 COPY apps/weekly-commit-service/pom.xml .
