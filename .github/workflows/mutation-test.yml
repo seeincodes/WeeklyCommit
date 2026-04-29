@@ -51,9 +51,15 @@ jobs:
             echo "::warning ::No PITest report found at $REPORT"
             exit 0
           fi
-          TOTAL=$(grep -c "<mutation " "$REPORT" || echo 0)
-          KILLED=$(grep -c 'detected="true"' "$REPORT" || echo 0)
-          if [ "$TOTAL" -gt 0 ]; then
+          # grep -c prints the count AND exits 1 when zero matches; under
+          # `set -e` the previous `|| echo 0` produced "0\n0" which then
+          # broke the arithmetic expansion below. `|| true` swallows the
+          # exit code and lets grep's own "0" stand on its own.
+          # PIT emits attributes with single quotes (detected='true'), so
+          # match either quote style to stay robust across PIT versions.
+          TOTAL=$(grep -c "<mutation " "$REPORT" || true)
+          KILLED=$(grep -cE "detected=['\"]true['\"]" "$REPORT" || true)
+          if [ "${TOTAL:-0}" -gt 0 ]; then
             SCORE=$(( 100 * KILLED / TOTAL ))
             echo "Mutation score: ${KILLED}/${TOTAL} = ${SCORE}%"
             if [ "$SCORE" -lt 70 ]; then
