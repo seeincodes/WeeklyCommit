@@ -31,6 +31,44 @@ Copy this block when adding a new entry. Put new entries at the top of the `## L
 
 ## Log
 
+### 2026-04-29 — `mutation-test` nightly red for 4 nights: PIT scores 0% on JUnit-5 codebase
+
+**Error**
+```
+PIT >> WARNING : JUnit 5 is on the classpath but the pitest junit 5 plugin is not installed.
+...
+>> Generated 21 mutations Killed 0 (0%)
+>> Mutations with no coverage 21. Test strength 100%
+>> Ran 0 tests (0 tests per mutation)
+[ERROR] Failed to execute goal org.pitest:pitest-maven:1.17.0:mutationCoverage:
+        Mutation score of 0 is below threshold of 70
+
+# and on the next step:
+target/_temp/<sh>: line 9: 0
+0: syntax error in expression (error token is "0")
+```
+
+**Context**
+Scheduled `mutation-test` workflow (03:15 UTC nightly). Failed every night since 2026-04-26. Targets `service.statemachine.*` against `*Test` classes; the JUnit-5 unit test `WeeklyPlanStateMachineTest` exists (242 LOC across 153 LOC of state-machine code), but PIT was running zero of those tests.
+
+**Root Cause**
+Three stacked bugs, masked by each other:
+
+1. **PIT JUnit 5 plugin missing.** `pitest-maven` defaults to a JUnit 4 runner. Without `pitest-junit5-plugin` declared as a `<dependency>` of the plugin, PIT enumerates mutants from bytecode but the runner can't discover any `@Test` methods → 0 tests run → every mutation reported as `NO_COVERAGE` → score 0% → `mutationThreshold=70` trips → BUILD FAILURE.
+2. **`grep -c … || echo 0` double-prints under `set -e`.** `grep -c` *always* prints a count to stdout, but exits 1 when zero matches. `$(grep -c … || echo 0)` then captures `"0\n0"` (grep's "0" + echo's "0"). Arithmetic expansion `$((100 * KILLED / TOTAL))` chokes on the embedded newline. Failed independently from #1.
+3. **PIT report uses single quotes.** `mutations.xml` emits `detected='true'` (single-quoted attributes); the workflow grep used `detected="true"` (double-quoted), so KILLED was always 0 regardless of true score. Latent bug masked by #1 — without #1, any successful run would still have reported 0% and warned (or, with #2's broken arithmetic, crashed).
+
+**Fix**
+- [apps/weekly-commit-service/pom.xml](../apps/weekly-commit-service/pom.xml) — add `pitest-junit5-plugin:1.2.3` as a `<dependency>` of `pitest-maven` in the `pitest` profile; pin the version to a new `${pitest.junit5.version}` property.
+- [.github/workflows/mutation-test.yml](../.github/workflows/mutation-test.yml) — `|| echo 0` → `|| true`, default empty TOTAL to 0 via `${TOTAL:-0}`, and use `grep -cE "detected=['\"]true['\"]"` to match either quote style.
+
+Verified locally: `./mvnw -B -Ppitest test-compile org.pitest:pitest-maven:mutationCoverage` reports `Mutation score: 20/21 = 95%`, BUILD SUCCESS. Summary script replayed against the real report and a synthetic zero-match report — both clean.
+
+**Prevention**
+- The "nightly red for days, no one looked" pattern is the real failure here. Consider auto-opening a GitHub issue (or pinging the team) on three consecutive `mutation-test` failures so latent CI rot can't sit unnoticed.
+- For future PIT version bumps, add a smoke assertion: `grep -q "JUnit 5 test framework support" pit.log` after the run, so a missing/incompatible plugin trips a louder alarm than a silent 0% score.
+- For shell scripts in workflows: `bash -e` + `grep -c` + `||` is a known footgun. Default to `|| true` (rescue-only) and use `${VAR:-0}` to default empty captures, never `|| echo 0`.
+
 ### 2026-04-27 — `cypress-cucumber` CI fails at compose-up: `container weekly-commit-ui-rcdo-stub-1 is unhealthy`
 
 **Error**

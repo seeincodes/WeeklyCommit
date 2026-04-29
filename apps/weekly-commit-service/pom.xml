@@ -32,6 +32,7 @@
     <spotbugs.version>4.8.6.4</spotbugs.version>
     <jacoco.version>0.8.12</jacoco.version>
     <pitest.version>1.17.0</pitest.version>
+    <pitest.junit5.version>1.2.3</pitest.junit5.version>
     <google-java-format.version>1.24.0</google-java-format.version>
 
     <!-- Coverage thresholds (PRD [MVP12] + TESTING_STRATEGY.md) -->
@@ -463,6 +464,16 @@
             <groupId>org.pitest</groupId>
             <artifactId>pitest-maven</artifactId>
             <version>${pitest.version}</version>
+            <dependencies>
+              <!-- PIT defaults to JUnit 4; this codebase is JUnit 5 (Jupiter).
+                   Without this plugin PIT enumerates mutants but runs zero tests,
+                   producing a 0% score and tripping the mutationThreshold gate. -->
+              <dependency>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-junit5-plugin</artifactId>
+                <version>${pitest.junit5.version}</version>
+              </dependency>
+            </dependencies>
             <configuration>
               <targetClasses>
                 <param>com.acme.weeklycommit.service.statemachine.*</param>
